@@ -43,6 +43,11 @@
   function teams() { return currentEvent().teams || []; }
   function teamById(id) { return teams().find((t) => t.id === id) || teams()[0]; }
 
+  function setTitle(name) {
+    const t = String(name || "").trim();
+    document.title = t || "Välj lopp";
+  }
+
   function persist() {
     if (isViewOnly()) return;
     try {
@@ -189,6 +194,7 @@
     document.body.classList.remove("editing");
     chooserEl.classList.add("open");
     renderChooser();
+    setTitle("Välj lopp");
   }
 
   function closeChooser() {
@@ -325,7 +331,7 @@
     selected = g.stops.length ? Math.max(0, Math.min(idx, g.stops.length - 1)) : 0;
     if (!fromHash) setHash(currentId, currentMode, selected, false);
     document.documentElement.style.setProperty("--accent", g.color || "#3b82f6");
-    document.title = currentEvent().name + " · Mattor";
+    setTitle(currentEvent().name);
     paintTeamBar();
     modeBar.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === currentMode)));
     gmapsLink.href = googleDir(g);
@@ -657,6 +663,7 @@
     persist();
     renderTeamBar();
     paintTeamBar();
+    setTitle(ev.name);
   }
 
   function savePoint(i) {
