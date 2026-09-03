@@ -42,7 +42,23 @@
   function teamById(id) { return teams().find((t) => t.id === id) || teams()[0]; }
 
   function persist() {
+    if (isViewOnly()) return;
     M.saveStore(store);
+  }
+
+  function isViewOnly() {
+    const p = new URLSearchParams(location.search);
+    if (!p.has("view")) return false;
+    const v = p.get("view");
+    return v === "" || v === "1" || v === "true";
+  }
+
+  function applyViewMode() {
+    document.body.classList.toggle("view-only", isViewOnly());
+  }
+
+  function pathWithHash(hash) {
+    return location.pathname + location.search + hash;
   }
 
   function visitKey(teamId, label) {
@@ -99,19 +115,19 @@
   function setHash(id, mode, idx, replace) {
     const hash = hashFor(id, mode, idx);
     ignoreHash = true;
-    if (replace) history.replaceState(null, "", hash);
-    else if (location.hash !== hash) history.pushState(null, "", hash);
+    if (replace) history.replaceState(null, "", pathWithHash(hash));
+    else if (location.hash !== hash) history.pushState(null, "", pathWithHash(hash));
     setTimeout(() => { ignoreHash = false; }, 0);
   }
   function shareUrl() {
     const base = (location.protocol === "https:" ? location.origin + location.pathname : PUBLIC_BASE).replace(/\/?$/, "/");
     const ev = currentEvent();
-    const simple = base + hashFor(currentId, currentMode, selected).replace(/^#/, "#");
-    if (ev.id === "hbgm26" && !store.customized) return simple;
+    const hash = hashFor(currentId, currentMode, selected);
+    if (ev.id === "hbgm26" && !store.customized) return base + "?view=1" + hash;
     try {
-      return base + "?e=" + M.encodeEvent(ev) + hashFor(currentId, currentMode, selected);
+      return base + "?e=" + M.encodeEvent(ev) + "&view=1" + hash;
     } catch (e) {
-      return simple;
+      return base + "?view=1" + hash;
     }
   }
 
@@ -604,6 +620,7 @@
   }
 
   function newEvent() {
+    if (isViewOnly()) return;
     saveEditorFields();
     const ev = {
       id: M.uid("lopp"),
@@ -687,6 +704,7 @@
   }
 
   function openEditor() {
+    if (isViewOnly()) return;
     more.style.display = "none";
     editTeamId = currentId;
     document.body.classList.add("editing");
@@ -795,12 +813,14 @@
   });
   document.getElementById("editorDone").addEventListener("click", closeEditor);
   document.getElementById("exportBtn").addEventListener("click", () => {
+    if (isViewOnly()) return;
     more.style.display = "none";
     const ev = currentEvent();
     download((ev.name || "lopp").replace(/\s+/g, "-") + ".json", JSON.stringify(M.compactEvent(ev), null, 2));
     showToast("Fil sparad");
   });
   document.getElementById("importBtn").addEventListener("click", () => {
+    if (isViewOnly()) return;
     more.style.display = "none";
     document.getElementById("importFile").click();
   });
@@ -831,7 +851,7 @@
     }
     try {
       await navigator.clipboard.writeText(url);
-      showToast("Länk kopierad");
+      showToast("Visningslänk kopierad");
     } catch {
       prompt("Kopiera länken", url);
     }
@@ -850,6 +870,7 @@
   new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById("map"));
 
   async function start() {
+    applyViewMode();
     const params = new URLSearchParams(location.search);
     const packed = params.get("e");
     store = M.loadStore();
@@ -859,6 +880,19 @@
     if (packed) {
       try {
         const ev = M.decodeEvent(packed);
+        if (isViewOnly()) {
+          store = { currentEventId: ev.id, customized: true, events: [ev] };
+          setBusy(true, "Laddar körvägar…");
+          try {
+            for (const t of ev.teams) {
+              busyText.textContent = "Beräknar " + t.name + "…";
+              await M.recalcTeam(t);
+            }
+          } catch (e) {}
+          setBusy(false);
+          bootView();
+          return;
+        }
         await applyImported(ev);
         history.replaceState(null, "", location.pathname + location.hash);
         return;
