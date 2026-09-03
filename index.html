@@ -372,12 +372,20 @@
     .chooser h1 { margin: 0 0 8px; font-size: 1.6rem; }
     .chooser p { color: var(--muted); margin: 0 0 20px; }
     .chooser-item {
-      width: 100%; text-align: left;
-      min-height: 64px; margin-bottom: 10px;
+      flex: 1;
+      text-align: left;
+      min-height: 64px;
       border: 1px solid var(--line); border-radius: 14px;
       background: #10161c; color: var(--text);
       padding: 14px 16px; font: inherit;
     }
+    .chooser-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: stretch;
+    }
+    .chooser-del { min-width: 88px; }
     .chooser-item strong { display: block; font-size: 1.15rem; }
     .chooser-item span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
     .chooser .edit-actions { margin-top: 8px; }
@@ -450,8 +458,8 @@
   <input type="file" id="importFile" accept="application/json,.json" hidden />
   <div class="toast" id="toast">Länk kopierad</div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
   <script src="routes.js?v=8"></script>
-  <script src="ui.js?v=18"></script>
+  <script src="ui.js?v=19"></script>
 </body>
 </html>
