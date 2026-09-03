@@ -103,8 +103,19 @@
     };
   }
 
-  function parseHash() {
+  function hashParts() {
     const parts = (location.hash || "").replace(/^#/, "").split("/").filter(Boolean);
+    if (parts[0] && parts[0].indexOf("e.") === 0) parts.shift();
+    return parts;
+  }
+  function packedFromUrl() {
+    const q = new URLSearchParams(location.search).get("e");
+    if (q) return String(q).replace(/\s+/g, "");
+    const p0 = (location.hash || "").replace(/^#/, "").split("/")[0] || "";
+    return p0.indexOf("e.") === 0 ? p0.slice(2) : "";
+  }
+  function parseHash() {
+    const parts = hashParts();
     const list = teams();
     let id = (list[0] && list[0].id) || "";
     let mode = "kortast";
@@ -130,15 +141,26 @@
     else if (location.hash !== hash) history.pushState(null, "", pathWithHash(hash));
     setTimeout(() => { ignoreHash = false; }, 0);
   }
-  function shareUrl() {
-    const base = (location.protocol === "https:" ? location.origin + location.pathname : PUBLIC_BASE).replace(/\/?$/, "/");
-    const ev = currentEvent();
-    const hash = hashFor(currentId, currentMode, selected);
-    if (ev.id === "hbgm26" && !store.customized) return base + "?view=1&lopp=hbgm26" + hash;
+  function isStockHbgm(ev) {
+    if (!ev || ev.id !== "hbgm26" || !window.HBGM_ROUTES) return false;
     try {
-      return base + "?e=" + M.encodeEvent(ev) + "&view=1" + hash;
+      return JSON.stringify(M.compactEvent(ev)) === JSON.stringify(M.compactEvent(M.eventFromSeed(window.HBGM_ROUTES)));
     } catch (e) {
-      return base + "?view=1" + hash;
+      return true;
+    }
+  }
+  function shareUrl() {
+    const base = PUBLIC_BASE.replace(/\/?$/, "/");
+    const ev = currentEvent();
+    const hash = hashFor(currentId || ((ev.teams && ev.teams[0] && ev.teams[0].id) || ""), currentMode, selected);
+    if (isStockHbgm(ev)) return base + "?view=1&lopp=hbgm26" + hash;
+    try {
+      const packed = M.encodeEvent(ev);
+      const short = base + "?view=1&e=" + packed + hash;
+      if (short.length <= 1800) return short;
+      return base + "?view=1#e." + packed + "/" + hash.slice(1);
+    } catch (e) {
+      return base + "?view=1&lopp=hbgm26" + hash;
     }
   }
 
@@ -964,15 +986,6 @@
   document.getElementById("share").addEventListener("click", async (ev) => {
     ev.preventDefault();
     const url = shareUrl();
-    if (location.protocol === "https:" && navigator.share) {
-      try {
-        const g = viewOf(currentId, currentMode);
-        await navigator.share({ title: currentEvent().name + " " + g.name, text: (g.stops[selected] || {}).label || g.name, url });
-        return;
-      } catch (err) {
-        if (err && err.name === "AbortError") return;
-      }
-    }
     try {
       await navigator.clipboard.writeText(url);
       showToast("Visningslänk kopierad");
@@ -1005,7 +1018,7 @@
   async function start() {
     applyViewMode();
     const params = new URLSearchParams(location.search);
-    const packed = params.get("e");
+    const packed = packedFromUrl();
     const lopp = params.get("lopp");
     store = M.loadStore();
     if (!store) {
@@ -1043,6 +1056,7 @@
         const ev = M.decodeEvent(packed);
         if (isViewOnly()) {
           store = { currentEventId: ev.id, customized: true, events: [ev] };
+          document.body.classList.add("in-race");
           setBusy(true, "Laddar körvägar…");
           try {
             for (const t of ev.teams) {
@@ -1061,6 +1075,7 @@
 
     if (isViewOnly()) {
       store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
+      document.body.classList.add("in-race");
       bootView();
       return;
     }
