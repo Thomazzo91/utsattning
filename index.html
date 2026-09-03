@@ -311,7 +311,7 @@
     .editor textarea { min-height: 64px; resize: vertical; }
     .row { display: flex; gap: 8px; }
     .row > * { flex: 1; min-width: 0; }
-    .edit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .edit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; align-items: center; }
     .edit-actions button, .btn {
       min-height: 40px; border: 0; border-radius: 10px;
       background: #1c2530; color: var(--text); font-weight: 800; padding: 0 12px;
@@ -320,9 +320,11 @@
     .btn.btn-danger {
       background: #7f1d1d;
       min-height: 32px;
+      height: 32px;
       padding: 0 10px;
       font-size: 0.8rem;
       font-weight: 700;
+      align-self: center;
     }
     .pt-card {
       background: #10161c; border: 1px solid var(--line);
