@@ -25,7 +25,7 @@
       --norr: #10b981;
       --accent: #3b82f6;
       --header-h: calc(52px + env(safe-area-inset-top));
-      --sheet: min(46dvh, 380px);
+      --sheet: min(54dvh, 440px);
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -245,14 +245,14 @@
     }
     @media (max-width: 859px) and (orientation: landscape) {
       :root { --sheet: 0px; }
-      #map { inset: 0 42% 0 0; }
+      #map { inset: 0 48% 0 0; }
       .sheet {
-        left: 58%; width: 42%; height: auto; top: 0; bottom: 0;
+        left: 52%; width: 48%; height: auto; top: 0; bottom: 0;
         border-radius: 0; border-left: 1px solid var(--line); border-top: 0;
         box-shadow: none;
       }
       .handle { display: none; }
-      header { right: 42%; }
+      header { right: 48%; }
     }
     /* Desktop only when it is actually a pointer device — phones that
        report ~980px width would otherwise get the two-column layout. */
@@ -265,11 +265,11 @@
       }
       #map {
         position: absolute;
-        top: 60px; left: 380px; right: 0; bottom: 0;
+        top: 60px; left: 420px; right: 0; bottom: 0;
       }
       .sheet {
         position: absolute;
-        top: 60px; left: 0; width: 380px; height: auto; bottom: 0;
+        top: 60px; left: 0; width: 420px; height: auto; bottom: 0;
         border-radius: 0; border-right: 1px solid var(--line); border-top: 0;
         box-shadow: none;
       }
@@ -358,7 +358,7 @@
     }
     .busy.on { display: flex; }
     @media (max-width: 859px) and (orientation: landscape) {
-      .editor { left: 58%; width: 42%; height: auto; top: 0; border-radius: 0; border-left: 1px solid var(--line); border-top: 0; }
+      .editor { left: 52%; width: 48%; height: auto; top: 0; border-radius: 0; border-left: 1px solid var(--line); border-top: 0; }
     }
     .chooser {
       display: none;
@@ -399,7 +399,7 @@
     }
     @media (min-width: 860px) and (hover: hover) and (pointer: fine) {
       .editor {
-        top: 60px; left: 0; width: 380px; height: auto; right: auto;
+        top: 60px; left: 0; width: 420px; height: auto; right: auto;
         border-radius: 0; border-right: 1px solid var(--line); border-top: 0;
       }
       body.editing { --sheet: 0px; }
