@@ -187,6 +187,7 @@
   function closeChooser() {
     chooserEl.classList.remove("open");
     document.body.classList.remove("choosing");
+    if (document.body.classList.contains("in-race")) setTitle(currentEvent().name);
   }
 
   function enterEvent(id) {
