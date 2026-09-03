@@ -432,6 +432,29 @@
     return h + ":" + min;
   }
 
+  function isHintName(value) {
+    const t = (value || "").trim();
+    return !t || t === "Ny punkt";
+  }
+
+  function selectAllOnFocus(el) {
+    if (!el) return;
+    el.addEventListener("focus", () => {
+      el.dataset.justFocused = "1";
+      try { el.select(); } catch (e) {}
+      setTimeout(() => {
+        try { el.select(); } catch (e) {}
+      }, 0);
+    });
+    el.addEventListener("mouseup", (e) => {
+      if (!el.dataset.justFocused) return;
+      e.preventDefault();
+      try { el.select(); } catch (err) {}
+      delete el.dataset.justFocused;
+    });
+    el.addEventListener("blur", () => { delete el.dataset.justFocused; });
+  }
+
   function renderEditor() {
     const ev = currentEvent();
     if (!editTeamId || !teamById(editTeamId)) editTeamId = (teams()[0] && teams()[0].id) || "";
@@ -445,7 +468,7 @@
         `<option value="${esc(e.id)}"${e.id === ev.id ? " selected" : ""}>${esc(e.name)}</option>`
       ).join("")}</select>
       <label>Namn på loppet</label>
-      <input id="evName" value="${esc(ev.name)}" />
+      <input id="evName" value="${esc(ev.name)}" placeholder="Nytt lopp" />
       <div class="edit-actions">
         <button type="button" class="btn" id="newEvent">Nytt lopp</button>
         <button type="button" class="btn btn-danger" id="delEvent">Ta bort lopp</button>
@@ -453,11 +476,11 @@
       <div class="edit-actions" id="teamChips"></div>
       <div class="edit-block">
       <div class="row">
-        <div><label>Namn</label><input id="teamName" value="${esc(team ? team.name : "")}" /></div>
+        <div><label>Namn</label><input id="teamName" value="${esc(team ? team.name : "")}" placeholder="Grupp 1" /></div>
         <div><label>Färg</label><input id="teamColor" type="color" value="${team ? team.color : "#3b82f6"}" /></div>
       </div>
       <label>Ansvariga</label>
-      <input id="teamPeople" value="${esc(team ? team.ansvarig : "")}" />
+      <input id="teamPeople" value="${esc(team ? team.ansvarig : "")}" placeholder="Vilka som kör" />
       <div class="edit-actions">
         <button type="button" class="btn" id="addTeam">+ Grupp</button>
         <button type="button" class="btn btn-danger" id="delTeam">Ta bort grupp</button>
@@ -506,6 +529,8 @@
       bootView();
       renderEditor();
     });
+    selectAllOnFocus(editorBody.querySelector("#evName"));
+    selectAllOnFocus(editorBody.querySelector("#teamName"));
     editorBody.querySelector("#teamName").addEventListener("change", saveEditorFields);
     editorBody.querySelector("#teamColor").addEventListener("change", () => {
       saveEditorFields();
@@ -528,7 +553,7 @@
     if (!p) return;
     const box = editorBody.querySelector("#ptForm");
     box.innerHTML = `
-      <label>Namn</label><input id="pLabel" value="${esc(p.label)}" />
+      <label>Namn</label><input id="pLabel" value="${esc(isHintName(p.label) ? "" : (p.label || ""))}" placeholder="Ny punkt" />
       <label>Igång</label>${timeSelectHtml("pIga", p.iga)}
       <label>Första</label>${timeSelectHtml("pForsta", p.forsta)}
       <label>Sista</label>${timeSelectHtml("pSista", p.sista)}
@@ -543,6 +568,7 @@
       </div>
     `;
     editorBody.querySelectorAll(".pt-card").forEach((c, n) => c.classList.toggle("is-edit", n === i));
+    selectAllOnFocus(box.querySelector("#pLabel"));
     box.querySelector("#pSave").addEventListener("click", () => savePoint(i));
     box.querySelector("#pDel").addEventListener("click", () => deletePoint(i));
     box.querySelector("#pPick").addEventListener("click", () => {
@@ -583,7 +609,7 @@
     const pts = M.pointsOf(team);
     const box = editorBody.querySelector("#ptForm");
     if (!box || !pts[i]) return;
-    pts[i].label = box.querySelector("#pLabel").value.trim() || pts[i].label;
+    pts[i].label = box.querySelector("#pLabel").value.trim();
     pts[i].iga = readTime(box, "pIga");
     pts[i].forsta = readTime(box, "pForsta");
     pts[i].sista = readTime(box, "pSista");
@@ -622,7 +648,7 @@
     saveEditorFields();
     const team = teamById(editTeamId);
     const pts = M.pointsOf(team);
-    pts.push({ label: "Ny punkt", lat: NaN, lon: NaN, iga: "", forsta: "", sista: "", maps: "", placering: "", setup: "" });
+    pts.push({ label: "", lat: NaN, lon: NaN, iga: "", forsta: "", sista: "", maps: "", placering: "", setup: "" });
     writePoints(team, pts);
     renderEditor();
     renderPointForm(pts.length - 1);
