@@ -421,8 +421,32 @@
     };
   }
 
+  function toB64url(obj) {
+    const json = typeof obj === "string" ? obj : JSON.stringify(obj);
+    return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  function fromB64url(s) {
+    let raw = String(s || "").replace(/\s+/g, "");
+    try { raw = decodeURIComponent(raw); } catch (e) {}
+    const pad = raw.length % 4 === 0 ? "" : "=".repeat(4 - (raw.length % 4));
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/") + pad;
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  }
+
+  function shareFields(p) {
+    return {
+      label: p.label || "",
+      lat: Number(p.lat),
+      lon: Number(p.lon),
+      iga: p.iga || "",
+      setup: p.setup || "",
+      placering: p.placering || ""
+    };
+  }
+
   function encodeEvent(ev) {
-    const slim = {
+    return toB64url({
       id: ev.id,
       name: ev.name,
       teams: (ev.teams || []).map((t) => ({
@@ -438,17 +462,74 @@
           return o;
         })
       }))
-    };
-    const json = JSON.stringify(slim);
-    return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    });
   }
 
   function decodeEvent(s) {
-    let raw = String(s || "").replace(/\s+/g, "");
-    try { raw = decodeURIComponent(raw); } catch (e) {}
-    const pad = raw.length % 4 === 0 ? "" : "=".repeat(4 - (raw.length % 4));
-    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/") + pad;
-    return inflateEvent(JSON.parse(decodeURIComponent(escape(atob(b64)))));
+    return inflateEvent(fromB64url(s));
+  }
+
+  function hbgmSharePatch(ev) {
+    if (!ev || ev.id !== "hbgm26" || !global.HBGM_ROUTES) return false;
+    const seed = eventFromSeed(global.HBGM_ROUTES);
+    if ((ev.teams || []).length !== seed.teams.length) return false;
+    const patch = { teams: [] };
+    if ((ev.name || "") !== (seed.name || "")) patch.name = ev.name;
+    for (let i = 0; i < seed.teams.length; i++) {
+      const st = seed.teams[i];
+      const t = (ev.teams || []).find((x) => x.id === st.id);
+      if (!t) return false;
+      const seedPts = pointsOf(st).map(shareFields);
+      const curPts = pointsOf(t).map(shareFields);
+      if (curPts.length < seedPts.length) return false;
+      const td = { id: t.id, points: [] };
+      if ((t.name || "") !== (st.name || "")) td.name = t.name;
+      if ((t.ansvarig || "") !== (st.ansvarig || "")) td.ansvarig = t.ansvarig;
+      if ((t.color || "") !== (st.color || "")) td.color = t.color;
+      curPts.forEach((p, pi) => {
+        const s = seedPts[pi];
+        if (!s) {
+          td.points.push([pi, p]);
+          return;
+        }
+        const d = {};
+        ["label", "lat", "lon", "iga", "setup", "placering"].forEach((k) => {
+          if (p[k] !== s[k]) d[k] = p[k];
+        });
+        if (Object.keys(d).length) td.points.push([pi, d]);
+      });
+      if (!td.name && !td.ansvarig && !td.color && !td.points.length) continue;
+      if (!td.points.length) delete td.points;
+      patch.teams.push(td);
+    }
+    if (!patch.name && !patch.teams.length) return null;
+    return patch;
+  }
+
+  function applyHbgmSharePatch(ev, patch) {
+    if (!ev || !patch) return ev;
+    if (patch.name) ev.name = patch.name;
+    (patch.teams || []).forEach((td) => {
+      const t = (ev.teams || []).find((x) => x.id === td.id);
+      if (!t) return;
+      if (td.name) t.name = td.name;
+      if (td.ansvarig != null) t.ansvarig = td.ansvarig;
+      if (td.color) t.color = td.color;
+      const stops = (((t.modes || {}).kortast || {}).stops) || [];
+      (td.points || []).forEach((row) => {
+        const i = row[0];
+        const d = row[1] || {};
+        if (!stops[i]) stops[i] = { label: "", lat: d.lat, lon: d.lon };
+        Object.assign(stops[i], d);
+      });
+    });
+    return ev;
+  }
+
+  function patchMovesPoints(patch) {
+    return !!(patch && (patch.teams || []).some((t) =>
+      (t.points || []).some((row) => row[1] && (row[1].lat != null || row[1].lon != null))
+    ));
   }
 
   function gpxFor(team, modeId) {
@@ -492,6 +573,7 @@
   global.Mattor = {
     COLORS, uid, clone, eventFromSeed, loadStore, saveStore, emptyModes,
     pointsOf, recalcTeam, compactEvent, inflateEvent, encodeEvent, decodeEvent,
+    hbgmSharePatch, applyHbgmSharePatch, patchMovesPoints, toB64url, fromB64url,
     gpxFor, parseLatLon, igaSort, rememberRemoved, forgetRemoved, isRemoved
   };
 })(window);
