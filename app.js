@@ -422,13 +422,32 @@
   }
 
   function encodeEvent(ev) {
-    const json = JSON.stringify(compactEvent(ev));
+    const slim = {
+      id: ev.id,
+      name: ev.name,
+      teams: (ev.teams || []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        ansvarig: t.ansvarig || "",
+        color: t.color,
+        points: pointsOf(t).map((p) => {
+          const o = { label: p.label || "", lat: p.lat, lon: p.lon };
+          if (p.iga) o.iga = p.iga;
+          if (p.setup) o.setup = p.setup;
+          if (p.placering) o.placering = p.placering;
+          return o;
+        })
+      }))
+    };
+    const json = JSON.stringify(slim);
     return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 
   function decodeEvent(s) {
-    const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
-    const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + pad;
+    let raw = String(s || "").replace(/\s+/g, "");
+    try { raw = decodeURIComponent(raw); } catch (e) {}
+    const pad = raw.length % 4 === 0 ? "" : "=".repeat(4 - (raw.length % 4));
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/") + pad;
     return inflateEvent(JSON.parse(decodeURIComponent(escape(atob(b64)))));
   }
 
