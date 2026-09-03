@@ -45,7 +45,11 @@
 
   function persist() {
     if (isViewOnly()) return;
-    M.saveStore(store);
+    try {
+      M.saveStore(store);
+    } catch (e) {
+      showToast("Kunde inte spara. Ta bort loppet igen.");
+    }
   }
 
   function isViewOnly() {
@@ -139,16 +143,40 @@
     }
   }
 
+  function dropRemovedFromStore() {
+    if (!store || !store.events) return;
+    store.events = store.events.filter((e) => !M.isRemoved(e.id));
+    ensureSeed();
+    if (!store.events.some((e) => e.id === store.currentEventId)) {
+      store.currentEventId = (store.events[0] && store.events[0].id) || "hbgm26";
+    }
+  }
+
   function renderChooser() {
     chooserList.innerHTML = "";
+    dropRemovedFromStore();
     store.events.forEach((ev) => {
+      const row = document.createElement("div");
+      row.className = "chooser-row";
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chooser-item";
       const names = (ev.teams || []).map((t) => t.name).join(" · ");
       b.innerHTML = `<strong>${esc(ev.name)}</strong><span>${esc(names) || "Inga grupper"}</span>`;
       b.addEventListener("click", () => enterEvent(ev.id));
-      chooserList.appendChild(b);
+      row.appendChild(b);
+      if (ev.id !== "hbgm26") {
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "btn btn-danger chooser-del";
+        del.textContent = "Ta bort";
+        del.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteEventById(ev.id);
+        });
+        row.appendChild(del);
+      }
+      chooserList.appendChild(row);
     });
     const cancel = document.getElementById("chooserCancel");
     cancel.style.display = document.body.classList.contains("in-race") ? "" : "none";
@@ -708,26 +736,48 @@
     store.events.push(ev);
     store.currentEventId = ev.id;
     store.customized = true;
+    M.forgetRemoved(ev.id);
     persist();
     enterEvent(ev.id);
     openEditor();
   }
 
-  function deleteEvent() {
-    if (store.events.length < 2) {
-      if (!confirm("Rensa det här loppet och återställ HBGM 26?")) return;
+  function deleteEventById(id) {
+    if (isViewOnly()) return;
+    const ev = store.events.find((e) => e.id === id);
+    if (!ev) return;
+    if (id === "hbgm26") {
+      if (store.events.length > 1) {
+        showToast("HBGM 26 kan inte tas bort");
+        return;
+      }
+      if (!confirm("Rensa HBGM 26 och återställ originalet?")) return;
       store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
-      persist();
-      enterEvent("hbgm26");
-      if (editorEl.classList.contains("open")) renderEditor();
-      return;
+    } else if (store.events.length < 2) {
+      if (!confirm("Rensa det här loppet och återställ HBGM 26?")) return;
+      M.rememberRemoved(id);
+      store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
+    } else {
+      if (!confirm("Ta bort loppet " + ev.name + "?")) return;
+      M.rememberRemoved(id);
+      store.events = store.events.filter((e) => e.id !== id);
+      ensureSeed();
+      store.currentEventId = store.events[0].id;
     }
-    if (!confirm("Ta bort loppet " + currentEvent().name + "?")) return;
-    store.events = store.events.filter((e) => e.id !== store.currentEventId);
-    store.currentEventId = store.events[0].id;
     persist();
-    enterEvent(store.currentEventId);
-    if (editorEl.classList.contains("open")) renderEditor();
+    pickingIndex = -1;
+    pickBanner.classList.remove("on");
+    editorEl.classList.remove("open");
+    document.body.classList.remove("editing", "in-race");
+    ignoreHash = true;
+    history.replaceState(null, "", location.pathname);
+    setTimeout(() => { ignoreHash = false; }, 0);
+    openChooser();
+    showToast("Lopp borttaget");
+  }
+
+  function deleteEvent() {
+    deleteEventById(store.currentEventId);
   }
 
   function startPick(i) {
@@ -824,6 +874,7 @@
   }
 
   async function applyImported(ev) {
+    M.forgetRemoved(ev.id);
     const existing = store.events.findIndex((e) => e.id === ev.id);
     if (existing >= 0) store.events[existing] = ev;
     else store.events.push(ev);
@@ -933,6 +984,15 @@
     }
   });
 
+  window.addEventListener("storage", (e) => {
+    if (e.key !== "mattor-app-v1" && e.key !== "mattor-removed-v1") return;
+    const next = M.loadStore();
+    if (!next) return;
+    store = next;
+    ensureSeed();
+    dropRemovedFromStore();
+    if (chooserEl.classList.contains("open")) renderChooser();
+  });
   window.addEventListener("hashchange", () => {
     if (ignoreHash) return;
     const { id, mode, idx } = parseHash();
@@ -955,6 +1015,10 @@
       store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
     }
     ensureSeed();
+    dropRemovedFromStore();
+    if (!isViewOnly()) {
+      try { M.saveStore(store); } catch (e) {}
+    }
 
     async function fixTwoPoint() {
       try {
