@@ -24,7 +24,7 @@
   }
 
   function eventFromSeed(routes) {
-    return {
+    return clone({
       id: "hbgm26",
       name: "HBGM 26",
       teams: (routes.groups || []).map((g) => ({
@@ -34,7 +34,7 @@
         color: g.color,
         modes: g.modes
       }))
-    };
+    });
   }
 
   function getRemovedIds() {
@@ -69,7 +69,10 @@
   function hydrateEvent(ev) {
     if (!ev || !ev.id) return null;
     if (isRemoved(ev.id)) return null;
-    if (ev.id === "hbgm26" && !ev.teams) return global.HBGM_ROUTES ? seedEvent() : null;
+    if (ev.id === "hbgm26" && global.HBGM_ROUTES) {
+      if (!ev.teams) return seedEvent();
+      return mergeHbgm(ev);
+    }
     const t0 = ev.teams && ev.teams[0];
     if (t0 && Array.isArray(t0.points) && !t0.modes) return inflateEvent(ev);
     return ev;
@@ -386,6 +389,79 @@
     return team;
   }
 
+  function applyPoint(dest, src) {
+    if (!dest || !src) return;
+    if (src.label) dest.label = src.label;
+    if (Number.isFinite(Number(src.lat))) dest.lat = Number(src.lat);
+    if (Number.isFinite(Number(src.lon))) dest.lon = Number(src.lon);
+    if (src.iga) dest.iga = src.iga;
+    if (src.setup) dest.setup = src.setup;
+    if (src.placering) dest.placering = src.placering;
+    if (src.forsta) dest.forsta = src.forsta;
+    if (src.sista) dest.sista = src.sista;
+    if (src.maps) dest.maps = src.maps;
+  }
+
+  function syncIgaFromKortast(team) {
+    if (!team.modes) team.modes = emptyModes();
+    if (!team.modes.kortast) team.modes.kortast = emptyModes().kortast;
+    if (!team.modes.iga) team.modes.iga = emptyModes().iga;
+    const kort = team.modes.kortast.stops || [];
+    const igaStops = igaSort(kort.map((s) => Object.assign({}, s)));
+    const old = team.modes.iga.stops || [];
+    const orderChanged = old.length !== igaStops.length ||
+      old.some((s, i) => (s.label || "") !== (igaStops[i].label || ""));
+    team.modes.iga.stops = igaStops;
+    if (orderChanged) {
+      team.modes.iga.track = [];
+      team.modes.iga.legs = [];
+      team.modes.iga.km = 0;
+      team.modes.iga.min = 0;
+    }
+  }
+
+  function mergeHbgm(saved) {
+    const seed = seedEvent();
+    if (saved.name) seed.name = saved.name;
+    (saved.teams || []).forEach((st) => {
+      let t = seed.teams.find((x) => x.id === st.id);
+      const pts = Array.isArray(st.points) ? st.points : pointsOf(st);
+      if (!t) {
+        seed.teams.push(inflateEvent({ teams: [{ id: st.id, name: st.name, ansvarig: st.ansvarig, color: st.color, points: pts }] }).teams[0]);
+        return;
+      }
+      if (st.name) t.name = st.name;
+      if (st.ansvarig) t.ansvarig = st.ansvarig;
+      if (st.color) t.color = st.color;
+      if (!pts.length) return;
+      const kort = t.modes.kortast.stops;
+      const coordsChanged = pts.length !== kort.length || pts.some((p, i) => !samePt(p, kort[i]));
+      pts.forEach((p, i) => {
+        if (!kort[i]) kort[i] = Object.assign({}, p);
+        else applyPoint(kort[i], p);
+      });
+      if (pts.length < kort.length) kort.length = pts.length;
+      if (coordsChanged) {
+        t.modes.kortast.track = [];
+        t.modes.kortast.legs = [];
+        t.modes.kortast.km = 0;
+        t.modes.kortast.min = 0;
+      }
+      syncIgaFromKortast(t);
+    });
+    return seed;
+  }
+
+  function needsRouteRebuild(team) {
+    const pts = pointsOf(team).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+    if (pts.length < 2) return false;
+    const k = team.modes && team.modes.kortast;
+    const g = team.modes && team.modes.iga;
+    if (!k || !(k.stops && k.stops.length) || !(k.track && k.track.length)) return true;
+    if (!g || !(g.stops && g.stops.length) || !(g.track && g.track.length)) return true;
+    return false;
+  }
+
   function compactEvent(ev) {
     return {
       id: ev.id,
@@ -404,20 +480,27 @@
     return {
       id: compact.id || uid("ev"),
       name: compact.name || "Nytt lopp",
-      teams: (compact.teams || []).map((t) => ({
-        id: t.id || uid("grupp"),
-        name: t.name || "Grupp",
-        ansvarig: t.ansvarig || "",
-        color: t.color || COLORS[0],
-        modes: {
-          kortast: {
-            km: 0, min: 0, gpx: "",
-            stops: (t.points || t.modes && t.modes.kortast && t.modes.kortast.stops) || [],
-            legs: [], track: []
-          },
-          iga: emptyModes().iga
-        }
-      }))
+      teams: (compact.teams || []).map((t) => {
+        const pts = (t.points || (t.modes && t.modes.kortast && t.modes.kortast.stops) || []).map((p) => Object.assign({}, p));
+        return {
+          id: t.id || uid("grupp"),
+          name: t.name || "Grupp",
+          ansvarig: t.ansvarig || "",
+          color: t.color || COLORS[0],
+          modes: {
+            kortast: {
+              km: 0, min: 0, gpx: "",
+              stops: pts,
+              legs: [], track: []
+            },
+            iga: {
+              km: 0, min: 0, gpx: "",
+              stops: igaSort(pts.map((p) => Object.assign({}, p))),
+              legs: [], track: []
+            }
+          }
+        };
+      })
     };
   }
 
@@ -522,6 +605,7 @@
         if (!stops[i]) stops[i] = { label: "", lat: d.lat, lon: d.lon };
         Object.assign(stops[i], d);
       });
+      syncIgaFromKortast(t);
     });
     return ev;
   }
@@ -574,6 +658,7 @@
     COLORS, uid, clone, eventFromSeed, loadStore, saveStore, emptyModes,
     pointsOf, recalcTeam, compactEvent, inflateEvent, encodeEvent, decodeEvent,
     hbgmSharePatch, applyHbgmSharePatch, patchMovesPoints, toB64url, fromB64url,
+    needsRouteRebuild,
     gpxFor, parseLatLon, igaSort, rememberRemoved, forgetRemoved, isRemoved
   };
 })(window);
