@@ -1025,6 +1025,27 @@
     }
     ensureSeed();
     dropRemovedFromStore();
+
+    async function restoreRoutes() {
+      const need = [];
+      for (const ev of store.events) {
+        for (const t of ev.teams || []) {
+          if (M.needsRouteRebuild(t)) need.push(t);
+        }
+      }
+      if (!need.length) return false;
+      setBusy(true, "Laddar körvägar…");
+      try {
+        for (const t of need) {
+          busyText.textContent = "Beräknar " + t.name + "…";
+          await M.recalcTeam(t);
+        }
+        persist();
+      } catch (e) {}
+      setBusy(false);
+      return true;
+    }
+
     if (!isViewOnly()) {
       try { M.saveStore(store); } catch (e) {}
     }
@@ -1075,29 +1096,19 @@
     if (isViewOnly()) {
       const ev = M.eventFromSeed(window.HBGM_ROUTES);
       const packedPatch = params.get("p");
-      let moved = false;
       if (packedPatch) {
         try {
-          const patch = M.fromB64url(packedPatch);
-          M.applyHbgmSharePatch(ev, patch);
-          moved = M.patchMovesPoints(patch);
+          M.applyHbgmSharePatch(ev, M.fromB64url(packedPatch));
         } catch (e) {}
       }
       store = { currentEventId: "hbgm26", customized: !!packedPatch, events: [ev] };
       document.body.classList.add("in-race");
-      if (moved) {
-        setBusy(true, "Laddar körvägar…");
-        try {
-          for (const t of ev.teams) {
-            busyText.textContent = "Beräknar " + t.name + "…";
-            await M.recalcTeam(t);
-          }
-        } catch (e) {}
-        setBusy(false);
-      }
+      await restoreRoutes();
       bootView();
       return;
     }
+
+    await restoreRoutes();
 
     if (lopp && store.events.some((e) => e.id === lopp)) {
       store.currentEventId = lopp;
