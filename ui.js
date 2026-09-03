@@ -13,6 +13,8 @@
   const pickBanner = document.getElementById("pickBanner");
   const busyEl = document.getElementById("busy");
   const busyText = document.getElementById("busyText");
+  const chooserEl = document.getElementById("chooser");
+  const chooserList = document.getElementById("chooserList");
   const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
   const VISIT_KEY = "hbgm26-visited-v1";
 
@@ -123,12 +125,62 @@
     const base = (location.protocol === "https:" ? location.origin + location.pathname : PUBLIC_BASE).replace(/\/?$/, "/");
     const ev = currentEvent();
     const hash = hashFor(currentId, currentMode, selected);
-    if (ev.id === "hbgm26" && !store.customized) return base + "?view=1" + hash;
+    if (ev.id === "hbgm26" && !store.customized) return base + "?view=1&lopp=hbgm26" + hash;
     try {
       return base + "?e=" + M.encodeEvent(ev) + "&view=1" + hash;
     } catch (e) {
       return base + "?view=1" + hash;
     }
+  }
+
+  function ensureSeed() {
+    if (!store.events.some((e) => e.id === "hbgm26")) {
+      store.events.unshift(M.eventFromSeed(window.HBGM_ROUTES));
+    }
+  }
+
+  function renderChooser() {
+    chooserList.innerHTML = "";
+    store.events.forEach((ev) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chooser-item";
+      const names = (ev.teams || []).map((t) => t.name).join(" · ");
+      b.innerHTML = `<strong>${esc(ev.name)}</strong><span>${esc(names) || "Inga grupper"}</span>`;
+      b.addEventListener("click", () => enterEvent(ev.id));
+      chooserList.appendChild(b);
+    });
+    const cancel = document.getElementById("chooserCancel");
+    cancel.style.display = document.body.classList.contains("in-race") ? "" : "none";
+  }
+
+  function openChooser() {
+    if (isViewOnly()) return;
+    more.style.display = "none";
+    editorEl.classList.remove("open");
+    document.body.classList.remove("editing");
+    chooserEl.classList.add("open");
+    renderChooser();
+  }
+
+  function closeChooser() {
+    chooserEl.classList.remove("open");
+  }
+
+  function enterEvent(id) {
+    if (!store.events.some((e) => e.id === id)) return;
+    store.currentEventId = id;
+    persist();
+    closeChooser();
+    document.body.classList.add("in-race");
+    const tid = (currentEvent().teams[0] && currentEvent().teams[0].id) || "";
+    const p = new URLSearchParams();
+    p.set("lopp", id);
+    ignoreHash = true;
+    history.replaceState(null, "", location.pathname + "?" + p.toString() + hashFor(tid, "kortast", 0));
+    setTimeout(() => { ignoreHash = false; }, 0);
+    bootView();
+    map.invalidateSize();
   }
 
   function googleDir(g) {
@@ -637,12 +689,8 @@
     store.currentEventId = ev.id;
     store.customized = true;
     persist();
-    editTeamId = ev.teams[0].id;
-    currentId = editTeamId;
-    renderTeamBar();
-    show(currentId, "kortast", 0, false);
-    if (!editorEl.classList.contains("open")) openEditor();
-    else renderEditor();
+    enterEvent(ev.id);
+    openEditor();
   }
 
   function deleteEvent() {
@@ -650,16 +698,16 @@
       if (!confirm("Rensa det här loppet och återställ HBGM 26?")) return;
       store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
       persist();
-      bootView();
-      renderEditor();
+      enterEvent("hbgm26");
+      if (editorEl.classList.contains("open")) renderEditor();
       return;
     }
     if (!confirm("Ta bort loppet " + currentEvent().name + "?")) return;
     store.events = store.events.filter((e) => e.id !== store.currentEventId);
     store.currentEventId = store.events[0].id;
     persist();
-    bootView();
-    renderEditor();
+    enterEvent(store.currentEventId);
+    if (editorEl.classList.contains("open")) renderEditor();
   }
 
   function startPick(i) {
@@ -771,7 +819,7 @@
       persist();
     } catch (e) {}
     setBusy(false);
-    bootView();
+    enterEvent(ev.id);
   }
 
   modeBar.querySelectorAll("button").forEach((b) => {
@@ -807,6 +855,14 @@
     download((t.name || "grupp") + ".gpx", xml, "application/gpx+xml");
   });
   document.getElementById("editBtn").addEventListener("click", openEditor);
+  document.getElementById("switchEventBtn").addEventListener("click", () => {
+    more.style.display = "none";
+    openChooser();
+  });
+  document.getElementById("chooserNew").addEventListener("click", newEvent);
+  document.getElementById("chooserCancel").addEventListener("click", () => {
+    if (document.body.classList.contains("in-race")) closeChooser();
+  });
   document.getElementById("newEventBtn").addEventListener("click", () => {
     more.style.display = "none";
     newEvent();
@@ -873,10 +929,34 @@
     applyViewMode();
     const params = new URLSearchParams(location.search);
     const packed = params.get("e");
+    const lopp = params.get("lopp");
     store = M.loadStore();
     if (!store) {
       store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
     }
+    ensureSeed();
+
+    async function fixTwoPoint() {
+      try {
+        let fixed = false;
+        for (const ev of store.events) {
+          for (const t of ev.teams || []) {
+            const pts = M.pointsOf(t).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+            const k = t.modes && t.modes.kortast;
+            const g = t.modes && t.modes.iga;
+            if (pts.length === 2 && k && g && Math.abs((k.km || 0) - (g.km || 0)) > 0.05) {
+              await M.recalcTeam(t);
+              fixed = true;
+            }
+          }
+        }
+        if (fixed) {
+          persist();
+          bootView();
+        }
+      } catch (e) {}
+    }
+
     if (packed) {
       try {
         const ev = M.decodeEvent(packed);
@@ -894,29 +974,25 @@
           return;
         }
         await applyImported(ev);
-        history.replaceState(null, "", location.pathname + location.hash);
         return;
       } catch (e) {}
     }
-    bootView();
-    try {
-      let fixed = false;
-      for (const ev of store.events) {
-        for (const t of ev.teams || []) {
-          const pts = M.pointsOf(t).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
-          const k = t.modes && t.modes.kortast;
-          const g = t.modes && t.modes.iga;
-          if (pts.length === 2 && k && g && Math.abs((k.km || 0) - (g.km || 0)) > 0.05) {
-            await M.recalcTeam(t);
-            fixed = true;
-          }
-        }
-      }
-      if (fixed) {
-        persist();
-        bootView();
-      }
-    } catch (e) {}
+
+    if (isViewOnly()) {
+      store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
+      bootView();
+      return;
+    }
+
+    if (lopp && store.events.some((e) => e.id === lopp)) {
+      store.currentEventId = lopp;
+      document.body.classList.add("in-race");
+      bootView();
+      await fixTwoPoint();
+      return;
+    }
+
+    openChooser();
   }
   start();
 })();
