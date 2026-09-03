@@ -356,6 +356,8 @@
     @media (max-width: 859px) and (orientation: landscape) {
       .editor { left: 58%; width: 42%; height: auto; top: 0; border-radius: 0; border-left: 1px solid var(--line); border-top: 0; }
     }
+    body.view-only .admin-only { display: none !important; }
+    body.view-only .editor { display: none !important; }
     body.editing { --sheet: min(72dvh, 560px); }
     body.editing .sheet { display: none !important; }
     @media (max-width: 859px) and (orientation: landscape) {
@@ -386,10 +388,10 @@
     <a id="gmaps" target="_blank" rel="noopener">Hela rutten i Maps</a>
     <button type="button" id="gpxBtn">Ladda ner GPX</button>
     <button type="button" id="clearDone">Rensa avbockning</button>
-    <button type="button" id="newEventBtn">Nytt lopp</button>
-    <button type="button" id="editBtn">Redigera lopp</button>
-    <button type="button" id="exportBtn">Spara lopp som fil</button>
-    <button type="button" id="importBtn">Öppna lopp från fil</button>
+    <button type="button" class="admin-only" id="newEventBtn">Nytt lopp</button>
+    <button type="button" class="admin-only" id="editBtn">Redigera lopp</button>
+    <button type="button" class="admin-only" id="exportBtn">Spara lopp som fil</button>
+    <button type="button" class="admin-only" id="importBtn">Öppna lopp från fil</button>
   </div>
   <section class="sheet">
     <div class="handle"></div>
@@ -414,6 +416,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js?v=12"></script>
   <script src="routes.js?v=8"></script>
-  <script src="ui.js?v=12"></script>
+  <script src="ui.js?v=13"></script>
 </body>
 </html>
