@@ -66,11 +66,15 @@
     return eventFromSeed(global.HBGM_ROUTES);
   }
 
+  function seedRev() {
+    return (global.HBGM_ROUTES && Number(global.HBGM_ROUTES.rev)) || 1;
+  }
+
   function hydrateEvent(ev) {
     if (!ev || !ev.id) return null;
     if (isRemoved(ev.id)) return null;
     if (ev.id === "hbgm26" && global.HBGM_ROUTES) {
-      if (!ev.teams) return seedEvent();
+      if (!ev.teams || (Number(ev.rev) || 0) < seedRev()) return seedEvent();
       return mergeHbgm(ev);
     }
     const t0 = ev.teams && ev.teams[0];
@@ -81,15 +85,19 @@
   function serializeStore(data) {
     const events = (data.events || []).filter((ev) => ev && ev.id && !isRemoved(ev.id)).map((ev) => {
       if (ev.id === "hbgm26" && global.HBGM_ROUTES) {
+        const rev = seedRev();
         try {
           if (JSON.stringify(compactEvent(ev)) === JSON.stringify(compactEvent(seedEvent()))) {
-            return { id: "hbgm26" };
+            return { id: "hbgm26", rev };
           }
         } catch (e) {}
+        const c = compactEvent(ev);
+        c.rev = rev;
+        return c;
       }
       return compactEvent(ev);
     });
-    if (!events.some((e) => e.id === "hbgm26")) events.unshift({ id: "hbgm26" });
+    if (!events.some((e) => e.id === "hbgm26")) events.unshift({ id: "hbgm26", rev: seedRev() });
     const current = (data.currentEventId && !isRemoved(data.currentEventId)) ? data.currentEventId : "hbgm26";
     return { v: 2, currentEventId: current, events };
   }
