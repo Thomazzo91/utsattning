@@ -161,27 +161,13 @@
     chooserList.innerHTML = "";
     dropRemovedFromStore();
     store.events.forEach((ev) => {
-      const row = document.createElement("div");
-      row.className = "chooser-row";
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chooser-item";
       const names = (ev.teams || []).map((t) => t.name).join(" · ");
       b.innerHTML = `<strong>${esc(ev.name)}</strong><span>${esc(names) || "Inga grupper"}</span>`;
       b.addEventListener("click", () => enterEvent(ev.id));
-      row.appendChild(b);
-      if (ev.id !== "hbgm26") {
-        const del = document.createElement("button");
-        del.type = "button";
-        del.className = "btn btn-danger chooser-del";
-        del.textContent = "Ta bort";
-        del.addEventListener("click", (e) => {
-          e.stopPropagation();
-          deleteEventById(ev.id);
-        });
-        row.appendChild(del);
-      }
-      chooserList.appendChild(row);
+      chooserList.appendChild(b);
     });
     const cancel = document.getElementById("chooserCancel");
     cancel.style.display = document.body.classList.contains("in-race") ? "" : "none";
@@ -193,12 +179,14 @@
     editorEl.classList.remove("open");
     document.body.classList.remove("editing");
     chooserEl.classList.add("open");
+    document.body.classList.add("choosing");
     renderChooser();
     setTitle("Välj lopp");
   }
 
   function closeChooser() {
     chooserEl.classList.remove("open");
+    document.body.classList.remove("choosing");
   }
 
   function enterEvent(id) {
@@ -873,6 +861,7 @@
   }
 
   function bootView() {
+    closeChooser();
     renderTeamBar();
     const start = parseHash();
     const known = teams().some((t) => t.id === start.id);
