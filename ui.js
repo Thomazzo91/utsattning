@@ -141,19 +141,18 @@
     else if (location.hash !== hash) history.pushState(null, "", pathWithHash(hash));
     setTimeout(() => { ignoreHash = false; }, 0);
   }
-  function isStockHbgm(ev) {
-    if (!ev || ev.id !== "hbgm26" || !window.HBGM_ROUTES) return false;
-    try {
-      return JSON.stringify(M.compactEvent(ev)) === JSON.stringify(M.compactEvent(M.eventFromSeed(window.HBGM_ROUTES)));
-    } catch (e) {
-      return true;
-    }
-  }
   function shareUrl() {
     const base = PUBLIC_BASE.replace(/\/?$/, "/");
     const ev = currentEvent();
     const hash = hashFor(currentId || ((ev.teams && ev.teams[0] && ev.teams[0].id) || ""), currentMode, selected);
-    if (isStockHbgm(ev)) return base + "?view=1&lopp=hbgm26" + hash;
+    if (ev.id === "hbgm26") {
+      const patch = M.hbgmSharePatch(ev);
+      if (patch !== false) {
+        let url = base + "?view=1&lopp=hbgm26";
+        if (patch) url += "&p=" + M.toB64url(patch);
+        return url + hash;
+      }
+    }
     try {
       const packed = M.encodeEvent(ev);
       const short = base + "?view=1&e=" + packed + hash;
@@ -1074,8 +1073,28 @@
     }
 
     if (isViewOnly()) {
-      store = { currentEventId: "hbgm26", customized: false, events: [M.eventFromSeed(window.HBGM_ROUTES)] };
+      const ev = M.eventFromSeed(window.HBGM_ROUTES);
+      const packedPatch = params.get("p");
+      let moved = false;
+      if (packedPatch) {
+        try {
+          const patch = M.fromB64url(packedPatch);
+          M.applyHbgmSharePatch(ev, patch);
+          moved = M.patchMovesPoints(patch);
+        } catch (e) {}
+      }
+      store = { currentEventId: "hbgm26", customized: !!packedPatch, events: [ev] };
       document.body.classList.add("in-race");
+      if (moved) {
+        setBusy(true, "Laddar körvägar…");
+        try {
+          for (const t of ev.teams) {
+            busyText.textContent = "Beräknar " + t.name + "…";
+            await M.recalcTeam(t);
+          }
+        } catch (e) {}
+        setBusy(false);
+      }
       bootView();
       return;
     }
