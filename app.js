@@ -1,6 +1,7 @@
 /* Mattor — lopp, grupper, punkter och körvägar. Ingen server. */
 (function (global) {
   const STORE = "mattor-app-v1";
+  const REMOVED = "mattor-removed-v1";
   const SNAP_M = 18;
   const COLORS = ["#d97706", "#2563eb", "#059669", "#ef4444", "#a855f7", "#14b8a6", "#f97316", "#6366f1"];
   const OSRM = "https://router.project-osrm.org";
@@ -36,20 +37,88 @@
     };
   }
 
+  function getRemovedIds() {
+    try {
+      const ids = JSON.parse(localStorage.getItem(REMOVED) || "[]");
+      return Array.isArray(ids) ? ids.filter((id) => typeof id === "string" && id && id !== "hbgm26") : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function rememberRemoved(id) {
+    if (!id || id === "hbgm26") return;
+    const ids = getRemovedIds();
+    if (ids.indexOf(id) < 0) ids.push(id);
+    try { localStorage.setItem(REMOVED, JSON.stringify(ids)); } catch (e) {}
+  }
+
+  function forgetRemoved(id) {
+    if (!id) return;
+    try { localStorage.setItem(REMOVED, JSON.stringify(getRemovedIds().filter((x) => x !== id))); } catch (e) {}
+  }
+
+  function isRemoved(id) {
+    return !!(id && id !== "hbgm26" && getRemovedIds().indexOf(id) >= 0);
+  }
+
+  function seedEvent() {
+    return eventFromSeed(global.HBGM_ROUTES);
+  }
+
+  function hydrateEvent(ev) {
+    if (!ev || !ev.id) return null;
+    if (isRemoved(ev.id)) return null;
+    if (ev.id === "hbgm26" && !ev.teams) return global.HBGM_ROUTES ? seedEvent() : null;
+    const t0 = ev.teams && ev.teams[0];
+    if (t0 && Array.isArray(t0.points) && !t0.modes) return inflateEvent(ev);
+    return ev;
+  }
+
+  function serializeStore(data) {
+    const events = (data.events || []).filter((ev) => ev && ev.id && !isRemoved(ev.id)).map((ev) => {
+      if (ev.id === "hbgm26" && global.HBGM_ROUTES) {
+        try {
+          if (JSON.stringify(compactEvent(ev)) === JSON.stringify(compactEvent(seedEvent()))) {
+            return { id: "hbgm26" };
+          }
+        } catch (e) {}
+      }
+      return compactEvent(ev);
+    });
+    if (!events.some((e) => e.id === "hbgm26")) events.unshift({ id: "hbgm26" });
+    const current = (data.currentEventId && !isRemoved(data.currentEventId)) ? data.currentEventId : "hbgm26";
+    return { v: 2, currentEventId: current, events };
+  }
+
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORE);
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (!data || !Array.isArray(data.events) || !data.events.length) return null;
-      return data;
+      const events = [];
+      data.events.forEach((ev) => {
+        const full = hydrateEvent(ev);
+        if (full) events.push(full);
+      });
+      if (!events.some((e) => e.id === "hbgm26") && global.HBGM_ROUTES) events.unshift(seedEvent());
+      if (!events.length) return null;
+      const currentEventId = events.some((e) => e.id === data.currentEventId) ? data.currentEventId : events[0].id;
+      return { currentEventId, customized: events.some((e) => e.id !== "hbgm26"), events };
     } catch (e) {
       return null;
     }
   }
 
   function saveStore(data) {
-    localStorage.setItem(STORE, JSON.stringify(data));
+    const payload = serializeStore(data);
+    localStorage.setItem(STORE, JSON.stringify(payload));
+    const check = JSON.parse(localStorage.getItem(STORE) || "null");
+    const savedIds = ((check && check.events) || []).map((e) => e.id);
+    getRemovedIds().forEach((id) => {
+      if (savedIds.indexOf(id) >= 0) throw new Error("removed-event-saved");
+    });
   }
 
   function emptyModes() {
@@ -404,6 +473,6 @@
   global.Mattor = {
     COLORS, uid, clone, eventFromSeed, loadStore, saveStore, emptyModes,
     pointsOf, recalcTeam, compactEvent, inflateEvent, encodeEvent, decodeEvent,
-    gpxFor, parseLatLon, igaSort
+    gpxFor, parseLatLon, igaSort, rememberRemoved, forgetRemoved, isRemoved
   };
 })(window);
