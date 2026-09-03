@@ -304,6 +304,10 @@
       border: 1px solid var(--line); border-radius: 10px;
       padding: 10px 12px; font: inherit;
     }
+    .editor input::placeholder, .editor textarea::placeholder {
+      color: var(--muted);
+      opacity: 1;
+    }
     .editor textarea { min-height: 64px; resize: vertical; }
     .row { display: flex; gap: 8px; }
     .row > * { flex: 1; min-width: 0; }
@@ -448,6 +452,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js?v=12"></script>
   <script src="routes.js?v=8"></script>
-  <script src="ui.js?v=15"></script>
+  <script src="ui.js?v=16"></script>
 </body>
 </html>
