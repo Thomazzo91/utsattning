@@ -439,17 +439,29 @@
 
   function selectAllOnFocus(el) {
     if (!el) return;
+    const select = () => {
+      try {
+        el.select();
+        if (typeof el.setSelectionRange === "function") el.setSelectionRange(0, el.value.length);
+      } catch (e) {}
+    };
     el.addEventListener("focus", () => {
       el.dataset.justFocused = "1";
-      try { el.select(); } catch (e) {}
-      setTimeout(() => {
-        try { el.select(); } catch (e) {}
-      }, 0);
+      select();
+      setTimeout(select, 0);
+      setTimeout(select, 40);
     });
-    el.addEventListener("mouseup", (e) => {
+    const keep = (e) => {
       if (!el.dataset.justFocused) return;
       e.preventDefault();
-      try { el.select(); } catch (err) {}
+      select();
+      delete el.dataset.justFocused;
+    };
+    el.addEventListener("mouseup", keep);
+    el.addEventListener("pointerup", keep);
+    el.addEventListener("click", () => {
+      if (!el.dataset.justFocused) return;
+      select();
       delete el.dataset.justFocused;
     });
     el.addEventListener("blur", () => { delete el.dataset.justFocused; });
