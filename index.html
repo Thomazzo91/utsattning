@@ -213,7 +213,7 @@
       transform: translateX(-50%);
       background: #e8eef4; color: #0b1220;
       padding: 10px 14px; border-radius: 999px;
-      font-weight: 700; z-index: 800; display: none;
+      font-weight: 700; z-index: 1300; display: none;
       white-space: nowrap;
     }
     .mk-num {
@@ -359,7 +359,7 @@
     }
     .pick-banner.on { display: block; }
     .busy {
-      display: none; position: fixed; inset: 0; z-index: 900;
+      display: none; position: fixed; inset: 0; z-index: 1400;
       background: rgba(11,18,32,.72);
       align-items: center; justify-content: center;
       color: var(--text); font-weight: 800;
@@ -370,13 +370,17 @@
     }
     .chooser {
       display: none;
-      position: fixed; inset: 0; z-index: 860;
+      position: fixed; inset: 0; z-index: 1100;
       background: var(--bg);
       padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
       overflow: auto;
       flex-direction: column;
     }
     .chooser.open { display: flex; }
+    body:has(.chooser.open) .leaflet-control-zoom,
+    body:has(.chooser.open) .leaflet-control-attribution {
+      display: none !important;
+    }
     .chooser h1 { margin: 0 0 8px; font-size: 1.6rem; }
     .chooser p { color: var(--muted); margin: 0 0 20px; }
     .chooser-item {
