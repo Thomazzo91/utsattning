@@ -416,10 +416,16 @@
       curSegs.forEach((s) => {
         if (!s || !s.geom || !s.geom.length) return;
         const latlngs = s.geom.map(([lon, lat]) => [lat, lon]);
-        const isWalk = (s.profile === "foot" || s.profile === "crow");
-        const opts = isWalk
-          ? { color: "#0b1220", weight: 6, opacity: 0.9, dashArray: "12 8" }
-          : { color: g.color, weight: 6, opacity: 0.92 };
+        let opts;
+        if (s.profile === "foot") {
+          opts = { color: "#0b1220", weight: 7, opacity: 0.9, dashArray: "16 8" };
+        } else if (s.profile === "bike") {
+          opts = { color: "#1f2937", weight: 6, opacity: 0.88, dashArray: "10 6" };
+        } else if (s.profile === "crow") {
+          opts = { color: "#111827", weight: 3, opacity: 0.85, dashArray: "2 8", lineJoin: "round", lineCap: "round" };
+        } else {
+          opts = { color: g.color, weight: 6, opacity: 0.92 };
+        }
         routeLines.push(L.polyline(latlngs, opts).addTo(layer));
       });
     } else if (g.track && g.track.length) {

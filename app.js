@@ -286,37 +286,43 @@
       if (!geom || !geom.length) return;
       segs.push({ profile, geom: geom.slice(), dist: extraDist || 0, dur: extraDur || 0 });
     };
-    let got = await osrmRoute("driving", a, b);
-    let geom = got ? got.geom.slice() : [[a.lon, a.lat]];
-    let dist = got ? got.dist : 0;
-    let dur = got ? got.dur : 0;
-    if (got) pushSeg("driving", got.geom, got.dist, got.dur);
-    else pushSeg("crow", geom.slice(), 0, 0);
-    if (gap(geom, b.lat, b.lon) <= SNAP_M) {
-      geom.push([b.lon, b.lat]);
-      return { geom, dist, dur, segs };
+    const profiles = ["driving", "bike", "foot"];
+    let used = null;
+    let got = null;
+    for (const p of profiles) {
+      got = await osrmRoute(p, a, b);
+      if (got) { used = p; break; }
     }
-    let last = geom[geom.length - 1];
-    let filled = false;
-    for (const profile of ["bike", "foot"]) {
-      const extra = await osrmRoute(profile, { lat: last[1], lon: last[0] }, b);
-      if (!extra) continue;
-      pushSeg(profile, extra.geom, extra.dist, extra.dur);
-      geom = geom.concat(extra.geom.slice(1));
-      dist += extra.dist;
-      dur += extra.dur;
-      last = geom[geom.length - 1];
-      filled = true;
+    let geom = [[a.lon, a.lat]];
+    let dist = 0, dur = 0;
+    if (got && used) {
+      geom = got.geom.slice();
+      dist = got.dist || 0;
+      dur = got.dur || 0;
+      pushSeg(used, got.geom, dist, dur);
       if (gap(geom, b.lat, b.lon) <= SNAP_M) {
         geom.push([b.lon, b.lat]);
         return { geom, dist, dur, segs };
       }
     }
-    const crowGeom = [[last[0], last[1]], [b.lon, b.lat]];
-    const crowGap = gap(geom.slice(), b.lat, b.lon);
-    pushSeg("crow", crowGeom, crowGap, 0);
-    geom.push([b.lon, b.lat]);
-    dist += crowGap;
+    let last = geom[geom.length - 1];
+    for (const profile of ["bike", "foot"]) {
+      if (gap(geom, b.lat, b.lon) <= SNAP_M) break;
+      const extra = await osrmRoute(profile, { lat: last[1], lon: last[0] }, b);
+      if (!extra) continue;
+      pushSeg(profile, extra.geom, extra.dist || 0, extra.dur || 0);
+      geom = geom.concat(extra.geom.slice(1));
+      dist += (extra.dist || 0);
+      dur += (extra.dur || 0);
+      last = geom[geom.length - 1];
+    }
+    if (gap(geom, b.lat, b.lon) > SNAP_M) {
+      const crowGeom = [[last[0], last[1]], [b.lon, b.lat]];
+      const crowGap = gap(geom.slice(), b.lat, b.lon);
+      pushSeg("crow", crowGeom, crowGap, 0);
+      geom.push([b.lon, b.lat]);
+      dist += crowGap;
+    }
     return { geom, dist, dur, segs };
   }
 
