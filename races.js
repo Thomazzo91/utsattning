@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Lopp 2",
-  "rev": 15,
+  "rev": 16,
   "groups": [
    {
     "id": "startmal",
@@ -13308,8 +13308,8 @@ window.RACES = {
     "color": "#ef4444",
     "modes": {
      "kortast": {
-      "km": 0,
-      "min": 0,
+      "km": 0.1,
+      "min": 1,
       "gpx": "",
       "stops": [
        {
@@ -13341,8 +13341,8 @@ window.RACES = {
         "label": "Målgång Ribersborg",
         "name": "Målgång Ribersborg",
         "who": "",
-        "lat": 55.6029287,
-        "lon": 12.969633,
+        "lat": 55.6023,
+        "lon": 12.9683,
         "iga": "",
         "starth": 0,
         "startm": 0,
@@ -13365,8 +13365,8 @@ window.RACES = {
       "track": []
      },
      "iga": {
-      "km": 0,
-      "min": 0,
+      "km": 0.1,
+      "min": 1,
       "gpx": "",
       "stops": [
        {
@@ -13398,8 +13398,8 @@ window.RACES = {
         "label": "Målgång Ribersborg",
         "name": "Målgång Ribersborg",
         "who": "",
-        "lat": 55.6029287,
-        "lon": 12.969633,
+        "lat": 55.6023,
+        "lon": 12.9683,
         "iga": "",
         "starth": 0,
         "startm": 0,
