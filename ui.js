@@ -1312,10 +1312,15 @@
     }
     ensureSeed();
     dropRemovedFromStore();
+    if (lopp && store.events.some((e) => e.id === lopp)) {
+      store.currentEventId = lopp;
+    }
 
     async function restoreRoutes() {
       const focusId = lopp || (store && store.currentEventId);
-      const priorityId = (parseHash().id || "");
+      const focusEv = (store.events || []).find((e) => e.id === focusId) || currentEvent();
+      const hashTeam = (location.hash || "").replace(/^#/, "").split("/")[0];
+      const priorityId = (focusEv && (focusEv.teams || []).some((t) => t.id === hashTeam)) ? hashTeam : "";
       const need = [];
       for (const ev of store.events) {
         if (focusId && ev.id !== focusId) continue;
@@ -1325,23 +1330,17 @@
       }
       if (!need.length) return false;
       const first = priorityId ? need.filter((t) => t.id === priorityId) : [];
-      const rest = priorityId ? need.filter((t) => t.id !== priorityId) : need.slice();
+      const rest = first.length ? need.filter((t) => t.id !== priorityId) : need.slice();
       async function run(list) {
         for (const t of list) {
           busyText.textContent = "Beräknar " + t.name + "…";
           await M.recalcTeam(t);
         }
       }
-      if (priorityId && !first.length) {
-        if (rest.length) {
-          (async () => {
-            try {
-              await run(rest);
-              persist();
-            } catch (e) {}
-          })();
-        }
-        return true;
+      function refreshIfVisible() {
+        if (!document.body.classList.contains("in-race")) return;
+        const on = parseHash();
+        show(on.id || currentId, on.mode || currentMode, on.idx || 0, true);
       }
       setBusy(true, "Laddar körvägar…");
       try {
@@ -1349,6 +1348,7 @@
           await run(first);
           persist();
           setBusy(false);
+          refreshIfVisible();
           if (rest.length) {
             (async () => {
               try {
@@ -1361,7 +1361,10 @@
         }
         await run(rest);
         persist();
-      } catch (e) {}
+        refreshIfVisible();
+      } catch (e) {
+        if (window.console && console.error) console.error("restoreRoutes failed:", e);
+      }
       setBusy(false);
       return true;
     }
@@ -1446,7 +1449,6 @@
     await restoreRoutes();
 
     if (lopp && store.events.some((e) => e.id === lopp)) {
-      store.currentEventId = lopp;
       document.body.classList.add("in-race");
       bootView();
       await fixTwoPoint();
