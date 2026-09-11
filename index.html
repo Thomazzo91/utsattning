@@ -330,8 +330,21 @@
     .pt-card {
       background: #10161c; border: 1px solid var(--line);
       border-radius: 12px; padding: 10px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      transition: transform .08s ease, border-color .12s ease, background .12s ease, box-shadow .12s ease;
+      position: relative;
     }
     .pt-card.is-edit { border-color: var(--edit-color, var(--accent)); box-shadow: 0 0 0 1px var(--edit-color, var(--accent)); }
+    .pt-card .pt-grip {
+      color: var(--muted); font-size: 18px; line-height: 1;
+      cursor: grab; user-select: none; padding: 4px 2px; border-radius: 6px;
+      touch-action: none; flex-shrink: 0;
+    }
+    .pt-card .pt-grip:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    .pt-card .pt-body { flex: 1; min-width: 0; }
+    .pt-card.is-drag { opacity: .4; transform: scale(.98); }
+    .pt-card.is-drop-before { box-shadow: 0 -3px 0 0 var(--accent); border-top-color: var(--accent); }
+    .pt-card.is-drop-after { box-shadow: 0 3px 0 0 var(--accent); border-bottom-color: var(--accent); }
     .edit-block {
       border: 2px solid var(--edit-color, var(--accent));
       border-radius: 14px;
@@ -476,6 +489,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js?v=23"></script>
   <script src="races.js?v=16"></script></script>
-  <script src="ui.js?v=29"></script>
+  <script src="ui.js?v=30"></script>
 </body>
 </html>

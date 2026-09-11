@@ -611,7 +611,7 @@
         <button type="button" class="btn btn-danger" id="delTeam">Ta bort grupp</button>
       </div>
       <label>Timingpunkter</label>
-      <p class="who">Klicka en punkt, ändra fälten och välj plats på kartan.</p>
+      <p class="who">Dra punkterna ⠿ för att byta ordning (t.ex. dra 20 km ovanför 12 km). Klicka för att redigera.</p>
       <div id="ptList"></div>
       <div class="edit-actions">
         <button type="button" class="btn" id="addPt">+ Punkt</button>
@@ -634,12 +634,59 @@
       chips.appendChild(b);
     });
     const list = editorBody.querySelector("#ptList");
+    let dragSrc = -1;
     pts.forEach((p, i) => {
       const card = document.createElement("div");
       card.className = "pt-card" + (p.image ? " has-img" : "");
-      card.innerHTML = `<strong>${i + 1}. ${esc(p.label) || "Namnlös"}</strong>
-        <div class="who">${p.lat ? p.lat.toFixed(5) + ", " + p.lon.toFixed(5) : "Ingen GPS"} · Igång ${esc(p.iga) || "—"}${p.image ? ' 🖼️' : ''}</div>`;
-      card.addEventListener("click", () => renderPointForm(i));
+      card.draggable = true;
+      card.dataset.i = String(i);
+      card.innerHTML = `<div class="pt-grip" draggable="false" title="Dra för att ändra ordning">⠿</div>
+        <div class="pt-body">
+          <strong>${i + 1}. ${esc(p.label) || "Namnlös"}</strong>
+          <div class="who">${p.lat ? p.lat.toFixed(5) + ", " + p.lon.toFixed(5) : "Ingen GPS"} · Igång ${esc(p.iga) || "—"}${p.image ? ' 🖼️' : ''}</div>
+        </div>`;
+      card.addEventListener("click", (ev) => {
+        if (ev.target.closest(".pt-grip")) return;
+        renderPointForm(i);
+      });
+      card.addEventListener("dragstart", (ev) => {
+        dragSrc = i;
+        card.classList.add("is-drag");
+        try { ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/plain", String(i)); } catch (e) {}
+      });
+      card.addEventListener("dragend", () => {
+        card.classList.remove("is-drag");
+        list.querySelectorAll(".pt-card").forEach((c) => c.classList.remove("is-drop-before", "is-drop-after"));
+      });
+      card.addEventListener("dragover", (ev) => {
+        ev.preventDefault();
+        const r = card.getBoundingClientRect();
+        const before = (ev.clientY - r.top) < (r.height / 2);
+        card.classList.toggle("is-drop-before", before);
+        card.classList.toggle("is-drop-after", !before);
+      });
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("is-drop-before", "is-drop-after");
+      });
+      card.addEventListener("drop", (ev) => {
+        ev.preventDefault();
+        const r = card.getBoundingClientRect();
+        const before = (ev.clientY - r.top) < (r.height / 2);
+        const target = before ? i : (i + 1);
+        list.querySelectorAll(".pt-card").forEach((c) => c.classList.remove("is-drop-before", "is-drop-after", "is-drag"));
+        if (dragSrc < 0 || dragSrc === target || dragSrc + 1 === target) return;
+        const team = teamById(editTeamId);
+        const src = dragSrc;
+        let insertAt = target;
+        if (src < insertAt) insertAt -= 1;
+        const list2 = M.pointsOf(team);
+        const [moved] = list2.splice(src, 1);
+        list2.splice(insertAt, 0, moved);
+        list2.forEach((p, k) => { if (p && typeof p === "object") p.idx = k + 1; });
+        writePoints(team, list2);
+        renderEditor();
+        showToast("Ordning uppdaterad — kör nu i denna följd. Tryck Beräkna körvägar för ny rutt");
+      });
       list.appendChild(card);
     });
     editorBody.querySelector("#evName").addEventListener("change", () => {
