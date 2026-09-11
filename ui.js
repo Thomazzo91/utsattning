@@ -644,11 +644,31 @@
         <div class="pt-body">
           <strong>${i + 1}. ${esc(p.label) || "Namnlös"}</strong>
           <div class="who">${p.lat ? p.lat.toFixed(5) + ", " + p.lon.toFixed(5) : "Ingen GPS"} · Igång ${esc(p.iga) || "—"}${p.image ? ' 🖼️' : ''}</div>
+        </div>
+        <div class="pt-actions">
+          <button type="button" class="icon-btn pt-up" title="Flytta upp" aria-label="Flytta upp"${i === 0 ? ' disabled' : ''}>▲</button>
+          <button type="button" class="icon-btn pt-down" title="Flytta ner" aria-label="Flytta ner"${i === pts.length - 1 ? ' disabled' : ''}>▼</button>
         </div>`;
       card.addEventListener("click", (ev) => {
-        if (ev.target.closest(".pt-grip")) return;
+        if (ev.target.closest(".pt-grip") || ev.target.closest(".pt-actions")) return;
         renderPointForm(i);
       });
+      const btnUp = card.querySelector(".pt-up");
+      const btnDown = card.querySelector(".pt-down");
+      const movePoint = (dir) => {
+        if (dir === -1 && i === 0) return;
+        if (dir === 1 && i === pts.length - 1) return;
+        const team = teamById(editTeamId);
+        const list2 = M.pointsOf(team);
+        const [moved] = list2.splice(i, 1);
+        list2.splice(i + dir, 0, moved);
+        list2.forEach((p, k) => { if (p && typeof p === "object") p.idx = k + 1; });
+        writePoints(team, list2);
+        renderEditor();
+        showToast("Ordning uppdaterad — kör nu i denna följd. Tryck Beräkna körvägar för ny rutt");
+      };
+      if (btnUp) btnUp.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); movePoint(-1); });
+      if (btnDown) btnDown.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); movePoint(1); });
       card.addEventListener("dragstart", (ev) => {
         dragSrc = i;
         card.classList.add("is-drag");

@@ -345,6 +345,16 @@
     .pt-card.is-drag { opacity: .4; transform: scale(.98); }
     .pt-card.is-drop-before { box-shadow: 0 -3px 0 0 var(--accent); border-top-color: var(--accent); }
     .pt-card.is-drop-after { box-shadow: 0 3px 0 0 var(--accent); border-bottom-color: var(--accent); }
+    .pt-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .pt-actions .icon-btn {
+      width: 30px; height: 26px; min-height: 26px; line-height: 1;
+      border-radius: 7px; font-size: 11px; font-weight: 800;
+      background: rgba(255,255,255,.06); color: var(--text);
+      border: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pt-actions .icon-btn:hover:not(:disabled) { background: var(--accent); color: #0b1220; border-color: var(--accent); }
+    .pt-actions .icon-btn:disabled { opacity: .25; cursor: not-allowed; }
     .edit-block {
       border: 2px solid var(--edit-color, var(--accent));
       border-radius: 14px;
@@ -489,6 +499,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js?v=23"></script>
   <script src="races.js?v=16"></script></script>
-  <script src="ui.js?v=30"></script>
+  <script src="ui.js?v=31"></script>
 </body>
 </html>
