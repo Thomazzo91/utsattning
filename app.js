@@ -610,8 +610,14 @@
         if (!kort[i]) {
           kort[i] = Object.assign({}, p);
         } else if (revBumped) {
-          kort[i].who = p.who || kort[i].who;
-          if (typeof p.image === "string" && p.image) kort[i].image = p.image;
+          const pt = kort[i];
+          pt.who = p.who || pt.who;
+          if (typeof p.image === "string" && p.image) pt.image = p.image;
+          if (!samePt(p, pt)) {
+            if (Number.isFinite(Number(p.lat))) pt.lat = Number(p.lat);
+            if (Number.isFinite(Number(p.lon))) pt.lon = Number(p.lon);
+          }
+          if (p.placering) pt.placering = p.placering;
         } else {
           applyPoint(kort[i], p);
         }
