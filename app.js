@@ -46,11 +46,13 @@
     return clone({
       id: rid,
       name: displayName || builtInDisplayName(rid),
+      rev: Number(routes.rev) || 1,
       teams: (routes.groups || []).map((g) => ({
         id: g.id,
         name: g.name,
         ansvarig: g.ansvarig || "",
         color: g.color,
+        orderLocked: false,
         modes: g.modes
       }))
     });
@@ -109,7 +111,7 @@
     if (isBuiltIn(ev.id)) {
       const seed = seedEvent(ev.id);
       if (!seed) return null;
-      if (!ev.teams || (Number(ev.rev) || 0) < seedRev(ev.id)) return seed;
+      if (!ev.teams || !ev.teams.length) return seed;
       return mergeBuiltIn(ev, ev.id);
     }
     const t0 = ev.teams && ev.teams[0];
@@ -128,9 +130,16 @@
         const rev = seedRev(ev.id);
         const seed = seedEvent(ev.id);
         try {
-          if (JSON.stringify(compactEvent(ev)) === JSON.stringify(compactEvent(seed))) {
+          const dirty = (ev.teams || []).filter((t) => {
+            const st = (seed.teams || []).find((x) => x.id === t.id);
+            return teamDiffersFromSeed(t, st);
+          });
+          if (!dirty.length && (ev.name || "") === (seed.name || "")) {
             return { id: ev.id, rev };
           }
+          const c = compactEvent({ id: ev.id, name: ev.name, teams: dirty.length ? dirty : ev.teams });
+          c.rev = rev;
+          return c;
         } catch (e) {}
         const c = compactEvent(ev);
         c.rev = rev;
@@ -202,7 +211,7 @@
     return src.map((s, i) => {
       const fallbackLabel = s.name || ("Punkt " + (i + 1));
       return {
-        idx: s.idx == null ? (i + 1) : s.idx,
+        idx: s.idx == null || s.idx === "" ? (i + 1) : Number(s.idx),
         name: s.name || fallbackLabel,
         label: s.label || fallbackLabel,
         who: s.who || "",
@@ -694,7 +703,7 @@
   function isSequentialIdx(pts) {
     if (!pts || !pts.length) return false;
     for (let i = 0; i < pts.length; i++) {
-      if (pts[i].idx !== (i + 1)) return false;
+      if (Number(pts[i].idx) !== (i + 1)) return false;
     }
     return true;
   }
@@ -754,13 +763,117 @@
     if (src.idx != null && Number.isFinite(Number(src.idx))) dest.idx = Number(src.idx);
     if (Number.isFinite(Number(src.lat))) dest.lat = Number(src.lat);
     if (Number.isFinite(Number(src.lon))) dest.lon = Number(src.lon);
+    if (src.who != null) dest.who = src.who;
     if (src.iga) dest.iga = src.iga;
     if (src.setup) dest.setup = src.setup;
-    if (src.placering) dest.placering = src.placering;
+    if (src.placering != null) dest.placering = src.placering;
+    if (src.place) dest.place = src.place;
+    if (src.note != null) dest.note = src.note;
     if (src.forsta) dest.forsta = src.forsta;
     if (src.sista) dest.sista = src.sista;
     if (src.maps) dest.maps = src.maps;
     if (typeof src.image === "string") dest.image = src.image;
+  }
+
+  function stopKey(p) {
+    return String((p && (p.label || p.name)) || "").trim().toLowerCase();
+  }
+
+  function overlayStop(seedStop, user) {
+    if (!user && seedStop) return Object.assign({}, seedStop);
+    if (!seedStop && user) return Object.assign({}, user);
+    const dest = Object.assign({}, seedStop, user);
+    const userMoved = Number.isFinite(Number(user.lat)) && Number.isFinite(Number(user.lon)) &&
+      !isStaleParkMalgang(user) && !samePt(user, seedStop);
+    if (userMoved) {
+      dest.lat = Number(user.lat);
+      dest.lon = Number(user.lon);
+    } else {
+      dest.lat = seedStop.lat;
+      dest.lon = seedStop.lon;
+    }
+    if (!dest.label) dest.label = seedStop.label || "";
+    dest.name = dest.name || dest.label;
+    if (!dest.setup) dest.setup = seedStop.setup || "";
+    if (!dest.sista) dest.sista = seedStop.sista || "";
+    if (!dest.forsta) dest.forsta = seedStop.forsta || "";
+    if (!dest.iga) dest.iga = seedStop.iga || "";
+    if (!dest.maps) dest.maps = seedStop.maps || "";
+    dest.placering = (user.placering || user.place || dest.placering || seedStop.placering || "");
+    dest.place = dest.placering;
+    dest.note = user.note || dest.note || seedStop.note || "";
+    if (typeof user.image === "string") dest.image = user.image;
+    else dest.image = seedStop.image || dest.image || "";
+    dest.who = user.who != null ? user.who : (dest.who || "");
+    return dest;
+  }
+
+  function mergeTeamStops(seedStops, savedPts, orderLocked) {
+    const seed = (seedStops || []).map((s) => Object.assign({}, s));
+    const saved = (savedPts || []).filter(Boolean);
+    const seedByKey = new Map();
+    seed.forEach((s) => {
+      const k = stopKey(s);
+      if (k && !seedByKey.has(k)) seedByKey.set(k, s);
+    });
+    const savedKeys = saved.map(stopKey);
+    const seedKeys = seed.map(stopKey);
+    const sameSet = saved.length === seed.length &&
+      savedKeys.every((k) => k && seedByKey.has(k)) &&
+      seedKeys.every((k) => savedKeys.indexOf(k) >= 0);
+    const orderDiffers = savedKeys.join("\n") !== seedKeys.join("\n");
+    const useSavedOrder = !!(saved.length && (orderLocked || (sameSet && orderDiffers) || (isSequentialIdx(saved) && orderDiffers)));
+    const ordered = [];
+    const used = new Set();
+    if (useSavedOrder) {
+      saved.forEach((p) => {
+        const k = stopKey(p);
+        ordered.push(overlayStop((k && seedByKey.get(k)) || null, p));
+        if (k) used.add(k);
+      });
+      seed.forEach((s) => {
+        const k = stopKey(s);
+        if (k && !used.has(k)) ordered.push(overlayStop(s, null));
+      });
+    } else {
+      seed.forEach((s) => {
+        const k = stopKey(s);
+        const user = k ? saved.find((p) => stopKey(p) === k) : null;
+        ordered.push(overlayStop(s, user || null));
+        if (k) used.add(k);
+      });
+      saved.forEach((p) => {
+        const k = stopKey(p);
+        if (!k || !used.has(k)) ordered.push(overlayStop(null, p));
+      });
+    }
+    ordered.forEach((p, i) => { p.idx = i + 1; });
+    return ordered;
+  }
+
+  function teamDiffersFromSeed(team, seedTeam) {
+    if (!seedTeam) return true;
+    if ((team.name || "") !== (seedTeam.name || "")) return true;
+    if ((team.ansvarig || "") !== (seedTeam.ansvarig || "")) return true;
+    if ((team.color || "") !== (seedTeam.color || "")) return true;
+    if (team.orderLocked) return true;
+    const a = pointsOf(team);
+    const b = pointsOf(seedTeam);
+    if (a.length !== b.length) return true;
+    for (let i = 0; i < a.length; i++) {
+      const p = a[i], s = b[i];
+      if (stopKey(p) !== stopKey(s)) return true;
+      if (!samePt(p, s) && !isStaleParkMalgang(p)) return true;
+      if ((p.who || "") !== (s.who || "")) return true;
+      if ((p.placering || p.place || "") !== (s.placering || s.place || "")) return true;
+      if ((p.note || "") !== (s.note || "")) return true;
+      if ((p.image || "") !== (s.image || "")) return true;
+      if ((p.iga || "") !== (s.iga || "")) return true;
+      if ((p.forsta || "") !== (s.forsta || "")) return true;
+      if ((p.sista || "") !== (s.sista || "")) return true;
+      if ((p.setup || "") !== (s.setup || "")) return true;
+    }
+    return false;
   }
 
   function syncIgaFromKortast(team) {
@@ -785,42 +898,29 @@
     const seed = seedEvent(seedId);
     if (!seed) return saved;
     if (saved.name) seed.name = saved.name;
-    const savedRev = saved.rev || 0;
-    const seedRev = seed.rev || 0;
-    const revBumped = savedRev !== seedRev;
     (saved.teams || []).forEach((st) => {
       let t = seed.teams.find((x) => x.id === st.id);
       const pts = Array.isArray(st.points) ? st.points : pointsOf(st);
       if (!t) {
-        seed.teams.push(inflateEvent({ teams: [{ id: st.id, name: st.name, ansvarig: st.ansvarig, color: st.color, points: pts }] }).teams[0]);
+        seed.teams.push(inflateEvent({
+          teams: [{ id: st.id, name: st.name, ansvarig: st.ansvarig, color: st.color, orderLocked: !!st.orderLocked, points: pts }]
+        }).teams[0]);
         return;
       }
       if (st.name) t.name = st.name;
       if (st.ansvarig) t.ansvarig = st.ansvarig;
       if (st.color) t.color = st.color;
+      t.orderLocked = !!(st.orderLocked || t.orderLocked);
       if (!pts.length) return;
-      const kort = t.modes.kortast.stops;
-      const coordsChanged = revBumped || pts.length !== kort.length || pts.some((p, i) => !samePt(p, kort[i]));
-      if (revBumped) {
-        pts.forEach((p, i) => {
-          if (!kort[i]) {
-            kort[i] = Object.assign({}, p);
-          } else {
-            const pt = kort[i];
-            pt.who = p.who || pt.who;
-            if (typeof p.image === "string" && p.image) pt.image = p.image;
-            if (!samePt(p, pt) && !isStaleParkMalgang(p)) {
-              if (Number.isFinite(Number(p.lat))) pt.lat = Number(p.lat);
-              if (Number.isFinite(Number(p.lon))) pt.lon = Number(p.lon);
-            }
-            if (p.placering) pt.placering = p.placering;
-          }
-        });
-        if (pts.length < kort.length) kort.length = pts.length;
-      } else {
-        t.modes.kortast.stops = pts.map((p) => Object.assign({}, p));
-      }
-      if (coordsChanged) {
+      const before = (t.modes.kortast.stops || []).map(stopKey).join("\n");
+      const merged = mergeTeamStops(t.modes.kortast.stops, pts, t.orderLocked);
+      t.modes.kortast.stops = merged;
+      const after = merged.map(stopKey).join("\n");
+      const coordsChanged = before !== after || pts.some((p) => {
+        const s = merged.find((m) => stopKey(m) === stopKey(p));
+        return s && !samePt(p, s) && !isStaleParkMalgang(p);
+      });
+      if (coordsChanged || t.orderLocked) {
         t.modes.kortast.track = [];
         t.modes.kortast.legs = [];
         t.modes.kortast.km = 0;
@@ -852,6 +952,7 @@
         name: t.name,
         ansvarig: t.ansvarig || "",
         color: t.color,
+        orderLocked: !!t.orderLocked,
         points: pointsOf(t)
       }))
     };
@@ -868,6 +969,7 @@
           name: t.name || "Grupp",
           ansvarig: t.ansvarig || "",
           color: t.color || COLORS[0],
+          orderLocked: !!t.orderLocked,
           modes: {
             kortast: {
               km: 0, min: 0, gpx: "",

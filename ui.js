@@ -91,6 +91,13 @@
     }
   }
 
+  function flushPointForm() {
+    if (ptFormIndex < 0) return;
+    const box = editorBody.querySelector("#ptForm");
+    if (!box || !box.querySelector("#pLabel")) return;
+    readPointForm(ptFormIndex);
+  }
+
   function isViewOnly() {
     const p = new URLSearchParams(location.search);
     if (!p.has("view")) return false;
@@ -671,11 +678,13 @@
       const movePoint = (dir) => {
         if (dir === -1 && i === 0) return;
         if (dir === 1 && i === pts.length - 1) return;
+        flushPointForm();
         const team = teamById(editTeamId);
         const list2 = M.pointsOf(team);
         const [moved] = list2.splice(i, 1);
         list2.splice(i + dir, 0, moved);
         list2.forEach((p, k) => { if (p && typeof p === "object") p.idx = k + 1; });
+        team.orderLocked = true;
         writePoints(team, list2);
         renderEditor();
         showToast("Ordning uppdaterad — kör nu i denna följd. Tryck Beräkna körvägar för ny rutt");
@@ -708,6 +717,7 @@
         const target = before ? i : (i + 1);
         list.querySelectorAll(".pt-card").forEach((c) => c.classList.remove("is-drop-before", "is-drop-after", "is-drag"));
         if (dragSrc < 0 || dragSrc === target || dragSrc + 1 === target) return;
+        flushPointForm();
         const team = teamById(editTeamId);
         const src = dragSrc;
         let insertAt = target;
@@ -716,6 +726,7 @@
         const [moved] = list2.splice(src, 1);
         list2.splice(insertAt, 0, moved);
         list2.forEach((p, k) => { if (p && typeof p === "object") p.idx = k + 1; });
+        team.orderLocked = true;
         writePoints(team, list2);
         renderEditor();
         showToast("Ordning uppdaterad — kör nu i denna följd. Tryck Beräkna körvägar för ny rutt");
@@ -786,6 +797,11 @@
     `;
     editorBody.querySelectorAll(".pt-card").forEach((c, n) => c.classList.toggle("is-edit", n === i));
     selectAllOnFocus(box.querySelector("#pLabel"));
+    const autosave = () => readPointForm(i);
+    box.querySelectorAll("input, textarea, select").forEach((el) => {
+      if (el.id === "pImgFile") return;
+      el.addEventListener("change", autosave);
+    });
     box.querySelector("#pSave").addEventListener("click", () => savePoint(i));
     box.querySelector("#pDel").addEventListener("click", () => deletePoint(i));
     box.querySelector("#pPick").addEventListener("click", () => {
@@ -840,6 +856,12 @@
   }
 
   function writePoints(team, pts) {
+    (pts || []).forEach((p, i) => {
+      if (!p || typeof p !== "object") return;
+      p.idx = i + 1;
+      if (p.label && !p.name) p.name = p.label;
+      if (p.name && !p.label) p.label = p.name;
+    });
     if (!team.modes) team.modes = M.emptyModes();
     team.modes.kortast.stops = pts;
     team.modes.kortast.track = [];
@@ -867,12 +889,15 @@
     pts[i].sista = readTime(box, "pSista");
     pts[i].setup = box.querySelector("#pSetup").value.trim();
     pts[i].placering = box.querySelector("#pNote").value.trim();
+    pts[i].note = pts[i].placering;
+    pts[i].name = pts[i].label || pts[i].name;
     const parsed = M.parseLatLon(box.querySelector("#pGps").value);
     if (parsed) { pts[i].lat = parsed.lat; pts[i].lon = parsed.lon; }
     writePoints(team, pts);
   }
 
   function saveEditorFields() {
+    flushPointForm();
     const ev = currentEvent();
     if (!ev) return;
     const nameEl = editorBody.querySelector("#evName");
