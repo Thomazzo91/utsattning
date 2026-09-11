@@ -816,13 +816,7 @@
       const k = stopKey(s);
       if (k && !seedByKey.has(k)) seedByKey.set(k, s);
     });
-    const savedKeys = saved.map(stopKey);
-    const seedKeys = seed.map(stopKey);
-    const sameSet = saved.length === seed.length &&
-      savedKeys.every((k) => k && seedByKey.has(k)) &&
-      seedKeys.every((k) => savedKeys.indexOf(k) >= 0);
-    const orderDiffers = savedKeys.join("\n") !== seedKeys.join("\n");
-    const useSavedOrder = !!(saved.length && (orderLocked || (sameSet && orderDiffers) || (isSequentialIdx(saved) && orderDiffers)));
+    const useSavedOrder = !!(saved.length && orderLocked);
     const ordered = [];
     const used = new Set();
     if (useSavedOrder) {
