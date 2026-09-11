@@ -272,6 +272,15 @@
     const data = await osrmJson(url);
     if (data.code !== "Ok" || !data.routes || !data.routes[0]) return null;
     const r = data.routes[0];
+    if (!r || !r.geometry || !Array.isArray(r.geometry.coordinates) || r.geometry.coordinates.length < 2) return null;
+    if ((r.distance || 0) < 5) {
+      const coords = r.geometry.coordinates;
+      const first = coords[0];
+      const last = coords[coords.length - 1];
+      if (!first || !last || (Math.abs(first[0] - last[0]) < 1e-6 && Math.abs(first[1] - last[1]) < 1e-6)) {
+        return null;
+      }
+    }
     return { geom: r.geometry.coordinates, dist: r.distance, dur: r.duration };
   }
 
@@ -281,11 +290,16 @@
   }
 
   async function reach(a, b) {
+    const samePoint = haversine(a.lat, a.lon, b.lat, b.lon) < SNAP_M;
     const segs = [];
     const pushSeg = (profile, geom, extraDist, extraDur) => {
       if (!geom || !geom.length) return;
+      if (geom.length === 1 && profile !== "crow") return;
       segs.push({ profile, geom: geom.slice(), dist: extraDist || 0, dur: extraDur || 0 });
     };
+    if (samePoint) {
+      return { geom: [[a.lon, a.lat]], dist: 0, dur: 0, segs: [] };
+    }
     const profiles = ["driving", "bike", "foot"];
     let used = null;
     let got = null;
@@ -306,9 +320,12 @@
       }
     }
     let last = geom[geom.length - 1];
-    for (const profile of ["bike", "foot"]) {
+    for (const profile of profiles) {
+      if (profile === used) continue;
       if (gap(geom, b.lat, b.lon) <= SNAP_M) break;
-      const extra = await osrmRoute(profile, { lat: last[1], lon: last[0] }, b);
+      const fromPt = { lat: last[1], lon: last[0] };
+      if (haversine(fromPt.lat, fromPt.lon, b.lat, b.lon) < SNAP_M) break;
+      const extra = await osrmRoute(profile, fromPt, b);
       if (!extra) continue;
       pushSeg(profile, extra.geom, extra.dist || 0, extra.dur || 0);
       geom = geom.concat(extra.geom.slice(1));
