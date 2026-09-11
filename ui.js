@@ -416,18 +416,13 @@
       curSegs.forEach((s) => {
         if (!s || !s.geom || !s.geom.length) return;
         const latlngs = s.geom.map(([lon, lat]) => [lat, lon]);
-        const crowGapM = (s.dist || 0);
         let opts;
         if (s.profile === "foot") {
-          opts = { color: "#0b1220", weight: 7, opacity: 0.9, dashArray: "16 8" };
+          opts = { color: "#0b1220", weight: 7, opacity: 0.92, dashArray: "16 8" };
         } else if (s.profile === "bike") {
-          opts = { color: "#1f2937", weight: 6, opacity: 0.88, dashArray: "10 6" };
+          opts = { color: "#0b1220", weight: 6, opacity: 0.9, dashArray: "14 8" };
         } else if (s.profile === "crow") {
-          if (crowGapM < 200) {
-            opts = { color: "#0b1220", weight: 7, opacity: 0.9, dashArray: "16 8" };
-          } else {
-            opts = { color: "#111827", weight: 3, opacity: 0.85, dashArray: "2 8", lineJoin: "round", lineCap: "round" };
-          }
+          opts = { color: "#111827", weight: 3, opacity: 0.85, dashArray: "2 8", lineJoin: "round", lineCap: "round" };
         } else {
           opts = { color: g.color, weight: 6, opacity: 0.92 };
         }
@@ -1294,19 +1289,52 @@
     dropRemovedFromStore();
 
     async function restoreRoutes() {
+      const focusId = lopp || (store && store.currentEventId);
+      const priorityId = (parseHash().id || "");
       const need = [];
       for (const ev of store.events) {
+        if (focusId && ev.id !== focusId) continue;
         for (const t of ev.teams || []) {
           if (M.needsRouteRebuild(t)) need.push(t);
         }
       }
       if (!need.length) return false;
-      setBusy(true, "Laddar körvägar…");
-      try {
-        for (const t of need) {
+      const first = priorityId ? need.filter((t) => t.id === priorityId) : [];
+      const rest = priorityId ? need.filter((t) => t.id !== priorityId) : need.slice();
+      async function run(list) {
+        for (const t of list) {
           busyText.textContent = "Beräknar " + t.name + "…";
           await M.recalcTeam(t);
         }
+      }
+      if (priorityId && !first.length) {
+        if (rest.length) {
+          (async () => {
+            try {
+              await run(rest);
+              persist();
+            } catch (e) {}
+          })();
+        }
+        return true;
+      }
+      setBusy(true, "Laddar körvägar…");
+      try {
+        if (first.length) {
+          await run(first);
+          persist();
+          setBusy(false);
+          if (rest.length) {
+            (async () => {
+              try {
+                await run(rest);
+                persist();
+              } catch (e) {}
+            })();
+          }
+          return true;
+        }
+        await run(rest);
         persist();
       } catch (e) {}
       setBusy(false);

@@ -6,6 +6,9 @@
   const SNAP_M = 18;
   const COLORS = ["#d97706", "#2563eb", "#059669", "#ef4444", "#a855f7", "#14b8a6", "#f97316", "#6366f1"];
   const OSRM = "https://router.project-osrm.org";
+  const OSRM_FOOT = "https://routing.openstreetmap.de/routed-foot";
+  const OSRM_BIKE = "https://routing.openstreetmap.de/routed-bike";
+  const OVERPASS = "https://overpass-api.de/api/interpreter";
 
   function uid(prefix) {
     return prefix + "-" + Math.random().toString(36).slice(2, 8);
@@ -258,34 +261,59 @@
     });
   }
 
-  async function osrmJson(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("OSRM " + res.status);
-    return res.json();
+  async function osrmJson(url, timeoutMs) {
+    const ms = timeoutMs || 9000;
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), ms) : null;
+    try {
+      const res = await fetch(url, ctrl ? { signal: ctrl.signal } : {});
+      if (!res.ok) throw new Error("OSRM " + res.status);
+      return await res.json();
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  function osrmEndpoints(profile) {
+    if (profile === "foot") {
+      return [{ base: OSRM_FOOT, name: "foot" }, { base: OSRM, name: "foot" }];
+    }
+    if (profile === "bike") {
+      return [{ base: OSRM_BIKE, name: "cycling" }, { base: OSRM, name: "bike" }];
+    }
+    return [{ base: OSRM, name: "driving" }];
   }
 
   async function osrmRoute(profile, a, b) {
-    const url = OSRM + "/route/v1/" + profile + "/" +
-      a.lon.toFixed(6) + "," + a.lat.toFixed(6) + ";" +
-      b.lon.toFixed(6) + "," + b.lat.toFixed(6) +
-      "?overview=full&geometries=geojson";
-    const data = await osrmJson(url);
-    if (data.code !== "Ok" || !data.routes || !data.routes[0]) return null;
-    const r = data.routes[0];
-    if (!r || !r.geometry || !Array.isArray(r.geometry.coordinates) || r.geometry.coordinates.length < 2) return null;
-    const coords = r.geometry.coordinates;
-    const first = coords[0];
-    const last = coords[coords.length - 1];
-    if (!first || !last) return null;
-    if ((r.distance || 0) < 5 && (Math.abs(first[0] - last[0]) < 1e-6 && Math.abs(first[1] - last[1]) < 1e-6)) {
-      return null;
+    const maxGap = profile === "driving" ? 250 : 90;
+    const endpoints = osrmEndpoints(profile);
+    for (let i = 0; i < endpoints.length; i++) {
+      const ep = endpoints[i];
+      try {
+        const url = ep.base + "/route/v1/" + ep.name + "/" +
+          a.lon.toFixed(6) + "," + a.lat.toFixed(6) + ";" +
+          b.lon.toFixed(6) + "," + b.lat.toFixed(6) +
+          "?overview=full&geometries=geojson";
+        const data = await osrmJson(url, ep.base.indexOf("openstreetmap.de") >= 0 ? 6000 : 8000);
+        if (data.code !== "Ok" || !data.routes || !data.routes[0]) continue;
+        const r = data.routes[0];
+        if (!r || !r.geometry || !Array.isArray(r.geometry.coordinates) || r.geometry.coordinates.length < 2) continue;
+        const coords = r.geometry.coordinates;
+        const first = coords[0];
+        const last = coords[coords.length - 1];
+        if (!first || !last) continue;
+        if ((r.distance || 0) < 5 && (Math.abs(first[0] - last[0]) < 1e-6 && Math.abs(first[1] - last[1]) < 1e-6)) {
+          continue;
+        }
+        const gapStartM = haversine(a.lat, a.lon, first[1], first[0]);
+        const gapEndM = haversine(b.lat, b.lon, last[1], last[0]);
+        if (gapStartM > maxGap || gapEndM > maxGap) continue;
+        return { geom: coords, dist: r.distance, dur: r.duration };
+      } catch (e) {
+        continue;
+      }
     }
-    const gapStartM = haversine(a.lat, a.lon, first[1], first[0]);
-    const gapEndM = haversine(b.lat, b.lon, last[1], last[0]);
-    if (gapStartM > 250 || gapEndM > 250) {
-      return null;
-    }
-    return { geom: coords, dist: r.distance, dur: r.duration };
+    return null;
   }
 
   function gap(geom, lat, lon) {
@@ -296,6 +324,128 @@
   function gapStart(geom, lat, lon) {
     const first = geom[0];
     return haversine(first[1], first[0], lat, lon);
+  }
+
+  function nodeKey(lat, lon) {
+    return lat.toFixed(6) + "," + lon.toFixed(6);
+  }
+
+  async function osmWalkRoute(a, b) {
+    const crowM = haversine(a.lat, a.lon, b.lat, b.lon);
+    if (crowM < 8 || crowM > 1200) return null;
+    const pad = 0.0018;
+    const south = Math.min(a.lat, b.lat) - pad;
+    const west = Math.min(a.lon, b.lon) - pad;
+    const north = Math.max(a.lat, b.lat) + pad;
+    const east = Math.max(a.lon, b.lon) + pad;
+    const q = "[out:json][timeout:20];way(" +
+      south.toFixed(6) + "," + west.toFixed(6) + "," + north.toFixed(6) + "," + east.toFixed(6) +
+      ")[highway~\"^(footway|path|pedestrian|cycleway|steps|track)$\"];out geom;";
+    try {
+      const data = await osrmJson(OVERPASS + "?data=" + encodeURIComponent(q), 16000);
+      const elements = data.elements || [];
+      if (!elements.length) return null;
+      const nodes = new Map();
+      function addNode(lat, lon) {
+        const k = nodeKey(lat, lon);
+        if (!nodes.has(k)) nodes.set(k, { lat, lon, edges: [] });
+        return k;
+      }
+      function addEdge(k1, k2) {
+        if (k1 === k2) return;
+        const n1 = nodes.get(k1), n2 = nodes.get(k2);
+        if (!n1 || !n2) return;
+        const d = haversine(n1.lat, n1.lon, n2.lat, n2.lon);
+        if (d < 0.3) return;
+        n1.edges.push({ to: k2, dist: d });
+        n2.edges.push({ to: k1, dist: d });
+      }
+      function projectOnSeg(lat, lon, lat1, lon1, lat2, lon2) {
+        const dx = lon2 - lon1, dy = lat2 - lat1;
+        const len2 = dx * dx + dy * dy;
+        let t = len2 < 1e-18 ? 0 : ((lon - lon1) * dx + (lat - lat1) * dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        return { lat: lat1 + t * dy, lon: lon1 + t * dx };
+      }
+      elements.forEach((el) => {
+        const geom = el.geometry || [];
+        let prev = null;
+        geom.forEach((g) => {
+          const k = addNode(g.lat, g.lon);
+          if (prev) addEdge(prev, k);
+          prev = k;
+        });
+      });
+      const startK = addNode(a.lat, a.lon);
+      const endK = addNode(b.lat, b.lon);
+      const linkMax = 80;
+      function snapPoint(ptK, plat, plon) {
+        let best = null;
+        elements.forEach((el) => {
+          const geom = el.geometry || [];
+          for (let i = 1; i < geom.length; i++) {
+            const g0 = geom[i - 1], g1 = geom[i];
+            const pr = projectOnSeg(plat, plon, g0.lat, g0.lon, g1.lat, g1.lon);
+            const d = haversine(plat, plon, pr.lat, pr.lon);
+            if (d <= linkMax && (!best || d < best.d)) best = { d, pr, g0, g1 };
+          }
+        });
+        if (!best) return;
+        const pk = addNode(best.pr.lat, best.pr.lon);
+        addEdge(ptK, pk);
+        addEdge(pk, addNode(best.g0.lat, best.g0.lon));
+        addEdge(pk, addNode(best.g1.lat, best.g1.lon));
+      }
+      snapPoint(startK, a.lat, a.lon);
+      snapPoint(endK, b.lat, b.lon);
+      nodes.forEach((n, k) => {
+        if (k === startK || k === endK) return;
+        const ds = haversine(a.lat, a.lon, n.lat, n.lon);
+        const de = haversine(b.lat, b.lon, n.lat, n.lon);
+        if (ds <= linkMax) addEdge(startK, k);
+        if (de <= linkMax) addEdge(endK, k);
+      });
+      const distMap = new Map();
+      const prevMap = new Map();
+      distMap.set(startK, 0);
+      const qn = [startK];
+      while (qn.length) {
+        let bestI = 0;
+        for (let i = 1; i < qn.length; i++) {
+          if ((distMap.get(qn[i]) || 1e15) < (distMap.get(qn[bestI]) || 1e15)) bestI = i;
+        }
+        const cur = qn.splice(bestI, 1)[0];
+        if (cur === endK) break;
+        const curD = distMap.get(cur) || 1e15;
+        const curN = nodes.get(cur);
+        (curN.edges || []).forEach((ed) => {
+          const nd = curD + ed.dist;
+          if (nd < (distMap.get(ed.to) || 1e15)) {
+            distMap.set(ed.to, nd);
+            prevMap.set(ed.to, cur);
+            qn.push(ed.to);
+          }
+        });
+      }
+      if (!prevMap.has(endK) && startK !== endK) return null;
+      const keys = [endK];
+      let walk = endK;
+      while (walk !== startK) {
+        walk = prevMap.get(walk);
+        if (!walk) return null;
+        keys.push(walk);
+      }
+      keys.reverse();
+      const geom = keys.map((k) => {
+        const n = nodes.get(k);
+        return [n.lon, n.lat];
+      });
+      const dist = distMap.get(endK) || crowM;
+      if (geom.length < 2 || dist > crowM * 2.4) return null;
+      return { geom, dist, dur: dist / 1.25 };
+    } catch (e) {
+      return null;
+    }
   }
 
   async function reach(a, b) {
@@ -309,12 +459,46 @@
     if (samePoint) {
       return { geom: [[a.lon, a.lat]], dist: 0, dur: 0, segs: [] };
     }
-    const profiles = ["driving", "bike", "foot"];
+    const crowM = haversine(a.lat, a.lon, b.lat, b.lon);
+    const shortHop = crowM <= 450;
+    let drive = null;
+    let foot = null;
+    let bike = null;
+    if (shortHop) {
+      foot = await osmWalkRoute(a, b);
+      if (!foot) foot = await osrmRoute("foot", a, b);
+      if (!foot) bike = await osrmRoute("bike", a, b);
+      if (!foot && !bike) drive = await osrmRoute("driving", a, b);
+    } else {
+      drive = await osrmRoute("driving", a, b);
+      if (!drive) {
+        bike = await osrmRoute("bike", a, b);
+        if (!bike) foot = await osrmRoute("foot", a, b) || await osmWalkRoute(a, b);
+      }
+    }
+    const snapOf = (r) => {
+      if (!r || !r.geom || !r.geom.length) return 1e9;
+      return Math.max(gapStart(r.geom, a.lat, a.lon), gap(r.geom, b.lat, b.lon));
+    };
+    const footSnap = snapOf(foot);
+    const driveSnap = snapOf(drive);
+    const bikeSnap = snapOf(bike);
+    const footOk = !!(foot && footSnap <= 90 && foot.dist >= 5 && foot.dist < crowM * 3 + 40);
+    const driveOk = !!(drive && driveSnap <= 250);
     let used = null;
     let got = null;
-    for (const p of profiles) {
-      got = await osrmRoute(p, a, b);
-      if (got) { used = p; break; }
+    if (footOk && (shortHop || driveSnap > 55 || (driveOk && foot.dist * 1.2 < drive.dist))) {
+      used = "foot";
+      got = foot;
+    } else if (driveOk) {
+      used = "driving";
+      got = drive;
+    } else if (bike && bikeSnap <= 90) {
+      used = "bike";
+      got = bike;
+    } else if (footOk) {
+      used = "foot";
+      got = foot;
     }
     let geom = [[a.lon, a.lat]];
     let dist = 0, dur = 0;
@@ -336,19 +520,6 @@
       }
     }
     let last = geom[geom.length - 1];
-    for (const profile of profiles) {
-      if (profile === used) continue;
-      if (gap(geom, b.lat, b.lon) <= SNAP_M) break;
-      const fromPt = { lat: last[1], lon: last[0] };
-      if (haversine(fromPt.lat, fromPt.lon, b.lat, b.lon) < SNAP_M) break;
-      const extra = await osrmRoute(profile, fromPt, b);
-      if (!extra) continue;
-      pushSeg(profile, extra.geom, extra.dist || 0, extra.dur || 0);
-      geom = geom.concat(extra.geom.slice(1));
-      dist += (extra.dist || 0);
-      dur += (extra.dur || 0);
-      last = geom[geom.length - 1];
-    }
     if (gap(geom, b.lat, b.lon) > SNAP_M) {
       const crowGeom = [[last[0], last[1]], [b.lon, b.lat]];
       const crowGap = gap(geom.slice(), b.lat, b.lon);
@@ -482,6 +653,12 @@
     return a && b &&
       Math.abs(Number(a.lat) - Number(b.lat)) < 1e-5 &&
       Math.abs(Number(a.lon) - Number(b.lon)) < 1e-5;
+  }
+
+  function isStaleParkMalgang(p) {
+    const lat = Number(p && p.lat), lon = Number(p && p.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+    return Math.abs(lat - 55.602339) < 2e-4 && Math.abs(lon - 12.968334) < 2e-4;
   }
 
   function sameOrder(a, b) {
@@ -629,7 +806,7 @@
           const pt = kort[i];
           pt.who = p.who || pt.who;
           if (typeof p.image === "string" && p.image) pt.image = p.image;
-          if (!samePt(p, pt)) {
+          if (!samePt(p, pt) && !isStaleParkMalgang(p)) {
             if (Number.isFinite(Number(p.lat))) pt.lat = Number(p.lat);
             if (Number.isFinite(Number(p.lon))) pt.lon = Number(p.lon);
           }
