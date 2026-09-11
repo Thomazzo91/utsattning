@@ -750,6 +750,8 @@
   function applyPoint(dest, src) {
     if (!dest || !src) return;
     if (src.label) dest.label = src.label;
+    if (src.name) dest.name = src.name;
+    if (src.idx != null && Number.isFinite(Number(src.idx))) dest.idx = Number(src.idx);
     if (Number.isFinite(Number(src.lat))) dest.lat = Number(src.lat);
     if (Number.isFinite(Number(src.lon))) dest.lon = Number(src.lon);
     if (src.iga) dest.iga = src.iga;
@@ -799,23 +801,25 @@
       if (!pts.length) return;
       const kort = t.modes.kortast.stops;
       const coordsChanged = revBumped || pts.length !== kort.length || pts.some((p, i) => !samePt(p, kort[i]));
-      pts.forEach((p, i) => {
-        if (!kort[i]) {
-          kort[i] = Object.assign({}, p);
-        } else if (revBumped) {
-          const pt = kort[i];
-          pt.who = p.who || pt.who;
-          if (typeof p.image === "string" && p.image) pt.image = p.image;
-          if (!samePt(p, pt) && !isStaleParkMalgang(p)) {
-            if (Number.isFinite(Number(p.lat))) pt.lat = Number(p.lat);
-            if (Number.isFinite(Number(p.lon))) pt.lon = Number(p.lon);
+      if (revBumped) {
+        pts.forEach((p, i) => {
+          if (!kort[i]) {
+            kort[i] = Object.assign({}, p);
+          } else {
+            const pt = kort[i];
+            pt.who = p.who || pt.who;
+            if (typeof p.image === "string" && p.image) pt.image = p.image;
+            if (!samePt(p, pt) && !isStaleParkMalgang(p)) {
+              if (Number.isFinite(Number(p.lat))) pt.lat = Number(p.lat);
+              if (Number.isFinite(Number(p.lon))) pt.lon = Number(p.lon);
+            }
+            if (p.placering) pt.placering = p.placering;
           }
-          if (p.placering) pt.placering = p.placering;
-        } else {
-          applyPoint(kort[i], p);
-        }
-      });
-      if (pts.length < kort.length) kort.length = pts.length;
+        });
+        if (pts.length < kort.length) kort.length = pts.length;
+      } else {
+        t.modes.kortast.stops = pts.map((p) => Object.assign({}, p));
+      }
       if (coordsChanged) {
         t.modes.kortast.track = [];
         t.modes.kortast.legs = [];
