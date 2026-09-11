@@ -80,7 +80,14 @@
     try {
       M.saveStore(store);
     } catch (e) {
-      showToast("Kunde inte spara. Ta bort loppet igen.");
+      const msg = (e && (e.message || String(e))) || "";
+      const quota = /quota|full|storage|storlek|exceeded/i.test(msg) || (e && e.name === "QuotaExceededError");
+      showToast(
+        quota
+          ? ("Lagret är fullt. Ta bort bilder från punkter eller rensa bort gamla lopp: " + (msg || "").slice(0, 60))
+          : ("Kunde inte spara: " + ((msg || "Ta bort loppet igen.").slice(0, 140)))
+      );
+      if (window.console && console.error) console.error("persist failed:", e, store);
     }
   }
 

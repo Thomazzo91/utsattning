@@ -19,6 +19,11 @@
     return !!(id && global.RACES && typeof global.RACES[id] === "object");
   }
 
+  const OBSOLETE_IDS = ["hbgm26", "malmo26", "hbgm", "malmomarathon", "hbgm26-marathon", "malmomarathon26"];
+  function isObsoleteId(id) {
+    return !!(id && typeof id === "string" && OBSOLETE_IDS.indexOf(id.toLowerCase()) >= 0);
+  }
+
   function builtInDisplayName(id) {
     if (id && global.RACES && global.RACES[id]) return String(global.RACES[id].name || id);
     return String(id || "");
@@ -110,7 +115,12 @@
   }
 
   function serializeStore(data) {
-    const events = (data.events || []).filter((ev) => ev && ev.id && !isRemoved(ev.id)).map((ev) => {
+    const events = (data.events || []).filter((ev) => {
+      if (!ev || !ev.id) return false;
+      if (isRemoved(ev.id)) return false;
+      if (isObsoleteId(ev.id)) { rememberRemoved(ev.id); return false; }
+      return true;
+    }).map((ev) => {
       if (isBuiltIn(ev.id)) {
         const rev = seedRev(ev.id);
         const seed = seedEvent(ev.id);
@@ -128,7 +138,7 @@
     getAllBuiltInIds().forEach((bid) => {
       if (!events.some((e) => e.id === bid)) events.push({ id: bid, rev: seedRev(bid) });
     });
-    const currentId = (data.currentEventId && !isRemoved(data.currentEventId)) ? data.currentEventId :
+    const currentId = (data.currentEventId && !isRemoved(data.currentEventId) && !isObsoleteId(data.currentEventId)) ? data.currentEventId :
       (isBuiltIn(data.currentEventId) ? data.currentEventId : defaultEventId());
     const hasCurrent = events.some((e) => e.id === currentId);
     const finalCurrent = hasCurrent ? currentId : (events[0] && events[0].id) || defaultEventId();
@@ -143,6 +153,7 @@
       if (!data || !Array.isArray(data.events) || !data.events.length) return null;
       const events = [];
       data.events.forEach((ev) => {
+        if (!ev || isObsoleteId(ev && ev.id)) { rememberRemoved(ev && ev.id); return; }
         const full = hydrateEvent(ev);
         if (full) events.push(full);
       });
