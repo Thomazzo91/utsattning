@@ -273,20 +273,29 @@
     if (data.code !== "Ok" || !data.routes || !data.routes[0]) return null;
     const r = data.routes[0];
     if (!r || !r.geometry || !Array.isArray(r.geometry.coordinates) || r.geometry.coordinates.length < 2) return null;
-    if ((r.distance || 0) < 5) {
-      const coords = r.geometry.coordinates;
-      const first = coords[0];
-      const last = coords[coords.length - 1];
-      if (!first || !last || (Math.abs(first[0] - last[0]) < 1e-6 && Math.abs(first[1] - last[1]) < 1e-6)) {
-        return null;
-      }
+    const coords = r.geometry.coordinates;
+    const first = coords[0];
+    const last = coords[coords.length - 1];
+    if (!first || !last) return null;
+    if ((r.distance || 0) < 5 && (Math.abs(first[0] - last[0]) < 1e-6 && Math.abs(first[1] - last[1]) < 1e-6)) {
+      return null;
     }
-    return { geom: r.geometry.coordinates, dist: r.distance, dur: r.duration };
+    const gapStartM = haversine(a.lat, a.lon, first[1], first[0]);
+    const gapEndM = haversine(b.lat, b.lon, last[1], last[0]);
+    if (gapStartM > 250 || gapEndM > 250) {
+      return null;
+    }
+    return { geom: coords, dist: r.distance, dur: r.duration };
   }
 
   function gap(geom, lat, lon) {
     const last = geom[geom.length - 1];
     return haversine(last[1], last[0], lat, lon);
+  }
+
+  function gapStart(geom, lat, lon) {
+    const first = geom[0];
+    return haversine(first[1], first[0], lat, lon);
   }
 
   async function reach(a, b) {
@@ -313,7 +322,14 @@
       geom = got.geom.slice();
       dist = got.dist || 0;
       dur = got.dur || 0;
-      pushSeg(used, got.geom, dist, dur);
+      const gStartM = gapStart(geom, a.lat, a.lon);
+      if (gStartM > SNAP_M) {
+        const pre = [[a.lon, a.lat], geom[0]];
+        segs.unshift({ profile: (used === "driving" ? "crow" : "foot"), geom: pre, dist: gStartM, dur: 0 });
+        geom = [[a.lon, a.lat]].concat(geom);
+        dist += gStartM;
+      }
+      pushSeg(used, got.geom.slice(), got.dist || 0, got.dur || 0);
       if (gap(geom, b.lat, b.lon) <= SNAP_M) {
         geom.push([b.lon, b.lat]);
         return { geom, dist, dur, segs };

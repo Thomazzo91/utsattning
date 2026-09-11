@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Lopp 2",
-  "rev": 16,
+  "rev": 17,
   "groups": [
    {
     "id": "startmal",
@@ -13341,8 +13341,8 @@ window.RACES = {
         "label": "Målgång Ribersborg",
         "name": "Målgång Ribersborg",
         "who": "",
-        "lat": 55.6023,
-        "lon": 12.9683,
+        "lat": 55.602339,
+        "lon": 12.968334,
         "iga": "",
         "starth": 0,
         "startm": 0,
@@ -13398,8 +13398,8 @@ window.RACES = {
         "label": "Målgång Ribersborg",
         "name": "Målgång Ribersborg",
         "who": "",
-        "lat": 55.6023,
-        "lon": 12.9683,
+        "lat": 55.602339,
+        "lon": 12.968334,
         "iga": "",
         "starth": 0,
         "startm": 0,
