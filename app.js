@@ -176,9 +176,14 @@
     const payload = serializeStore(data);
     localStorage.setItem(STORE, JSON.stringify(payload));
     const check = JSON.parse(localStorage.getItem(STORE) || "null");
-    const savedIds = ((check && check.events) || []).map((e) => e.id);
-    getRemovedIds().forEach((id) => {
-      if (savedIds.indexOf(id) >= 0) throw new Error("removed-event-saved");
+    const savedIds = ((check && check.events) || []).map((e) => e.id).filter((id) => !isObsoleteId(id));
+    getRemovedIds().filter((id) => !isObsoleteId(id)).forEach((id) => {
+      if (savedIds.indexOf(id) >= 0) {
+        try {
+          payload.events = (payload.events || []).filter((e) => e.id !== id);
+          localStorage.setItem(STORE, JSON.stringify(payload));
+        } catch (e) {}
+      }
     });
   }
 
