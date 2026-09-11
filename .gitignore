@@ -1,0 +1,19 @@
+# Projekt-specifikt ignorera: skript, loggar, stora binärer
+_*.py
+*_out*.txt
+*.kml
+*.img
+*.deb
+_deb_extracted/
+.trae/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Temp
+*.tmp
+*.bak
+*.log
+node_modules/
