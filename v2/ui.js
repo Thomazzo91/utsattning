@@ -1499,13 +1499,11 @@
       return;
     }
 
-    const focusEv = currentEvent();
     const startH = parseHash();
-    if (focusEv) await ensureEventRoutes(focusEv, startH.id);
-
     if (lopp && store.events.some((e) => e.id === lopp)) {
       document.body.classList.add("in-race");
       closeChooser();
+      await ensureEventRoutes(currentEvent(), startH.id);
       show(startH.id, startH.mode, startH.idx, true, false);
       return;
     }

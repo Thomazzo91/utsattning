@@ -1671,10 +1671,9 @@
       return;
     }
 
-    await restoreRoutes();
-
     if (lopp && store.events.some((e) => e.id === lopp)) {
       document.body.classList.add("in-race");
+      await restoreRoutes();
       bootView();
       await fixTwoPoint();
       return;
