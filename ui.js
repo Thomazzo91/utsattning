@@ -540,9 +540,17 @@
     } else if (g.track && g.track.length) {
       const latlngs = g.track.map(([lon, lat]) => [lat, lon]);
       routeLines.push(L.polyline(latlngs, { color: g.color, weight: 6, opacity: 0.92 }).addTo(layer));
+    } else {
+      const fallback = (g.stops || []).filter((s) =>
+        Number.isFinite(s.lat) && Number.isFinite(s.lon) && !(Math.abs(s.lat) < 1e-5 && Math.abs(s.lon) < 1e-5)
+      ).map((s) => [s.lat, s.lon]);
+      if (fallback.length >= 2) {
+        routeLines.push(L.polyline(fallback, { color: g.color, weight: 5, opacity: 0.75 }).addTo(layer));
+      }
     }
     g.stops.forEach((s, i) => {
       if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return;
+      if (Math.abs(s.lat) < 1e-5 && Math.abs(s.lon) < 1e-5) return;
       const m = L.marker([s.lat, s.lon], {
         icon: markerIcon(g.color, i + 1, i === selected, isDone(g.id, s.label)),
         zIndexOffset: i === selected ? 700 : 0
@@ -566,10 +574,12 @@
     }
     const rb = routeBounds();
     if (rb) map.fitBounds(rb, mapPad());
-    else if (g.stops.length) {
-      map.fitBounds(L.latLngBounds(g.stops.map((s) => [s.lat, s.lon])), mapPad());
-    } else {
-      map.setView([62.5, 17], 5);
+    else {
+      const geo = (g.stops || []).filter((s) =>
+        Number.isFinite(s.lat) && Number.isFinite(s.lon) && !(Math.abs(s.lat) < 1e-5 && Math.abs(s.lon) < 1e-5)
+      );
+      if (geo.length) map.fitBounds(L.latLngBounds(geo.map((s) => [s.lat, s.lon])), mapPad());
+      else map.setView([62.5, 17], 5);
     }
     renderNow(g);
     const orderHint = currentMode === "iga" ? "i igång-ordning" : "kortaste körvägen";
@@ -1363,7 +1373,7 @@
     const url = shareUrl();
     try {
       await navigator.clipboard.writeText(url);
-      showToast("Visningslänk kopierad");
+      showToast("Visningslänk kopierad till github.io");
     } catch {
       prompt("Kopiera länken", url);
     }
