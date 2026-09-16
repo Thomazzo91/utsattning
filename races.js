@@ -13295,11 +13295,11 @@ window.RACES = {
     }
    }
   ],
-  "rev": 5
+  "rev": 40
  },
- "lopp2": {
+  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 25,
+  "rev": 40,
   "groups": [
    {
     "id": "startmal",
