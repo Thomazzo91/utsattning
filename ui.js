@@ -19,7 +19,7 @@
   const VISITED_KEY = "visited-v2";
   const LEGACY_VISIT_KEY = "hbgm26-visited-v1";
 
-  const map = L.map("map", { tap: true, zoomControl: false, attributionControl: true });
+  const map = L.map("map", { tap: true, zoomControl: false, attributionControl: true }).setView([62.5, 17], 5);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19, attribution: "&copy; OpenStreetMap"
@@ -73,6 +73,107 @@
   function setTitle(name) {
     const t = String(name || "").trim();
     document.title = t || "Välj lopp";
+  }
+
+  const GH_REPO = "Thomazzo91/utsattning";
+  const GH_TOKEN_KEY = "utsattning-publish-token";
+  let publishing = false;
+
+  function utf8ToB64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  async function ghJson(method, url, body) {
+    const token = localStorage.getItem(GH_TOKEN_KEY) || "";
+    const headers = {
+      Accept: "application/vnd.github+json",
+      Authorization: "Bearer " + token
+    };
+    if (body) headers["Content-Type"] = "application/json";
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+    if (!res.ok) {
+      const msg = (data && data.message) || ("HTTP " + res.status);
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  async function ensurePublishToken() {
+    let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
+    if (t) return t;
+    t = window.prompt("GitHub-token med skrivrätt till utsattning-repot, så att alla ser ändringen på https://thomazzo91.github.io/utsattning/");
+    t = (t || "").trim();
+    if (t) localStorage.setItem(GH_TOKEN_KEY, t);
+    return t;
+  }
+
+  async function publishCatalog() {
+    if (isViewOnly() || publishing) return false;
+    const token = await ensurePublishToken();
+    if (!token) {
+      showToast("Sparat på den här datorn. Publicera för alla via Meny → Spara för alla");
+      return false;
+    }
+    publishing = true;
+    setBusy(true, "Sparar för alla…");
+    try {
+      for (const ev of store.events || []) {
+        for (const t of ev.teams || []) {
+          if (M.needsRouteRebuild(t)) {
+            busyText.textContent = "Beräknar " + t.name + "…";
+            try { await M.recalcTeam(t); } catch (e) {}
+          }
+        }
+      }
+      persist();
+      const races = M.buildRacesObject(store.events);
+      const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
+      const racesMeta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js");
+      await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js", {
+        message: "Uppdatera lopp för alla",
+        content: utf8ToB64(racesBody),
+        branch: "main",
+        sha: racesMeta.sha
+      });
+      const htmlMeta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/index.html");
+      let html = decodeURIComponent(escape(atob(htmlMeta.content.replace(/\s/g, ""))));
+      const stamp = String(Date.now());
+      html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
+      html = html.replace(/app\.js\?v=\d+/g, "app.js?v=" + stamp);
+      html = html.replace(/ui\.js\?v=\d+/g, "ui.js?v=" + stamp);
+      await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/index.html", {
+        message: "Cache-bust efter publicering",
+        content: utf8ToB64(html),
+        branch: "main",
+        sha: htmlMeta.sha
+      });
+      window.RACES = races;
+      (store.events || []).forEach((ev) => {
+        if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
+      });
+      persist();
+      showToast("Sparat för alla på utsattning-länken");
+      return true;
+    } catch (e) {
+      const msg = (e && e.message) || "";
+      if (/bad credentials|401|unauthorized/i.test(msg)) {
+        try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
+        showToast("Token ogiltig. Försök Spara för alla igen.");
+      } else {
+        showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
+      }
+      return false;
+    } finally {
+      publishing = false;
+      setBusy(false);
+    }
   }
 
   function persist() {
@@ -214,6 +315,7 @@
   function ensureSeed() {
     if (!store || !Array.isArray(store.events)) return;
     (M.getAllBuiltInIds() || []).forEach((bid) => {
+      if (M.isRemoved(bid)) return;
       if (!store.events.some((e) => e.id === bid)) {
         const s = M.seedEvent(bid);
         if (s) store.events.unshift(s);
@@ -466,6 +568,8 @@
     if (rb) map.fitBounds(rb, mapPad());
     else if (g.stops.length) {
       map.fitBounds(L.latLngBounds(g.stops.map((s) => [s.lat, s.lon])), mapPad());
+    } else {
+      map.setView([62.5, 17], 5);
     }
     renderNow(g);
     const orderHint = currentMode === "iga" ? "i igång-ordning" : "kortaste körvägen";
@@ -778,7 +882,7 @@
       <label>Vad ska sättas upp</label><input id="pSetup" value="${esc(p.setup)}" />
       <label>Placering / notering</label><textarea id="pNote">${esc(p.placering)}</textarea>
       <label>GPS eller kartlänk</label>
-      <input id="pGps" value="${p.lat ? p.lat.toFixed(6) + ", " + p.lon.toFixed(6) : ""}" placeholder="56.05, 12.68 eller Maps-länk" />
+      <input id="pGps" value="${p.lat ? p.lat.toFixed(6) + ", " + p.lon.toFixed(6) : ""}" placeholder="lat, lon t.ex. 56.05, 12.68" />
       <label>Bild på placering (valfritt)</label>
       <div class="image-widget">
         ${imgPreview}
@@ -809,13 +913,17 @@
       startPick(i);
     });
     box.querySelector("#pGps").addEventListener("change", () => {
-      const parsed = M.parseLatLon(box.querySelector("#pGps").value);
+      const raw = box.querySelector("#pGps").value.trim();
+      const parsed = M.parseLatLon(raw);
       if (parsed) {
         const t = teamById(editTeamId);
         const list = M.pointsOf(t);
         list[i].lat = parsed.lat;
         list[i].lon = parsed.lon;
         writePoints(t, list);
+        box.querySelector("#pGps").value = parsed.lat.toFixed(6) + ", " + parsed.lon.toFixed(6);
+      } else if (raw) {
+        showToast("Kunde inte läsa GPS. Skriv latitud, longitud, t.ex. 56.05, 12.68");
       }
     });
     const fileInput = box.querySelector("#pImgFile");
@@ -1019,7 +1127,7 @@
     if (isViewOnly()) return;
     const ev = store.events.find((e) => e.id === id);
     if (!ev) return;
-    if (M.isBuiltIn(id)) {
+    if (M.isCoreRace(id)) {
       if (store.events.length > (M.getAllBuiltInIds() || []).length) {
         showToast(M.builtInDisplayName(id) + " kan inte tas bort");
         return;
@@ -1047,6 +1155,7 @@
     setTimeout(() => { ignoreHash = false; }, 0);
     openChooser();
     showToast("Lopp borttaget");
+    publishCatalog();
   }
 
   function deleteEvent() {
@@ -1128,6 +1237,7 @@
     renderTeamBar();
     show(currentId, currentMode, selected, true);
     map.invalidateSize();
+    await publishCatalog();
   }
 
   function download(name, text, type) {
@@ -1218,6 +1328,10 @@
     newEvent();
   });
   document.getElementById("editorDone").addEventListener("click", closeEditor);
+  document.getElementById("publishBtn").addEventListener("click", async () => {
+    more.style.display = "none";
+    await publishCatalog();
+  });
   document.getElementById("exportBtn").addEventListener("click", () => {
     if (isViewOnly()) return;
     more.style.display = "none";
