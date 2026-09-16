@@ -29,6 +29,7 @@
   let liveLayer = null;
   let liveFitId = "";
   let liveFocusKey = "";
+  let liveIgnorePopupClose = false;
 
   let visited = {};
   let applyingLive = false;
@@ -147,6 +148,28 @@
       html: `<div class="live-mk${up ? " is-up" : ""}"><div class="live-mk-num" style="background:${up ? "var(--ok)" : color}">${up ? CHECK_SVG : n}</div></div>`
     });
   }
+  function liveStatusText(rec, up) {
+    return up
+      ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
+      : "Inte uppe";
+  }
+  function livePopupHtml(p, rec, up) {
+    const name = p.stop.label || p.stop.name || "Punkt";
+    return `<div class="live-pop-body">
+      <strong>${esc(name)}</strong>
+      <em>${esc(p.team.name)} · ${esc(liveStatusText(rec, up))}</em>
+      <div class="live-pop-times">
+        <div><span>Igång</span><b>${esc(p.stop.iga || "—")}</b></div>
+        <div class="is-first"><span>Första</span><b>${esc(p.stop.forsta || "—")}</b></div>
+        <div><span>Sista</span><b>${esc(p.stop.sista || "—")}</b></div>
+      </div>
+    </div>`;
+  }
+  function fillLiveInfo(p, rec, up) {
+    const info = document.getElementById("liveInfo");
+    if (!info) return;
+    info.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(liveStatusText(rec, up))}</span>`;
+  }
   function ensureLiveMap() {
     const el = document.getElementById("liveMap");
     if (!el) return;
@@ -154,7 +177,7 @@
       setTimeout(() => liveMap.invalidateSize(), 60);
       return;
     }
-    liveMap = L.map(el, { tap: true, zoomControl: false, attributionControl: true }).setView([62.5, 17], 5);
+    liveMap = L.map(el, { tap: true, zoomControl: false, attributionControl: true, fadeAnimation: false }).setView([62.5, 17], 5);
     L.control.zoom({ position: "bottomright" }).addTo(liveMap);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: "&copy; OpenStreetMap"
@@ -165,8 +188,12 @@
     if (!liveMap || !liveLayer) return;
     const Llive = window.MattorLive;
     const pts = liveStops(ev);
+    const keep = liveFocusKey;
+    liveIgnorePopupClose = true;
     liveLayer.clearLayers();
+    liveIgnorePopupClose = false;
     const latlngs = [];
+    let reopen = null;
     pts.forEach((p) => {
       const rec = Llive ? Llive.get(ev.id, p.team.id, p.stop.label) : null;
       const up = !!(rec && rec.on);
@@ -174,29 +201,34 @@
         icon: liveMarkerIcon(p.team.color, up, p.idx),
         zIndexOffset: up ? 400 : 0
       });
-      m.on("click", () => {
-        liveFocusKey = p.key;
-        const info = document.getElementById("liveInfo");
-        const meta = up
-          ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
-          : "Inte uppe";
-        if (info) info.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(meta)}</span>`;
+      m.bindPopup(livePopupHtml(p, rec, up), {
+        className: "live-pop",
+        maxWidth: 300,
+        closeButton: true,
+        autoPan: true,
+        autoPanPadding: [20, 56],
+        autoClose: true,
+        closeOnClick: true
       });
-      m.bindTooltip(p.team.name + " · " + (p.stop.label || p.stop.name || "Punkt"), { direction: "top", opacity: 0.92 });
+      m.on("popupopen", () => {
+        liveFocusKey = p.key;
+        fillLiveInfo(p, rec, up);
+      });
+      m.on("popupclose", () => {
+        if (!liveIgnorePopupClose && liveFocusKey === p.key) liveFocusKey = "";
+      });
       m.addTo(liveLayer);
       latlngs.push([p.stop.lat, p.stop.lon]);
-      if (p.key === liveFocusKey) {
-        const infoEl = document.getElementById("liveInfo");
-        const meta = up
-          ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
-          : "Inte uppe";
-        if (infoEl) infoEl.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(meta)}</span>`;
+      if (p.key === keep) {
+        fillLiveInfo(p, rec, up);
+        reopen = m;
       }
     });
     if (fit && latlngs.length) {
       liveMap.fitBounds(L.latLngBounds(latlngs), { padding: [28, 28], maxZoom: 15 });
       liveFitId = ev.id;
     }
+    if (reopen) setTimeout(() => { if (liveMap) reopen.openPopup(); }, 60);
   }
   function renderLiveBoard() {
     const status = document.getElementById("liveStatus");

@@ -486,6 +486,47 @@
     }
     .live-mk.is-up .live-mk-num { border-color: #86efac; }
     .live-mk-num svg { width: 16px; height: 16px; display: block; }
+    .live-pop .leaflet-popup-content-wrapper {
+      background: #1c2736;
+      color: var(--text);
+      border-radius: 16px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.55);
+      opacity: 1;
+    }
+    .live-pop .leaflet-popup-tip { background: #1c2736; }
+    #liveMap .leaflet-popup-pane { z-index: 1200; }
+    .live-pop .leaflet-popup-content { margin: 12px 14px 12px; min-width: 210px; }
+    .live-pop .leaflet-popup-close-button {
+      color: var(--muted) !important;
+      font-size: 22px !important;
+      padding: 8px 10px 0 0 !important;
+      width: 32px !important;
+      height: 32px !important;
+    }
+    .live-pop-body strong { display: block; font-size: 0.98rem; padding-right: 22px; }
+    .live-pop-body em {
+      display: block; font-style: normal; color: var(--muted);
+      font-size: 0.8rem; font-weight: 700; margin-top: 3px;
+    }
+    .live-pop-times {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .live-pop-times div {
+      background: #10161c;
+      border-radius: 10px;
+      padding: 7px 4px 6px;
+      text-align: center;
+    }
+    .live-pop-times span {
+      display: block; color: var(--muted);
+      font-size: 0.64rem; font-weight: 700; letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+    .live-pop-times b { display: block; margin-top: 2px; font-size: 1.02rem; font-weight: 800; }
+    .live-pop-times .is-first { outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); }
     body.overview-mode .top,
     body.overview-mode .dock,
     body.overview-mode .list-sheet,
@@ -599,6 +640,6 @@
   <script src="../app.js?v=43"></script>
   <script src="../races.js?v=31"></script>
   <script src="../live.js?v=1"></script>
-  <script src="ui.js?v=10"></script>
+  <script src="ui.js?v=11"></script>
 </body>
 </html>
