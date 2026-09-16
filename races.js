@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 43,
+  "rev": 44,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 46,
+  "rev": 47,
   "groups": [
    {
     "id": "startmal",
@@ -13555,8 +13555,8 @@ window.RACES = {
         "name": "10 km hel",
         "label": "10 km hel",
         "who": "",
-        "lat": 55.5881757,
-        "lon": 12.9249734,
+        "lat": 55.588176,
+        "lon": 12.924973,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -14654,8 +14654,8 @@ window.RACES = {
         "name": "10 km hel",
         "label": "10 km hel",
         "who": "",
-        "lat": 55.5881757,
-        "lon": 12.9249734,
+        "lat": 55.588176,
+        "lon": 12.924973,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
