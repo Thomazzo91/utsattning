@@ -215,7 +215,8 @@
       thumb.addEventListener("click", () => {
         const ov = document.getElementById("imgOverlay");
         document.getElementById("imgOverlayImg").src = imgSrc(s.image);
-        ov.style.display = "flex";
+        ov.classList.add("open");
+        ov.setAttribute("aria-hidden", "false");
       });
     }
   }
@@ -421,7 +422,9 @@
     b.addEventListener("click", () => show(currentId, b.dataset.mode, selected, false, false));
   });
   document.getElementById("imgOverlay").addEventListener("click", () => {
-    document.getElementById("imgOverlay").style.display = "none";
+    const ov = document.getElementById("imgOverlay");
+    ov.classList.remove("open");
+    ov.setAttribute("aria-hidden", "true");
     document.getElementById("imgOverlayImg").src = "";
   });
   const card = document.getElementById("card");
