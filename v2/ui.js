@@ -30,6 +30,7 @@
   const pickBanner = document.getElementById("pickBanner");
 
   let visited = {};
+  let applyingLive = false;
   try {
     visited = JSON.parse(localStorage.getItem(VISITED_KEY) || "{}") || {};
     if (typeof visited !== "object" || visited === null) visited = {};
@@ -68,20 +69,100 @@
   }
   function isDone(teamId, label) {
     const evId = currentEvent() ? currentEvent().id : "";
+    if (window.MattorLive) {
+      const rec = window.MattorLive.get(evId, teamId, label);
+      if (rec) return !!rec.on;
+    }
     return !!(visited[visitKey(teamId, label)] || (evId === "lopp1" && visited[teamId + "|" + label]));
   }
   function saveVisited() {
     try { localStorage.setItem(VISITED_KEY, JSON.stringify(visited)); } catch (e) {}
   }
   function setDone(teamId, label, on) {
+    const ev = currentEvent();
     const k = visitKey(teamId, label);
-    const legacy = currentEvent() && currentEvent().id === "lopp1" ? teamId + "|" + label : null;
+    const legacy = ev && ev.id === "lopp1" ? teamId + "|" + label : null;
     if (on) visited[k] = true;
     else {
       delete visited[k];
       if (legacy) delete visited[legacy];
     }
     saveVisited();
+    if (!applyingLive && window.MattorLive && ev) {
+      const t = teamById(teamId);
+      window.MattorLive.report(ev.id, teamId, label, on, t ? t.name : "");
+    }
+  }
+  function liveClock(t) {
+    const d = new Date(Number(t) || Date.now());
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+  function applyLiveCache() {
+    const L = window.MattorLive;
+    if (!L) return;
+    Object.keys(L.items || {}).forEach((k) => {
+      const rec = L.items[k];
+      if (!rec) return;
+      if (rec.on) visited[k] = true;
+      else delete visited[k];
+    });
+    saveVisited();
+  }
+  function refreshLiveUi() {
+    applyLiveCache();
+    const board = document.getElementById("liveBoard");
+    if (board && board.classList.contains("open")) renderLiveBoard();
+    if (document.body.classList.contains("in-race") && currentId) {
+      const g = viewOf(currentId, currentMode);
+      renderCard(g);
+      renderChips(g);
+      paintMarkers(g);
+      renderList(g);
+    }
+  }
+  function renderLiveBoard() {
+    const status = document.getElementById("liveStatus");
+    const body = document.getElementById("liveBody");
+    const L = window.MattorLive;
+    if (status) {
+      const on = L && L.connected();
+      status.classList.toggle("is-on", !!on);
+      status.textContent = on ? "Live · uppdateras direkt när någon bockar av" : "Ansluter till live-status…";
+    }
+    if (!body) return;
+    const events = (store && store.events) || [];
+    if (!events.length) {
+      body.innerHTML = "<p class=\"setup\">Inga lopp att visa.</p>";
+      return;
+    }
+    body.innerHTML = events.map((ev) => {
+      const groups = (ev.teams || []).map((t) => {
+        const stops = (M.pointsOf(t) || []).filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon));
+        const rows = stops.map((s) => {
+          const rec = L ? L.get(ev.id, t.id, s.label) : null;
+          const up = !!(rec && rec.on);
+          const meta = up
+            ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
+            : "Inte uppe";
+          return `<div class="live-stop${up ? " is-up" : ""}"><div class="live-dot"></div><div><strong>${esc(s.label || s.name || "Punkt")}</strong><span>${esc(meta)}</span></div></div>`;
+        }).join("");
+        const upCount = stops.filter((s) => L && L.isOn(ev.id, t.id, s.label)).length;
+        return `<div class="live-group"><h4>${esc(t.name)} · ${upCount}/${stops.length}</h4>${rows || "<div class=\"live-stop\"><span>Inga punkter</span></div>"}</div>`;
+      }).join("");
+      const allStops = (ev.teams || []).reduce((n, t) => n + (M.pointsOf(t) || []).filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon)).length, 0);
+      const allUp = (ev.teams || []).reduce((n, t) => n + (M.pointsOf(t) || []).filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon) && L && L.isOn(ev.id, t.id, s.label)).length, 0);
+      return `<div class="live-event"><h3>${esc(ev.name)}</h3><div class="live-prog">${allUp} av ${allStops} uppe</div>${groups}</div>`;
+    }).join("");
+  }
+  function openLiveBoard() {
+    document.getElementById("more").style.display = "none";
+    document.getElementById("liveBoard").classList.add("open");
+    document.body.classList.add("live-open");
+    renderLiveBoard();
+  }
+  function closeLiveBoard() {
+    document.getElementById("liveBoard").classList.remove("open");
+    document.body.classList.remove("live-open");
   }
   function viewOf(id, mode) {
     const t = teamById(id);
@@ -428,6 +509,9 @@
     newEvent();
   });
   document.getElementById("chooserNew").addEventListener("click", newEvent);
+  document.getElementById("chooserLive").addEventListener("click", openLiveBoard);
+  document.getElementById("liveMenuBtn").addEventListener("click", openLiveBoard);
+  document.getElementById("liveClose").addEventListener("click", closeLiveBoard);
   document.getElementById("publishBtn").addEventListener("click", async () => {
     document.getElementById("more").style.display = "none";
     await publishCatalog();
@@ -1066,6 +1150,8 @@
     if (!isViewOnly()) persist();
     if (lopp && store.events.some((e) => e.id === lopp)) store.currentEventId = lopp;
 
+    if (window.MattorLive) applyLiveCache();
+
     const focusEv = currentEvent();
     if (focusEv) {
       const need = (focusEv.teams || []).filter((t) => M.needsRouteRebuild(t));
@@ -1084,14 +1170,23 @@
       closeChooser();
       const startH = parseHash();
       show(startH.id, startH.mode, startH.idx, true, false);
+      if (params.get("oversikt") === "1" || params.get("admin") === "1") openLiveBoard();
       return;
     }
     if (isViewOnly()) {
       const bid = lopp && M.isBuiltIn(lopp) ? lopp : M.defaultEventId();
       enterEvent(bid);
+      if (params.get("oversikt") === "1" || params.get("admin") === "1") openLiveBoard();
       return;
     }
     openChooser();
+    if (params.get("oversikt") === "1" || params.get("admin") === "1") openLiveBoard();
+  }
+  if (window.MattorLive) {
+    window.MattorLive.on(() => {
+      applyingLive = true;
+      try { refreshLiveUi(); } finally { applyingLive = false; }
+    });
   }
   start();
 })();
