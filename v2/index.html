@@ -46,10 +46,11 @@
     }
     .top {
       grid-row: 1;
+      position: relative;
+      z-index: 1200;
       padding: calc(8px + var(--safe-top)) 10px 8px;
       background: #0e1522;
       border-bottom: 1px solid var(--line);
-      z-index: 20;
     }
     .top-row {
       display: flex;
@@ -269,12 +270,19 @@
     .mk.is-on .mk-num { width: 42px; height: 42px; border-width: 3px; }
     .mk.is-done .mk-num { background: var(--ok) !important; }
     .mk-num svg { width: 18px; height: 18px; display: block; }
+    .more-wrap { position: relative; flex: none; }
     .more {
-      position: absolute; right: 10px;
-      top: calc(56px + var(--safe-top));
-      z-index: 40; display: none;
-      background: var(--panel); border: 1px solid var(--line);
-      border-radius: 12px; padding: 6px; min-width: 210px;
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 1300;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 6px;
+      min-width: 220px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.5);
     }
     .more a, .more button {
       display: block; width: 100%; text-align: left;
@@ -386,17 +394,19 @@
       <button type="button" class="icon" id="share" aria-label="Kopiera länk">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
       </button>
-      <button type="button" class="icon" id="moreBtn" aria-label="Mer">···</button>
+      <div class="more-wrap">
+        <button type="button" class="icon" id="moreBtn" aria-label="Mer">···</button>
+        <div class="more" id="more">
+          <a id="gmaps" target="_blank" rel="noopener">Hela rutten i Maps</a>
+          <button type="button" id="gpxBtn">Ladda ner GPX</button>
+          <button type="button" id="clearDone">Rensa avbockning</button>
+          <a id="editV1" href="../">Redigera i originalet (1.0)</a>
+        </div>
+      </div>
     </div>
     <div class="groups" id="groups"></div>
   </header>
   <div id="map"></div>
-  <div class="more" id="more">
-    <a id="gmaps" target="_blank" rel="noopener">Hela rutten i Maps</a>
-    <button type="button" id="gpxBtn">Ladda ner GPX</button>
-    <button type="button" id="clearDone">Rensa avbockning</button>
-    <a id="editV1" href="../">Redigera i originalet (1.0)</a>
-  </div>
   <section class="dock">
     <div class="chips" id="chips"></div>
     <article class="card" id="card"></article>
@@ -427,6 +437,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../app.js?v=43"></script>
   <script src="../races.js?v=31"></script>
-  <script src="ui.js?v=1"></script>
+  <script src="ui.js?v=2"></script>
 </body>
 </html>
