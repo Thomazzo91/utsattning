@@ -978,7 +978,6 @@
     pickingIndex = i;
     document.body.classList.add("picking");
     pickBanner.classList.add("on");
-    showToast("Tryck på kartan");
     map.invalidateSize();
   }
   function applyPick(latlng) {
