@@ -307,15 +307,22 @@
 
   async function osrmJson(url, timeoutMs) {
     const ms = timeoutMs || 9000;
-    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), ms) : null;
-    try {
-      const res = await fetch(url, ctrl ? { signal: ctrl.signal } : {});
-      if (!res.ok) throw new Error("OSRM " + res.status);
-      return await res.json();
-    } finally {
-      if (timer) clearTimeout(timer);
+    let lastErr;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), ms) : null;
+      try {
+        const res = await fetch(url, ctrl ? { signal: ctrl.signal } : {});
+        if (!res.ok) throw new Error("OSRM " + res.status);
+        return await res.json();
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 400));
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
     }
+    throw lastErr || new Error("OSRM");
   }
 
   function osrmEndpoints(profile) {
@@ -962,14 +969,27 @@
 
   function mergeFirstBuiltIn(saved) { return mergeBuiltIn(saved, defaultEventId()); }
 
+  function modeHasShapedRoute(mode, pts) {
+    const n = (pts && pts.length) || 0;
+    if (n < 2) return true;
+    if (!mode) return false;
+    const minPts = Math.max(n + 4, 8);
+    const tr = mode.track;
+    if (Array.isArray(tr) && tr.length >= minPts) return true;
+    const segs = mode.segs;
+    if (Array.isArray(segs) && segs.length) {
+      const count = segs.reduce((s, g) => s + ((g && g.geom && g.geom.length) || 0), 0);
+      if (count >= minPts) return true;
+    }
+    return false;
+  }
+
   function needsRouteRebuild(team) {
     const pts = pointsOf(team).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
     if (pts.length < 2) return false;
     const k = team.modes && team.modes.kortast;
     const g = team.modes && team.modes.iga;
-    if (!k || !(k.stops && k.stops.length) || !(k.track && k.track.length)) return true;
-    if (!g || !(g.stops && g.stops.length) || !(g.track && g.track.length)) return true;
-    return false;
+    return !modeHasShapedRoute(k, pts) || !modeHasShapedRoute(g, pts);
   }
 
   function compactEvent(ev) {

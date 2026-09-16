@@ -592,7 +592,9 @@
     markers = [];
     routeLines = [];
     const curSegs = (g.segs && g.segs.length) ? g.segs : null;
-    if (curSegs) {
+    const segsPts = curSegs ? curSegs.reduce((n, s) => n + ((s && s.geom && s.geom.length) || 0), 0) : 0;
+    const trackPts = (g.track && g.track.length) || 0;
+    if (curSegs && segsPts >= 3 && segsPts >= trackPts) {
       curSegs.forEach((s) => {
         if (!s || !s.geom || !s.geom.length) return;
         const latlngs = s.geom.map(([lon, lat]) => [lat, lon]);
@@ -608,7 +610,7 @@
         }
         routeLines.push(L.polyline(latlngs, opts).addTo(layer));
       });
-    } else if (g.track && g.track.length) {
+    } else if (trackPts >= 3) {
       const latlngs = g.track.map(([lon, lat]) => [lat, lon]);
       routeLines.push(L.polyline(latlngs, { color: g.color, weight: 6, opacity: 0.92 }).addTo(layer));
     } else {
@@ -643,15 +645,24 @@
       for (let i = 1; i < routeLines.length; i++) b.extend(routeLines[i].getBounds());
       return b;
     }
-    const rb = routeBounds();
-    if (rb) map.fitBounds(rb, mapPad());
-    else {
-      const geo = (g.stops || []).filter((s) =>
-        Number.isFinite(s.lat) && Number.isFinite(s.lon) && !(Math.abs(s.lat) < 1e-5 && Math.abs(s.lon) < 1e-5)
-      );
-      if (geo.length) map.fitBounds(L.latLngBounds(geo.map((s) => [s.lat, s.lon])), mapPad());
-      else map.setView([62.5, 17], 5);
+    function layoutRoutes() {
+      map.invalidateSize();
+      routeLines.forEach((l) => { try { l.redraw(); } catch (e) {} });
+      const rb = routeBounds();
+      if (rb) map.fitBounds(rb, mapPad());
+      else {
+        const geo = (g.stops || []).filter((s) =>
+          Number.isFinite(s.lat) && Number.isFinite(s.lon) && !(Math.abs(s.lat) < 1e-5 && Math.abs(s.lon) < 1e-5)
+        );
+        if (geo.length) map.fitBounds(L.latLngBounds(geo.map((s) => [s.lat, s.lon])), mapPad());
+        else map.setView([62.5, 17], 5);
+      }
     }
+    layoutRoutes();
+    requestAnimationFrame(() => {
+      map.invalidateSize();
+      routeLines.forEach((l) => { try { l.redraw(); } catch (e) {} });
+    });
     renderNow(g);
     const orderHint = currentMode === "iga" ? "i igång-ordning" : "kortaste körvägen";
     if (!g.stops.length) {
@@ -1499,7 +1510,10 @@
     }
   });
   try {
-    new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById("map"));
+    new ResizeObserver(() => {
+      map.invalidateSize();
+      routeLines.forEach((l) => { try { l.redraw(); } catch (e) {} });
+    }).observe(document.getElementById("map"));
   } catch (e) {}
 
   async function start() {

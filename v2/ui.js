@@ -444,7 +444,21 @@
       b.textContent = t.name;
       b.setAttribute("aria-pressed", String(t.id === currentId));
       if (t.id === currentId) b.style.background = t.color;
-      b.addEventListener("click", () => show(t.id, currentMode, 0, false));
+      b.addEventListener("click", () => {
+        if (M.needsRouteRebuild(t)) {
+          setBusy(true, "Beräknar " + t.name + "…");
+          M.recalcTeam(t).then(() => {
+            persist();
+            setBusy(false);
+            show(t.id, currentMode, 0, false);
+          }).catch(() => {
+            setBusy(false);
+            show(t.id, currentMode, 0, false);
+          });
+          return;
+        }
+        show(t.id, currentMode, 0, false);
+      });
       bar.appendChild(b);
     });
   }
@@ -540,12 +554,21 @@
     });
   }
 
+  let mapDrawGen = 0;
+  function redrawRouteLines() {
+    routeLines.forEach((l) => {
+      try { l.redraw(); } catch (e) {}
+    });
+  }
   function drawMap(g, panToStop) {
+    const gen = ++mapDrawGen;
     layer.clearLayers();
     markers = [];
     routeLines = [];
     const curSegs = (g.segs && g.segs.length) ? g.segs : null;
-    if (curSegs) {
+    const segsPts = curSegs ? curSegs.reduce((n, s) => n + ((s && s.geom && s.geom.length) || 0), 0) : 0;
+    const trackPts = (g.track && g.track.length) || 0;
+    if (curSegs && segsPts >= 3 && segsPts >= trackPts) {
       curSegs.forEach((s) => {
         if (!s || !s.geom || !s.geom.length) return;
         const latlngs = s.geom.map(([lon, lat]) => [lat, lon]);
@@ -555,7 +578,7 @@
         else if (s.profile === "crow") opts = { color: "#111827", weight: 3, opacity: 0.85, dashArray: "2 8" };
         routeLines.push(L.polyline(latlngs, opts).addTo(layer));
       });
-    } else if (g.track && g.track.length) {
+    } else if (trackPts >= 3) {
       const latlngs = g.track.map(([lon, lat]) => [lat, lon]);
       routeLines.push(L.polyline(latlngs, { color: g.color, weight: 6, opacity: 0.92 }).addTo(layer));
     } else {
@@ -578,18 +601,29 @@
       m.addTo(layer);
       markers.push(m);
     });
-    map.invalidateSize();
-    if (panToStop && g.stops[selected]) {
-      map.setView([g.stops[selected].lat, g.stops[selected].lon], Math.max(map.getZoom(), 15), { animate: true });
-      return;
+    function layout(fit) {
+      if (gen !== mapDrawGen) return;
+      map.invalidateSize();
+      redrawRouteLines();
+      if (!fit) return;
+      if (panToStop && g.stops[selected]) {
+        map.setView([g.stops[selected].lat, g.stops[selected].lon], Math.max(map.getZoom(), 15), { animate: false });
+        return;
+      }
+      if (routeLines.length) {
+        let b = routeLines[0].getBounds();
+        for (let i = 1; i < routeLines.length; i++) b.extend(routeLines[i].getBounds());
+        map.fitBounds(b, mapPad());
+      } else if (g.stops.length) {
+        map.fitBounds(L.latLngBounds(g.stops.map((s) => [s.lat, s.lon])), mapPad());
+      }
     }
-    if (routeLines.length) {
-      let b = routeLines[0].getBounds();
-      for (let i = 1; i < routeLines.length; i++) b.extend(routeLines[i].getBounds());
-      map.fitBounds(b, mapPad());
-    } else if (g.stops.length) {
-      map.fitBounds(L.latLngBounds(g.stops.map((s) => [s.lat, s.lon])), mapPad());
-    }
+    layout(true);
+    requestAnimationFrame(() => {
+      const sz = map.getSize();
+      if (sz.x < 40 || sz.y < 40) setTimeout(() => layout(true), 80);
+      else layout(false);
+    });
   }
 
   function show(id, mode, idx, fromHash, pan) {
@@ -648,7 +682,38 @@
     document.getElementById("chooser").classList.remove("open");
     document.body.classList.remove("choosing");
   }
-  function enterEvent(id) {
+  async function ensureEventRoutes(ev, priorityId) {
+    if (!ev) return;
+    const need = (ev.teams || []).filter((t) => M.needsRouteRebuild(t));
+    if (!need.length) return;
+    const first = priorityId ? need.filter((t) => t.id === priorityId) : [];
+    const blocking = first.length ? first : need;
+    const rest = first.length ? need.filter((t) => t.id !== priorityId) : [];
+    setBusy(true, "Laddar körvägar…");
+    try {
+      for (const t of blocking) {
+        document.getElementById("busyText").textContent = "Beräknar " + t.name + "…";
+        await M.recalcTeam(t, (msg) => { document.getElementById("busyText").textContent = msg; });
+      }
+      persist();
+    } catch (e) {}
+    setBusy(false);
+    if (!rest.length) return;
+    (async () => {
+      try {
+        for (const t of rest) {
+          if (!M.needsRouteRebuild(t)) continue;
+          await M.recalcTeam(t);
+        }
+        persist();
+        if (document.body.classList.contains("in-race") && !isOverview()) {
+          show(currentId, currentMode, selected, true, false);
+        }
+      } catch (e) {}
+    })();
+  }
+
+  async function enterEvent(id) {
     if (!store.events.some((e) => e.id === id)) return;
     store.currentEventId = id;
     persist();
@@ -658,6 +723,7 @@
     ignoreHash = true;
     history.replaceState(null, "", location.pathname + "?lopp=" + encodeURIComponent(id) + hashFor(tid, "kortast", 0));
     setTimeout(() => { ignoreHash = false; }, 0);
+    await ensureEventRoutes(currentEvent(), tid);
     show(tid, "kortast", 0, true, false);
     setTimeout(() => map.invalidateSize(), 80);
   }
@@ -791,7 +857,16 @@
     const { id, mode, idx } = parseHash();
     show(id, mode, idx, true, true);
   });
-  window.addEventListener("resize", () => map.invalidateSize());
+  window.addEventListener("resize", () => {
+    map.invalidateSize();
+    redrawRouteLines();
+  });
+  try {
+    new ResizeObserver(() => {
+      map.invalidateSize();
+      redrawRouteLines();
+    }).observe(document.getElementById("map"));
+  } catch (e) {}
 
   function persist() {
     if (isViewOnly()) return;
@@ -1384,28 +1459,18 @@
     }
 
     const focusEv = currentEvent();
-    if (focusEv) {
-      const need = (focusEv.teams || []).filter((t) => M.needsRouteRebuild(t));
-      if (need.length) {
-        setBusy(true, "Laddar körvägar…");
-        try {
-          for (const t of need) await M.recalcTeam(t);
-          persist();
-        } catch (e) {}
-        setBusy(false);
-      }
-    }
+    const startH = parseHash();
+    if (focusEv) await ensureEventRoutes(focusEv, startH.id);
 
     if (lopp && store.events.some((e) => e.id === lopp)) {
       document.body.classList.add("in-race");
       closeChooser();
-      const startH = parseHash();
       show(startH.id, startH.mode, startH.idx, true, false);
       return;
     }
     if (isViewOnly()) {
       const bid = lopp && M.isBuiltIn(lopp) ? lopp : M.defaultEventId();
-      enterEvent(bid);
+      await enterEvent(bid);
       return;
     }
     openChooser();
