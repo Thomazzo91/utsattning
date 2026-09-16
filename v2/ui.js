@@ -19,6 +19,15 @@
   let selected = 0;
   let ignoreHash = false;
   let touchX = 0;
+  let editTeamId = "";
+  let pickingIndex = -1;
+  let ptFormIndex = -1;
+  let publishing = false;
+  const GH_REPO = "Thomazzo91/utsattning";
+  const GH_TOKEN_KEY = "utsattning-publish-token";
+  const editorEl = document.getElementById("editor");
+  const editorBody = document.getElementById("editorBody");
+  const pickBanner = document.getElementById("pickBanner");
 
   let visited = {};
   try {
@@ -118,6 +127,7 @@
   }
   function showToast(text) {
     const el = document.getElementById("toast");
+    if (!el) return;
     el.textContent = text;
     el.style.display = "block";
     clearTimeout(showToast.t);
@@ -289,7 +299,14 @@
         icon: markerIcon(g.color, i + 1, i === selected, isDone(g.id, s.label)),
         zIndexOffset: i === selected ? 700 : 0
       });
-      m.on("click", () => show(currentId, currentMode, i, false, true));
+      m.on("click", (ev) => {
+        if (pickingIndex >= 0) {
+          L.DomEvent.stopPropagation(ev);
+          applyPick(ev.latlng);
+          return;
+        }
+        show(currentId, currentMode, i, false, true);
+      });
       m.addTo(layer);
       markers.push(m);
     });
@@ -322,7 +339,6 @@
       b.setAttribute("aria-pressed", String(b.dataset.mode === currentMode));
     });
     document.getElementById("gmaps").href = googleDir(g);
-    document.getElementById("editV1").href = "../?lopp=" + encodeURIComponent(ev ? ev.id : "") + hashFor(currentId, currentMode, selected);
     paintGroups();
     renderChips(g);
     renderCard(g);
@@ -355,6 +371,7 @@
   function enterEvent(id) {
     if (!store.events.some((e) => e.id === id)) return;
     store.currentEventId = id;
+    persist();
     closeChooser();
     document.body.classList.add("in-race");
     const tid = (currentEvent() && currentEvent().teams[0] && currentEvent().teams[0].id) || "";
@@ -405,6 +422,45 @@
     show(currentId, currentMode, selected, true, false);
     showToast("Avbockning rensad");
   });
+  document.getElementById("editBtn").addEventListener("click", openEditor);
+  document.getElementById("newEventBtn").addEventListener("click", () => {
+    document.getElementById("more").style.display = "none";
+    newEvent();
+  });
+  document.getElementById("chooserNew").addEventListener("click", newEvent);
+  document.getElementById("publishBtn").addEventListener("click", async () => {
+    document.getElementById("more").style.display = "none";
+    await publishCatalog();
+  });
+  document.getElementById("editorDone").addEventListener("click", closeEditor);
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    document.getElementById("more").style.display = "none";
+    const ev = currentEvent();
+    if (!ev) return;
+    download((ev.name || "lopp").replace(/\s+/g, "-") + ".json", JSON.stringify(M.compactEvent(ev), null, 2));
+    showToast("Fil sparad");
+  });
+  document.getElementById("importBtn").addEventListener("click", () => {
+    document.getElementById("more").style.display = "none";
+    document.getElementById("importFile").click();
+  });
+  document.getElementById("importFile").addEventListener("change", async (ev) => {
+    const file = ev.target.files && ev.target.files[0];
+    ev.target.value = "";
+    if (!file) return;
+    try {
+      const compact = JSON.parse(await file.text());
+      const imported = M.inflateEvent(compact);
+      M.forgetRemoved(imported.id);
+      const existing = store.events.findIndex((e) => e.id === imported.id);
+      if (existing >= 0) store.events[existing] = imported;
+      else store.events.push(imported);
+      store.currentEventId = imported.id;
+      persist();
+      enterEvent(imported.id);
+      showToast("Lopp öppnat");
+    } catch (e) { showToast("Kunde inte läsa filen"); }
+  });
   document.getElementById("prevBtn").addEventListener("click", () => {
     if (selected > 0) show(currentId, currentMode, selected - 1, false, true);
   });
@@ -441,6 +497,563 @@
   });
   window.addEventListener("resize", () => map.invalidateSize());
 
+  function persist() {
+    if (isViewOnly()) return;
+    try { M.saveStore(store); } catch (e) {
+      showToast("Kunde inte spara lokalt");
+    }
+  }
+  function utf8ToB64(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function fileSlug(s) {
+    return String(s || "").toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+  }
+  function dataImagePayload(dataUrl) {
+    const t = String(dataUrl || "");
+    const i = t.indexOf("base64,");
+    if (i < 0) return null;
+    const b64 = t.slice(i + 7).replace(/\s/g, "");
+    if (!b64) return null;
+    return { b64, ext: /image\/png/i.test(t.slice(0, i)) ? "png" : "jpg" };
+  }
+  async function ghJson(method, url, body) {
+    const token = localStorage.getItem(GH_TOKEN_KEY) || "";
+    const headers = { Accept: "application/vnd.github+json", Authorization: "Bearer " + token };
+    if (body) headers["Content-Type"] = "application/json";
+    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+    if (!res.ok) throw new Error((data && data.message) || ("HTTP " + res.status));
+    return data;
+  }
+  async function putRepoFile(rel, b64, message) {
+    let sha;
+    try { sha = (await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel)).sha; } catch (e) {}
+    const body = { message: message || ("Uppdatera " + rel), content: b64, branch: "main" };
+    if (sha) body.sha = sha;
+    await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel, body);
+  }
+  async function ensurePublishToken() {
+    let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
+    if (t) return t;
+    t = (window.prompt("Klistra in GitHub-token med skrivrätt till utsattning (en gång). Sen syns ändringar för alla.") || "").trim();
+    if (t) localStorage.setItem(GH_TOKEN_KEY, t);
+    return t;
+  }
+  async function publishStopImages() {
+    const seen = new Map();
+    for (const ev of store.events || []) {
+      for (const t of ev.teams || []) {
+        for (const modeName of ["kortast", "iga"]) {
+          const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
+          if (!Array.isArray(stops)) continue;
+          for (const s of stops) {
+            if (!s || typeof s.image !== "string" || s.image.indexOf("data:image") !== 0) continue;
+            const raw = s.image;
+            if (seen.has(raw)) { s.image = seen.get(raw); continue; }
+            const payload = dataImagePayload(raw);
+            if (!payload) continue;
+            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
+            const rel = "img/" + fname;
+            document.getElementById("busyText").textContent = "Laddar upp bild " + (s.label || fname) + "…";
+            await putRepoFile(rel, payload.b64, "Bild " + (s.label || fname));
+            seen.set(raw, rel);
+            s.image = rel;
+          }
+        }
+      }
+    }
+  }
+  async function bustHtmlCache(path, stamp) {
+    const meta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path);
+    let html = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ""))));
+    html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
+    html = html.replace(/app\.js\?v=\d+/g, "app.js?v=" + stamp);
+    html = html.replace(/ui\.js\?v=\d+/g, "ui.js?v=" + stamp);
+    await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path, {
+      message: "Cache-bust efter publicering",
+      content: utf8ToB64(html),
+      branch: "main",
+      sha: meta.sha
+    });
+  }
+  async function publishCatalog() {
+    if (isViewOnly() || publishing) return false;
+    const token = await ensurePublishToken();
+    if (!token) {
+      showToast("Sparat på den här enheten. Publicera via Meny → Spara för alla");
+      return false;
+    }
+    publishing = true;
+    setBusy(true, "Sparar för alla…");
+    try {
+      for (const ev of store.events || []) {
+        for (const t of ev.teams || []) {
+          if (M.needsRouteRebuild(t)) {
+            document.getElementById("busyText").textContent = "Beräknar " + t.name + "…";
+            try { await M.recalcTeam(t); } catch (e) {}
+          }
+        }
+      }
+      persist();
+      await publishStopImages();
+      persist();
+      const races = M.buildRacesObject(store.events);
+      const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
+      const racesMeta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js");
+      await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js", {
+        message: "Uppdatera lopp för alla",
+        content: utf8ToB64(racesBody),
+        branch: "main",
+        sha: racesMeta.sha
+      });
+      const stamp = String(Date.now());
+      await bustHtmlCache("index.html", stamp);
+      await bustHtmlCache("v2/index.html", stamp);
+      window.RACES = races;
+      (store.events || []).forEach((ev) => {
+        if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
+      });
+      persist();
+      showToast("Sparat för alla på utsattning-länken");
+      return true;
+    } catch (e) {
+      const msg = (e && e.message) || "";
+      if (/bad credentials|401|unauthorized/i.test(msg)) {
+        try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
+        showToast("Token ogiltig. Försök Spara för alla igen.");
+      } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
+      return false;
+    } finally {
+      publishing = false;
+      setBusy(false);
+    }
+  }
+  function timeSelectHtml(id, value) {
+    const m = String(value || "").trim().match(/^(\d{1,2}):(\d{2})/);
+    const curH = m ? String(m[1]).padStart(2, "0") : "";
+    const curM = m ? m[2] : "";
+    const hours = ["<option value=\"\">—</option>"];
+    for (let i = 0; i < 24; i++) {
+      const v = String(i).padStart(2, "0");
+      hours.push(`<option value="${v}"${curH === v ? " selected" : ""}>${v}</option>`);
+    }
+    const mins = ["<option value=\"\">—</option>"];
+    const seen = new Set();
+    for (let i = 0; i < 60; i += 5) {
+      const v = String(i).padStart(2, "0");
+      seen.add(v);
+      mins.push(`<option value="${v}"${curM === v ? " selected" : ""}>${v}</option>`);
+    }
+    if (curM && !seen.has(curM)) mins.push(`<option value="${curM}" selected>${curM}</option>`);
+    return `<div class="time-pick"><select id="${id}H">${hours.join("")}</select><span>:</span><select id="${id}M">${mins.join("")}</select></div>`;
+  }
+  function readTime(box, id) {
+    const hEl = box.querySelector("#" + id + "H");
+    if (!hEl) return "";
+    const h = hEl.value;
+    const min = (box.querySelector("#" + id + "M") || {}).value || "00";
+    return h ? (h + ":" + min) : "";
+  }
+  function flushPointForm() {
+    if (ptFormIndex < 0) return;
+    const box = editorBody.querySelector("#ptForm");
+    if (!box || !box.querySelector("#pLabel")) return;
+    readPointForm(ptFormIndex);
+  }
+  function writePoints(team, pts) {
+    (pts || []).forEach((p, i) => {
+      if (!p || typeof p !== "object") return;
+      p.idx = i + 1;
+      if (p.label && !p.name) p.name = p.label;
+      if (p.name && !p.label) p.label = p.name;
+    });
+    if (!team.modes) team.modes = M.emptyModes();
+    team.modes.kortast.stops = pts;
+    team.modes.kortast.track = [];
+    team.modes.kortast.legs = [];
+    team.modes.kortast.km = 0;
+    team.modes.kortast.min = 0;
+    if (!team.modes.iga) team.modes.iga = M.emptyModes().iga;
+    team.modes.iga.stops = pts.slice();
+    team.modes.iga.track = [];
+    team.modes.iga.legs = [];
+    team.modes.iga.km = 0;
+    team.modes.iga.min = 0;
+    if (store) store.customized = true;
+    persist();
+  }
+  function readPointForm(i) {
+    const team = teamById(editTeamId);
+    const pts = M.pointsOf(team);
+    const box = editorBody.querySelector("#ptForm");
+    if (!box || !pts[i]) return;
+    pts[i].label = box.querySelector("#pLabel").value.trim();
+    pts[i].iga = readTime(box, "pIga");
+    pts[i].forsta = readTime(box, "pForsta");
+    pts[i].sista = readTime(box, "pSista");
+    pts[i].setup = box.querySelector("#pSetup").value.trim();
+    pts[i].placering = box.querySelector("#pNote").value.trim();
+    pts[i].note = pts[i].placering;
+    pts[i].name = pts[i].label || pts[i].name;
+    const parsed = M.parseLatLon(box.querySelector("#pGps").value);
+    if (parsed) { pts[i].lat = parsed.lat; pts[i].lon = parsed.lon; }
+    writePoints(team, pts);
+  }
+  function saveEditorFields() {
+    flushPointForm();
+    const ev = currentEvent();
+    if (!ev) return;
+    const nameEl = editorBody.querySelector("#evName");
+    if (!nameEl) return;
+    ev.name = nameEl.value.trim() || ev.name;
+    const team = teamById(editTeamId);
+    if (team) {
+      team.name = editorBody.querySelector("#teamName").value.trim() || team.name;
+      team.color = editorBody.querySelector("#teamColor").value || team.color;
+      team.ansvarig = editorBody.querySelector("#teamPeople").value.trim();
+    }
+    if (store) store.customized = true;
+    persist();
+    document.getElementById("raceTitle").textContent = ev.name;
+  }
+  function renderEditor() {
+    const ev = currentEvent();
+    if (!ev) return;
+    if (!editTeamId || !teamById(editTeamId)) editTeamId = (teams()[0] && teams()[0].id) || "";
+    const team = teamById(editTeamId);
+    const pts = team ? M.pointsOf(team) : [];
+    editorBody.innerHTML = `
+      <label>Namn på loppet</label>
+      <input id="evName" value="${esc(ev.name)}" placeholder="Nytt lopp" />
+      <div class="edit-actions">
+        <button type="button" class="btn" id="newEvent">Nytt lopp</button>
+        <button type="button" class="btn btn-danger" id="delEvent">Ta bort lopp</button>
+      </div>
+      <div class="edit-actions" id="teamChips"></div>
+      <div class="row">
+        <div><label>Grupp</label><input id="teamName" value="${esc(team ? team.name : "")}" /></div>
+        <div><label>Färg</label><input id="teamColor" type="color" value="${team ? team.color : "#f59e0b"}" /></div>
+      </div>
+      <label>Ansvariga</label>
+      <input id="teamPeople" value="${esc(team ? team.ansvarig : "")}" placeholder="Vilka som kör" />
+      <div class="edit-actions">
+        <button type="button" class="btn" id="addTeam">+ Grupp</button>
+        <button type="button" class="btn btn-danger" id="delTeam">Ta bort grupp</button>
+      </div>
+      <label>Timingpunkter</label>
+      <div id="ptList"></div>
+      <div class="edit-actions">
+        <button type="button" class="btn" id="addPt">+ Punkt</button>
+        <button type="button" class="btn btn-accent" id="recalc">Beräkna körvägar</button>
+      </div>
+      <div id="ptForm"></div>
+    `;
+    const chips = editorBody.querySelector("#teamChips");
+    teams().forEach((t) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn";
+      b.textContent = t.name;
+      if (t.id === editTeamId) { b.style.background = t.color; b.style.color = "#0b1220"; }
+      b.addEventListener("click", () => { saveEditorFields(); editTeamId = t.id; renderEditor(); });
+      chips.appendChild(b);
+    });
+    const list = editorBody.querySelector("#ptList");
+    pts.forEach((p, i) => {
+      const card = document.createElement("div");
+      card.className = "pt-card" + (i === ptFormIndex ? " is-edit" : "");
+      card.innerHTML = `<div class="pt-body"><strong>${i + 1}. ${esc(p.label) || "Namnlös"}</strong>
+        <div class="who">${p.lat ? p.lat.toFixed(5) + ", " + p.lon.toFixed(5) : "Ingen GPS"} · Igång ${esc(p.iga) || "—"}${p.image ? " · bild" : ""}</div></div>
+        <button type="button" class="btn pt-up" ${i === 0 ? "disabled" : ""}>▲</button>
+        <button type="button" class="btn pt-down" ${i === pts.length - 1 ? "disabled" : ""}>▼</button>`;
+      card.addEventListener("click", (ev) => {
+        if (ev.target.closest(".pt-up, .pt-down")) return;
+        renderPointForm(i);
+      });
+      card.querySelector(".pt-up").addEventListener("click", (ev) => { ev.stopPropagation(); movePoint(i, -1); });
+      card.querySelector(".pt-down").addEventListener("click", (ev) => { ev.stopPropagation(); movePoint(i, 1); });
+      list.appendChild(card);
+    });
+    editorBody.querySelector("#evName").addEventListener("change", saveEditorFields);
+    editorBody.querySelector("#teamName").addEventListener("change", saveEditorFields);
+    editorBody.querySelector("#teamColor").addEventListener("change", () => { saveEditorFields(); renderEditor(); });
+    editorBody.querySelector("#teamPeople").addEventListener("change", saveEditorFields);
+    editorBody.querySelector("#newEvent").addEventListener("click", newEvent);
+    editorBody.querySelector("#delEvent").addEventListener("click", deleteEvent);
+    editorBody.querySelector("#addTeam").addEventListener("click", addTeam);
+    editorBody.querySelector("#delTeam").addEventListener("click", deleteTeam);
+    editorBody.querySelector("#addPt").addEventListener("click", addPoint);
+    editorBody.querySelector("#recalc").addEventListener("click", () => recalcCurrent(true));
+  }
+  function movePoint(i, dir) {
+    const team = teamById(editTeamId);
+    const list2 = M.pointsOf(team);
+    const j = i + dir;
+    if (j < 0 || j >= list2.length) return;
+    flushPointForm();
+    const tmp = list2[i]; list2[i] = list2[j]; list2[j] = tmp;
+    team.orderLocked = true;
+    writePoints(team, list2);
+    renderEditor();
+  }
+  function renderPointForm(i) {
+    saveEditorFields();
+    const team = teamById(editTeamId);
+    const pts = M.pointsOf(team);
+    const p = pts[i];
+    if (!p) return;
+    ptFormIndex = i;
+    const box = editorBody.querySelector("#ptForm");
+    const preview = p.image ? `<img class="pt-img" src="${esc(imgSrc(p.image))}" alt="">` : "";
+    box.innerHTML = `
+      <label>Namn</label><input id="pLabel" value="${esc((p.label || "") === "Ny punkt" ? "" : (p.label || ""))}" placeholder="Ny punkt" />
+      <label>Igång</label>${timeSelectHtml("pIga", p.iga)}
+      <label>Första</label>${timeSelectHtml("pForsta", p.forsta)}
+      <label>Sista</label>${timeSelectHtml("pSista", p.sista)}
+      <label>Vad ska sättas upp</label><input id="pSetup" value="${esc(p.setup || "")}" />
+      <label>Placering / notering</label><textarea id="pNote">${esc(p.placering || "")}</textarea>
+      <label>GPS eller kartlänk</label>
+      <input id="pGps" value="${p.lat ? p.lat.toFixed(6) + ", " + p.lon.toFixed(6) : ""}" placeholder="56.05, 12.68" />
+      <label>Bild</label>
+      ${preview}
+      <div class="edit-actions">
+        <input type="file" id="pImgFile" accept="image/*" hidden />
+        <button type="button" class="btn" id="pImgPick">Välj bild</button>
+        ${p.image ? `<button type="button" class="btn btn-danger" id="pImgDel">Ta bort bild</button>` : ""}
+      </div>
+      <div class="edit-actions">
+        <button type="button" class="btn btn-accent" id="pPick">Välj på karta</button>
+        <button type="button" class="btn" id="pSave">Spara punkt</button>
+        <button type="button" class="btn btn-danger" id="pDel">Ta bort punkt</button>
+      </div>
+    `;
+    editorBody.querySelectorAll(".pt-card").forEach((c, n) => c.classList.toggle("is-edit", n === i));
+    box.querySelectorAll("input, textarea, select").forEach((el) => {
+      if (el.id === "pImgFile") return;
+      el.addEventListener("change", () => readPointForm(i));
+    });
+    box.querySelector("#pSave").addEventListener("click", () => savePoint(i));
+    box.querySelector("#pDel").addEventListener("click", () => deletePoint(i));
+    box.querySelector("#pPick").addEventListener("click", () => { readPointForm(i); startPick(i); });
+    box.querySelector("#pGps").addEventListener("change", () => {
+      const raw = box.querySelector("#pGps").value.trim();
+      const parsed = M.parseLatLon(raw);
+      if (parsed) {
+        const list = M.pointsOf(teamById(editTeamId));
+        list[i].lat = parsed.lat; list[i].lon = parsed.lon;
+        writePoints(teamById(editTeamId), list);
+        box.querySelector("#pGps").value = parsed.lat.toFixed(6) + ", " + parsed.lon.toFixed(6);
+      } else if (raw) showToast("Kunde inte läsa GPS");
+    });
+    const fileInput = box.querySelector("#pImgFile");
+    box.querySelector("#pImgPick").addEventListener("click", () => fileInput && fileInput.click());
+    if (fileInput) {
+      fileInput.addEventListener("change", async (ev) => {
+        const file = ev.target.files && ev.target.files[0];
+        if (!file) return;
+        setBusy(true, "Komprimerar bild…");
+        try {
+          const dataUrl = await M.compressImage(file, 1600, 0.82);
+          const list = M.pointsOf(teamById(editTeamId));
+          if (list[i]) list[i].image = dataUrl;
+          writePoints(teamById(editTeamId), list);
+          renderEditor();
+          renderPointForm(i);
+          showToast("Bild sparad. Tryck Klar så alla ser den");
+        } catch (e) { showToast("Kunde inte läsa bilden"); }
+        finally { setBusy(false); }
+      });
+    }
+    const delImg = box.querySelector("#pImgDel");
+    if (delImg) delImg.addEventListener("click", () => {
+      const list = M.pointsOf(teamById(editTeamId));
+      if (list[i]) list[i].image = "";
+      writePoints(teamById(editTeamId), list);
+      renderEditor();
+      renderPointForm(i);
+    });
+  }
+  async function savePoint(i) {
+    readPointForm(i);
+    renderEditor();
+    renderPointForm(i);
+    if ((localStorage.getItem(GH_TOKEN_KEY) || "").trim()) {
+      showToast("Punkt sparad, publicerar…");
+      await publishCatalog();
+    } else showToast("Sparat här. Tryck Klar · spara för alla");
+  }
+  function addPoint() {
+    saveEditorFields();
+    const team = teamById(editTeamId);
+    const pts = M.pointsOf(team);
+    pts.push({ label: "", lat: NaN, lon: NaN, iga: "", forsta: "", sista: "", maps: "", placering: "", setup: "", image: "" });
+    writePoints(team, pts);
+    renderEditor();
+    renderPointForm(pts.length - 1);
+    startPick(pts.length - 1);
+  }
+  function deletePoint(i) {
+    const team = teamById(editTeamId);
+    const pts = M.pointsOf(team);
+    pts.splice(i, 1);
+    writePoints(team, pts);
+    pickingIndex = -1;
+    pickBanner.classList.remove("on");
+    document.body.classList.remove("picking");
+    ptFormIndex = -1;
+    renderEditor();
+  }
+  function addTeam() {
+    saveEditorFields();
+    const ev = currentEvent();
+    const t = { id: M.uid("grupp"), name: "Grupp " + (ev.teams.length + 1), ansvarig: "", color: M.COLORS[ev.teams.length % M.COLORS.length], modes: M.emptyModes() };
+    ev.teams.push(t);
+    editTeamId = t.id;
+    persist();
+    renderEditor();
+  }
+  function deleteTeam() {
+    const ev = currentEvent();
+    if (ev.teams.length < 2) { showToast("Minst en grupp behövs"); return; }
+    if (!confirm("Ta bort " + teamById(editTeamId).name + "?")) return;
+    ev.teams = ev.teams.filter((t) => t.id !== editTeamId);
+    editTeamId = ev.teams[0].id;
+    persist();
+    currentId = editTeamId;
+    renderEditor();
+    show(currentId, currentMode, 0, false);
+  }
+  function newEvent() {
+    if (isViewOnly()) return;
+    if (editorEl.classList.contains("open")) saveEditorFields();
+    const ev = {
+      id: M.uid("lopp"),
+      name: "Nytt lopp",
+      teams: [{ id: M.uid("grupp"), name: "Grupp 1", ansvarig: "", color: M.COLORS[0], modes: M.emptyModes() }]
+    };
+    store.events.push(ev);
+    store.currentEventId = ev.id;
+    M.forgetRemoved(ev.id);
+    persist();
+    enterEvent(ev.id);
+    openEditor();
+  }
+  function resetBuiltInStore(preferredId) {
+    const bid = preferredId || M.defaultEventId();
+    const events = [];
+    (M.getAllBuiltInIds() || []).forEach((id) => {
+      const s = M.seedEvent(id);
+      if (s) events.push(s);
+    });
+    store = { currentEventId: bid, customized: false, events };
+  }
+  function deleteEvent() {
+    if (isViewOnly()) return;
+    const id = store.currentEventId;
+    const ev = store.events.find((e) => e.id === id);
+    if (!ev) return;
+    if (M.isCoreRace(id)) {
+      if (!confirm("Rensa " + ev.name + " och återställ originalet?")) return;
+      resetBuiltInStore(id);
+    } else if (store.events.length < 2) {
+      if (!confirm("Rensa loppet och återställ standardlopp?")) return;
+      M.rememberRemoved(id);
+      resetBuiltInStore();
+    } else {
+      if (!confirm("Ta bort loppet " + ev.name + "?")) return;
+      M.rememberRemoved(id);
+      store.events = store.events.filter((e) => e.id !== id);
+      ensureSeed();
+      store.currentEventId = store.events[0].id;
+    }
+    persist();
+    editorEl.classList.remove("open");
+    document.body.classList.remove("editing", "in-race", "picking");
+    openChooser();
+    showToast("Lopp borttaget");
+    publishCatalog();
+  }
+  function startPick(i) {
+    pickingIndex = i;
+    document.body.classList.add("picking");
+    pickBanner.classList.add("on");
+    showToast("Tryck på kartan");
+    map.invalidateSize();
+  }
+  function applyPick(latlng) {
+    if (pickingIndex < 0) return;
+    const team = teamById(editTeamId);
+    const pts = M.pointsOf(team);
+    const idx = pickingIndex;
+    if (!pts[idx]) return;
+    pts[idx].lat = Math.round(latlng.lat * 1e6) / 1e6;
+    pts[idx].lon = Math.round(latlng.lng * 1e6) / 1e6;
+    writePoints(team, pts);
+    pickingIndex = -1;
+    pickBanner.classList.remove("on");
+    document.body.classList.remove("picking");
+    renderEditor();
+    renderPointForm(idx);
+    showToast("GPS sparad");
+  }
+  map.on("click", (e) => applyPick(e.latlng));
+  async function recalcCurrent(fromBtn) {
+    saveEditorFields();
+    const team = teamById(editTeamId || currentId);
+    if (!team) return;
+    setBusy(true, "Beräknar körväg för " + team.name + "…");
+    try {
+      await M.recalcTeam(team, (msg) => { document.getElementById("busyText").textContent = msg; });
+      persist();
+      if (fromBtn) showToast("Körvägar uppdaterade");
+      if (editorEl.classList.contains("open")) renderEditor();
+    } catch (err) { showToast("Kunde inte räkna körväg"); }
+    setBusy(false);
+  }
+  function openEditor() {
+    if (isViewOnly()) return;
+    document.getElementById("more").style.display = "none";
+    editTeamId = currentId || (teams()[0] && teams()[0].id) || "";
+    document.body.classList.add("editing");
+    editorEl.classList.add("open");
+    renderEditor();
+  }
+  async function closeEditor() {
+    saveEditorFields();
+    pickingIndex = -1;
+    pickBanner.classList.remove("on");
+    document.body.classList.remove("picking");
+    editorEl.classList.remove("open");
+    document.body.classList.remove("editing");
+    for (const t of teams()) {
+      const pts = M.pointsOf(t).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+      const routed = t.modes && t.modes.kortast && t.modes.kortast.track && t.modes.kortast.track.length;
+      if (pts.length && !routed) {
+        setBusy(true, "Beräknar körväg för " + t.name + "…");
+        try { await M.recalcTeam(t); } catch (err) {}
+      }
+    }
+    persist();
+    setBusy(false);
+    const ev = currentEvent();
+    if (ev) {
+      document.body.classList.add("in-race");
+      closeChooser();
+      show(editTeamId || currentId, currentMode, 0, true, false);
+    }
+    map.invalidateSize();
+    await publishCatalog();
+  }
+  function download(name, text, type) {
+    const blob = new Blob([text], { type: type || "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  }
+
   async function start() {
     const params = new URLSearchParams(location.search);
     const lopp = params.get("lopp");
@@ -450,6 +1063,8 @@
       store = { currentEventId: M.defaultEventId(), events };
     }
     ensureSeed();
+    document.body.classList.toggle("view-only", isViewOnly());
+    if (!isViewOnly()) persist();
     if (lopp && store.events.some((e) => e.id === lopp)) store.currentEventId = lopp;
 
     const focusEv = currentEvent();
@@ -459,6 +1074,7 @@
         setBusy(true, "Laddar körvägar…");
         try {
           for (const t of need) await M.recalcTeam(t);
+          persist();
         } catch (e) {}
         setBusy(false);
       }
