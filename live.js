@@ -77,9 +77,8 @@
     }
     es = new EventSource(BASE + "/sse");
     es.onopen = () => {
-      const was = connected;
       connected = true;
-      if (!was) notify();
+      okAt = Date.now();
     };
     es.onmessage = (e) => {
       connected = true;
@@ -92,16 +91,14 @@
       }
     };
     es.onerror = () => {
-      if (!connected) return;
       connected = false;
-      notify();
     };
   }
 
   async function start() {
     try { await replay(); } catch (e) {}
     connect();
-    setInterval(() => { replay().catch(() => {}); }, 2500);
+    setInterval(() => { replay().catch(() => {}); }, 8000);
   }
 
   function report(ev, team, label, on, who) {

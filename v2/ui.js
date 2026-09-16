@@ -5,7 +5,14 @@
   const VISITED_KEY = "visited-v2";
   const LEGACY_VISIT_KEY = "hbgm26-visited-v1";
 
-  const map = L.map("map", { tap: true, zoomControl: false, attributionControl: true }).setView([62.5, 17], 5);
+  const map = L.map("map", {
+    tap: true,
+    zoomControl: false,
+    attributionControl: true,
+    fadeAnimation: false,
+    markerZoomAnimation: false,
+    preferCanvas: true
+  }).setView([62.5, 17], 5);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19, attribution: "&copy; OpenStreetMap"
@@ -122,13 +129,24 @@
     applyLiveCache();
     const board = document.getElementById("liveBoard");
     if (board && board.classList.contains("open")) renderLiveBoard();
-    if (document.body.classList.contains("in-race") && currentId) {
-      const g = viewOf(currentId, currentMode);
-      renderCard(g);
-      renderChips(g);
-      paintMarkers(g);
-      renderList(g);
+    if (!(document.body.classList.contains("in-race") && currentId)) return;
+    const g = viewOf(currentId, currentMode);
+    const s = g.stops[selected];
+    const doneBtn = document.getElementById("doneBtn");
+    if (doneBtn && s) doneBtn.setAttribute("aria-pressed", String(isDone(g.id, s.label)));
+    const chips = document.getElementById("chips");
+    if (chips) {
+      chips.querySelectorAll("button").forEach((b, i) => {
+        const stop = g.stops[i];
+        if (!stop) return;
+        const done = isDone(g.id, stop.label);
+        b.classList.toggle("is-done", done);
+        b.style.background = done ? "" : g.color;
+      });
     }
+    paintMarkers(g);
+    const listSheet = document.getElementById("listSheet");
+    if (listSheet && listSheet.classList.contains("open")) renderList(g);
   }
   function liveEvent() {
     return currentEvent();
@@ -220,7 +238,14 @@
       if (forceSize) setTimeout(() => liveMap.invalidateSize(), 60);
       return;
     }
-    liveMap = L.map(el, { tap: true, zoomControl: false, attributionControl: true, fadeAnimation: false }).setView([62.5, 17], 5);
+    liveMap = L.map(el, {
+      tap: true,
+      zoomControl: false,
+      attributionControl: true,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
+      preferCanvas: true
+    }).setView([62.5, 17], 5);
     L.control.zoom({ position: "bottomright" }).addTo(liveMap);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: "&copy; OpenStreetMap"
@@ -488,19 +513,16 @@
       b.setAttribute("aria-pressed", String(t.id === currentId));
       if (t.id === currentId) b.style.background = t.color;
       b.addEventListener("click", () => {
-        if (M.needsRouteRebuild(t)) {
-          setBusy(true, "Beräknar " + t.name + "…");
-          M.recalcTeam(t).then(() => {
-            persist();
-            setBusy(false);
-            show(t.id, currentMode, 0, false);
-          }).catch(() => {
-            setBusy(false);
-            show(t.id, currentMode, 0, false);
-          });
-          return;
-        }
         show(t.id, currentMode, 0, false);
+        if (routingIds[t.id] || !M.needsRouteRebuild(t)) return;
+        routingIds[t.id] = true;
+        M.recalcTeam(t).then(() => {
+          persist();
+          if (currentId === t.id) {
+            mapViewKey = "";
+            show(t.id, currentMode, selected, true, false);
+          }
+        }).catch(() => {}).finally(() => { delete routingIds[t.id]; });
       });
       bar.appendChild(b);
     });
@@ -569,7 +591,7 @@
       el.appendChild(b);
     });
     const on = el.querySelector(".is-on");
-    if (on) on.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
   }
 
   function renderList(g) {
@@ -598,6 +620,20 @@
   }
 
   let mapDrawGen = 0;
+  let mapViewKey = "";
+  let lastMapSizeKey = "";
+  const routingIds = Object.create(null);
+  function mapSizeKey() {
+    const sz = map.getSize();
+    return sz.x + "x" + sz.y;
+  }
+  function layoutMapIfNeeded() {
+    const key = mapSizeKey();
+    if (key === lastMapSizeKey) return false;
+    lastMapSizeKey = key;
+    map.invalidateSize({ animate: false, pan: false });
+    return true;
+  }
   function redrawRouteLines() {
     routeLines.forEach((l) => {
       try { l.redraw(); } catch (e) {}
@@ -611,22 +647,23 @@
     const curSegs = (g.segs && g.segs.length) ? g.segs : null;
     const segsPts = curSegs ? curSegs.reduce((n, s) => n + ((s && s.geom && s.geom.length) || 0), 0) : 0;
     const trackPts = (g.track && g.track.length) || 0;
+    const lineOpts = { interactive: false, bubblingMouseEvents: false };
     if (curSegs && segsPts >= 3 && segsPts >= trackPts) {
       curSegs.forEach((s) => {
         if (!s || !s.geom || !s.geom.length) return;
         const latlngs = s.geom.map(([lon, lat]) => [lat, lon]);
-        let opts = { color: g.color, weight: 6, opacity: 0.92 };
-        if (s.profile === "foot") opts = { color: "#0b1220", weight: 7, opacity: 0.92, dashArray: "16 8" };
-        else if (s.profile === "bike") opts = { color: "#0b1220", weight: 6, opacity: 0.9, dashArray: "14 8" };
-        else if (s.profile === "crow") opts = { color: "#111827", weight: 3, opacity: 0.85, dashArray: "2 8" };
+        let opts = Object.assign({ color: g.color, weight: 6, opacity: 0.92 }, lineOpts);
+        if (s.profile === "foot") opts = Object.assign({ color: "#0b1220", weight: 7, opacity: 0.92, dashArray: "16 8" }, lineOpts);
+        else if (s.profile === "bike") opts = Object.assign({ color: "#0b1220", weight: 6, opacity: 0.9, dashArray: "14 8" }, lineOpts);
+        else if (s.profile === "crow") opts = Object.assign({ color: "#111827", weight: 3, opacity: 0.85, dashArray: "2 8" }, lineOpts);
         routeLines.push(L.polyline(latlngs, opts).addTo(layer));
       });
     } else if (trackPts >= 3) {
       const latlngs = g.track.map(([lon, lat]) => [lat, lon]);
-      routeLines.push(L.polyline(latlngs, { color: g.color, weight: 6, opacity: 0.92 }).addTo(layer));
+      routeLines.push(L.polyline(latlngs, Object.assign({ color: g.color, weight: 6, opacity: 0.92 }, lineOpts)).addTo(layer));
     } else {
       const fallback = g.stops.filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon)).map((s) => [s.lat, s.lon]);
-      if (fallback.length >= 2) routeLines.push(L.polyline(fallback, { color: g.color, weight: 5, opacity: 0.75 }).addTo(layer));
+      if (fallback.length >= 2) routeLines.push(L.polyline(fallback, Object.assign({ color: g.color, weight: 5, opacity: 0.75 }, lineOpts)).addTo(layer));
     }
     g.stops.forEach((s, i) => {
       const m = L.marker([s.lat, s.lon], {
@@ -646,8 +683,7 @@
     });
     function layout(fit) {
       if (gen !== mapDrawGen) return;
-      map.invalidateSize();
-      redrawRouteLines();
+      layoutMapIfNeeded();
       if (!fit) return;
       if (panToStop && g.stops[selected]) {
         map.setView([g.stops[selected].lat, g.stops[selected].lon], Math.max(map.getZoom(), 15), { animate: false });
@@ -656,17 +692,40 @@
       if (routeLines.length) {
         let b = routeLines[0].getBounds();
         for (let i = 1; i < routeLines.length; i++) b.extend(routeLines[i].getBounds());
-        map.fitBounds(b, mapPad());
+        map.fitBounds(b, Object.assign({ animate: false }, mapPad()));
       } else if (g.stops.length) {
-        map.fitBounds(L.latLngBounds(g.stops.map((s) => [s.lat, s.lon])), mapPad());
+        map.fitBounds(L.latLngBounds(g.stops.map((s) => [s.lat, s.lon])), Object.assign({ animate: false }, mapPad()));
       }
     }
     layout(true);
     requestAnimationFrame(() => {
       const sz = map.getSize();
-      if (sz.x < 40 || sz.y < 40) setTimeout(() => layout(true), 80);
-      else layout(false);
+      if (sz.x < 40 || sz.y < 40) {
+        lastMapSizeKey = "";
+        setTimeout(() => layout(true), 60);
+      }
     });
+  }
+
+  function selectStop(i, pan) {
+    const g = viewOf(currentId, currentMode);
+    if (!g.stops.length) return;
+    selected = Math.max(0, Math.min(i, g.stops.length - 1));
+    setHash(currentId, currentMode, selected);
+    document.getElementById("gmaps").href = googleDir(g);
+    renderChips(g);
+    renderCard(g);
+    const listSheet = document.getElementById("listSheet");
+    if (listSheet && listSheet.classList.contains("open")) {
+      document.getElementById("list").querySelectorAll(".stop").forEach((el) => {
+        el.classList.toggle("is-on", Number(el.dataset.i) === selected);
+      });
+    }
+    paintMarkers(g);
+    markers.forEach((m, n) => m.setZIndexOffset(n === selected ? 700 : 0));
+    if (pan && g.stops[selected]) {
+      map.setView([g.stops[selected].lat, g.stops[selected].lon], Math.max(map.getZoom(), 15), { animate: false });
+    }
   }
 
   function show(id, mode, idx, fromHash, pan) {
@@ -684,11 +743,17 @@
       b.setAttribute("aria-pressed", String(b.dataset.mode === currentMode));
     });
     document.getElementById("gmaps").href = googleDir(g);
+    const key = (ev ? ev.id : "") + "|" + currentId + "|" + currentMode;
+    if (key === mapViewKey && markers.length === g.stops.length) {
+      selectStop(selected, !!pan);
+      return;
+    }
     paintGroups();
     renderChips(g);
     renderCard(g);
-    renderList(g);
+    if (document.getElementById("listSheet").classList.contains("open")) renderList(g);
     drawMap(g, !!pan);
+    mapViewKey = key;
   }
 
   function renderChooser() {
@@ -730,45 +795,49 @@
     const need = (ev.teams || []).filter((t) => M.needsRouteRebuild(t));
     if (!need.length) return;
     const first = priorityId ? need.filter((t) => t.id === priorityId) : [];
-    const blocking = first.length ? first : need;
-    const rest = first.length ? need.filter((t) => t.id !== priorityId) : [];
-    setBusy(true, "Laddar körvägar…");
-    try {
-      for (const t of blocking) {
-        document.getElementById("busyText").textContent = "Beräknar " + t.name + "…";
-        await M.recalcTeam(t, (msg) => { document.getElementById("busyText").textContent = msg; });
-      }
-      persist();
-    } catch (e) {}
-    setBusy(false);
-    if (!rest.length) return;
-    (async () => {
-      try {
-        for (const t of rest) {
-          if (!M.needsRouteRebuild(t)) continue;
+    const rest = first.length ? need.filter((t) => t.id !== priorityId) : need.slice();
+    const run = async (list) => {
+      let any = false;
+      for (const t of list) {
+        if (routingIds[t.id] || !M.needsRouteRebuild(t)) continue;
+        routingIds[t.id] = true;
+        try {
           await M.recalcTeam(t);
-        }
+          any = true;
+        } catch (e) {}
+        delete routingIds[t.id];
+      }
+      return any;
+    };
+    try {
+      const any = await run(first.length ? first : rest);
+      if (any) {
         persist();
-        if (document.body.classList.contains("in-race") && !isOverview()) {
+        if (document.body.classList.contains("in-race") && !isOverview() && currentEvent() && currentEvent().id === ev.id) {
+          mapViewKey = "";
           show(currentId, currentMode, selected, true, false);
         }
-      } catch (e) {}
-    })();
+      }
+      if (first.length && rest.length) {
+        run(rest).then((more) => { if (more) persist(); }).catch(() => {});
+      }
+    } catch (e) {}
   }
 
   async function enterEvent(id) {
     if (!store.events.some((e) => e.id === id)) return;
     store.currentEventId = id;
-    persist();
     closeChooser();
     document.body.classList.add("in-race");
     const tid = (currentEvent() && currentEvent().teams[0] && currentEvent().teams[0].id) || "";
     ignoreHash = true;
     history.replaceState(null, "", location.pathname + "?lopp=" + encodeURIComponent(id) + hashFor(tid, "kortast", 0));
     setTimeout(() => { ignoreHash = false; }, 0);
-    await ensureEventRoutes(currentEvent(), tid);
+    mapViewKey = "";
+    lastMapSizeKey = "";
     show(tid, "kortast", 0, true, false);
-    setTimeout(() => map.invalidateSize(), 80);
+    ensureEventRoutes(currentEvent(), tid);
+    setTimeout(persist, 0);
   }
 
   document.getElementById("backBtn").addEventListener("click", openChooser);
@@ -874,6 +943,7 @@
     if (selected < g.stops.length - 1) show(currentId, currentMode, selected + 1, false, true);
   });
   document.getElementById("listBtn").addEventListener("click", () => {
+    renderList(viewOf(currentId, currentMode));
     document.getElementById("listSheet").classList.add("open");
   });
   document.getElementById("listClose").addEventListener("click", () => {
@@ -898,16 +968,23 @@
   window.addEventListener("hashchange", () => {
     if (ignoreHash) return;
     const { id, mode, idx } = parseHash();
-    show(id, mode, idx, true, true);
+    if (id === currentId && mode === currentMode) selectStop(idx, true);
+    else show(id, mode, idx, true, true);
   });
-  window.addEventListener("resize", () => {
-    map.invalidateSize();
+  let resizeT = 0;
+  function onMapResize() {
+    if (!document.body.classList.contains("in-race")) return;
+    if (!layoutMapIfNeeded()) return;
     redrawRouteLines();
+  }
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(onMapResize, 80);
   });
   try {
     new ResizeObserver(() => {
-      map.invalidateSize();
-      redrawRouteLines();
+      clearTimeout(resizeT);
+      resizeT = setTimeout(onMapResize, 80);
     }).observe(document.getElementById("map"));
   } catch (e) {}
 
@@ -1440,24 +1517,17 @@
     document.body.classList.remove("picking");
     editorEl.classList.remove("open");
     document.body.classList.remove("editing");
-    for (const t of teams()) {
-      const pts = M.pointsOf(t).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
-      const routed = t.modes && t.modes.kortast && t.modes.kortast.track && t.modes.kortast.track.length;
-      if (pts.length && !routed) {
-        setBusy(true, "Beräknar körväg för " + t.name + "…");
-        try { await M.recalcTeam(t); } catch (err) {}
-      }
-    }
     persist();
-    setBusy(false);
     const ev = currentEvent();
     if (ev) {
       document.body.classList.add("in-race");
       closeChooser();
+      mapViewKey = "";
+      lastMapSizeKey = "";
       show(editTeamId || currentId, currentMode, 0, true, false);
+      ensureEventRoutes(ev, editTeamId || currentId);
     }
-    map.invalidateSize();
-    await publishCatalog();
+    publishCatalog();
   }
   function download(name, text, type) {
     const blob = new Blob([text], { type: type || "application/json" });
@@ -1486,7 +1556,6 @@
     ensureSeed();
     document.body.classList.toggle("view-only", isViewOnly());
     document.body.classList.toggle("overview-mode", isOverview());
-    if (!isViewOnly()) persist();
     if (lopp && store.events.some((e) => e.id === lopp)) store.currentEventId = lopp;
 
     if (window.MattorLive) applyLiveCache();
@@ -1506,8 +1575,10 @@
     if (lopp && store.events.some((e) => e.id === lopp)) {
       document.body.classList.add("in-race");
       closeChooser();
-      await ensureEventRoutes(currentEvent(), startH.id);
+      mapViewKey = "";
+      lastMapSizeKey = "";
       show(startH.id, startH.mode, startH.idx, true, false);
+      ensureEventRoutes(currentEvent(), startH.id);
       return;
     }
     if (isViewOnly()) {
@@ -1522,6 +1593,16 @@
       applyingLive = true;
       try { refreshLiveUi(); } finally { applyingLive = false; }
     });
+    setInterval(() => {
+      const board = document.getElementById("liveBoard");
+      if (!board || !board.classList.contains("open")) return;
+      const status = document.getElementById("liveStatus");
+      const Llive = window.MattorLive;
+      if (!status || !Llive) return;
+      const on = Llive.connected();
+      status.classList.toggle("is-on", !!on);
+      status.textContent = on ? "Live · kartan uppdateras när någon bockar av" : "Ansluter till live-status…";
+    }, 2000);
   }
   start();
 })();
