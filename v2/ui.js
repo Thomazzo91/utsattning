@@ -371,7 +371,7 @@
     m.style.display = m.style.display === "block" ? "none" : "block";
   });
   document.addEventListener("click", (e) => {
-    if (!e.target.closest("#more") && !e.target.closest("#moreBtn")) {
+    if (!e.target.closest(".more-wrap")) {
       document.getElementById("more").style.display = "none";
     }
   });
