@@ -83,6 +83,65 @@
     return btoa(unescape(encodeURIComponent(str)));
   }
 
+  function fileSlug(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/[åä]/g, "a")
+      .replace(/ö/g, "o")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 60);
+  }
+
+  function dataImagePayload(dataUrl) {
+    const t = String(dataUrl || "");
+    const i = t.indexOf("base64,");
+    if (i < 0) return null;
+    const b64 = t.slice(i + 7).replace(/\s/g, "");
+    if (!b64) return null;
+    const ext = /image\/png/i.test(t.slice(0, i)) ? "png" : "jpg";
+    return { b64, ext };
+  }
+
+  async function putRepoFile(rel, b64, message) {
+    let sha;
+    try {
+      const meta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel);
+      sha = meta.sha;
+    } catch (e) {}
+    const body = { message: message || ("Uppdatera " + rel), content: b64, branch: "main" };
+    if (sha) body.sha = sha;
+    await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel, body);
+  }
+
+  async function publishStopImages() {
+    const seen = new Map();
+    for (const ev of store.events || []) {
+      for (const t of ev.teams || []) {
+        for (const modeName of ["kortast", "iga"]) {
+          const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
+          if (!Array.isArray(stops)) continue;
+          for (const s of stops) {
+            if (!s || typeof s.image !== "string" || s.image.indexOf("data:image") !== 0) continue;
+            const raw = s.image;
+            if (seen.has(raw)) {
+              s.image = seen.get(raw);
+              continue;
+            }
+            const payload = dataImagePayload(raw);
+            if (!payload) continue;
+            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
+            const rel = "img/" + fname;
+            busyText.textContent = "Laddar upp bild " + (s.label || fname) + "…";
+            await putRepoFile(rel, payload.b64, "Bild " + (s.label || fname));
+            seen.set(raw, rel);
+            s.image = rel;
+          }
+        }
+      }
+    }
+  }
+
   async function ghJson(method, url, body) {
     const token = localStorage.getItem(GH_TOKEN_KEY) || "";
     const headers = {
@@ -108,7 +167,7 @@
   async function ensurePublishToken() {
     let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
     if (t) return t;
-    t = window.prompt("GitHub-token med skrivrätt till utsattning-repot, så att alla ser ändringen på https://thomazzo91.github.io/utsattning/");
+    t = window.prompt("Klistra in GitHub-token med skrivrätt till utsattning (en gång). Sen syns bilder och ändringar för alla på github.io.");
     t = (t || "").trim();
     if (t) localStorage.setItem(GH_TOKEN_KEY, t);
     return t;
@@ -132,6 +191,8 @@
           }
         }
       }
+      persist();
+      await publishStopImages();
       persist();
       const races = M.buildRacesObject(store.events);
       const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
@@ -951,7 +1012,9 @@
           writePoints(t, list);
           renderEditor();
           renderPointForm(i);
-          showToast("Bild sparad");
+          showToast((localStorage.getItem(GH_TOKEN_KEY) || "").trim()
+            ? "Bild sparad"
+            : "Bild sparad här. Tryck Klar · spara för alla");
         } catch (e) {
           showToast("Kunde inte läsa bilden");
         } finally {
@@ -1034,11 +1097,16 @@
     setTitle(ev.name);
   }
 
-  function savePoint(i) {
+  async function savePoint(i) {
     readPointForm(i);
     renderEditor();
     renderPointForm(i);
-    showToast("Punkt sparad");
+    if ((localStorage.getItem(GH_TOKEN_KEY) || "").trim()) {
+      showToast("Punkt sparad, publicerar för alla…");
+      await publishCatalog();
+    } else {
+      showToast("Sparat på den här enheten. Tryck Klar så alla ser det");
+    }
   }
 
   function addPoint() {
