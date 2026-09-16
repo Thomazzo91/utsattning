@@ -18,13 +18,23 @@
     });
   }
 
-  function applyRec(rec) {
-    if (!rec || !rec.k) return;
+  function sameRec(a, b) {
+    return !!(a && b &&
+      Number(a.t) === Number(b.t) &&
+      !!a.on === !!b.on &&
+      String(a.who || "") === String(b.who || "") &&
+      String(a.label || "") === String(b.label || ""));
+  }
+
+  function applyRec(rec, silent) {
+    if (!rec || !rec.k) return false;
     const prev = items[rec.k];
-    if (prev && Number(prev.t) > Number(rec.t)) return;
+    if (prev && Number(prev.t) > Number(rec.t)) return false;
+    if (sameRec(prev, rec)) return false;
     items[rec.k] = rec;
     lastEventAt = Math.max(lastEventAt, Number(rec.t) || 0);
-    notify();
+    if (!silent) notify();
+    return true;
   }
 
   function applyRaw(raw) {
@@ -40,20 +50,24 @@
   } catch (e) {}
 
   async function replay() {
-    const res = await fetch(BASE + "/json?poll=1&since=all", { cache: "no-store" });
+    const res = await fetch(BASE + "/json?poll=1&since=" + encodeURIComponent(sinceId), { cache: "no-store" });
     if (!res.ok) return;
     okAt = Date.now();
     connected = true;
     const text = await res.text();
+    let changed = false;
     text.split("\n").forEach((line) => {
       if (!line.trim()) return;
       try {
         const msg = JSON.parse(line);
         if (msg && msg.id) sinceId = msg.id;
-        if (msg && msg.event === "message") applyRaw(msg.message);
+        if (msg && msg.event === "message") {
+          if (applyRec(typeof msg.message === "string" ? JSON.parse(msg.message) : msg.message, true)) changed = true;
+        }
       } catch (e) {}
     });
     if (sinceId === "all") sinceId = String(Math.floor(Date.now() / 1000));
+    if (changed) notify();
   }
 
   function connect() {
@@ -62,7 +76,11 @@
       es = null;
     }
     es = new EventSource(BASE + "/sse");
-    es.onopen = () => { connected = true; notify(); };
+    es.onopen = () => {
+      const was = connected;
+      connected = true;
+      if (!was) notify();
+    };
     es.onmessage = (e) => {
       connected = true;
       try {
@@ -74,6 +92,7 @@
       }
     };
     es.onerror = () => {
+      if (!connected) return;
       connected = false;
       notify();
     };

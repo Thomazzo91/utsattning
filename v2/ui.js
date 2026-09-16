@@ -30,6 +30,9 @@
   let liveFitId = "";
   let liveFocusKey = "";
   let liveIgnorePopupClose = false;
+  let liveMarkersByKey = {};
+  let livePaintEvId = "";
+  let liveLegendSig = "";
 
   let visited = {};
   let applyingLive = false;
@@ -208,11 +211,11 @@
     if (!info) return;
     info.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(liveStatusText(rec, up))}</span>`;
   }
-  function ensureLiveMap() {
+  function ensureLiveMap(forceSize) {
     const el = document.getElementById("liveMap");
     if (!el) return;
     if (liveMap) {
-      setTimeout(() => liveMap.invalidateSize(), 60);
+      if (forceSize) setTimeout(() => liveMap.invalidateSize(), 60);
       return;
     }
     liveMap = L.map(el, { tap: true, zoomControl: false, attributionControl: true, fadeAnimation: false }).setView([62.5, 17], 5);
@@ -226,47 +229,74 @@
     if (!liveMap || !liveLayer) return;
     const Llive = window.MattorLive;
     const pts = liveStops(ev);
-    const keep = liveFocusKey;
-    liveIgnorePopupClose = true;
-    liveLayer.clearLayers();
-    liveIgnorePopupClose = false;
+    if (livePaintEvId !== ev.id) {
+      liveIgnorePopupClose = true;
+      liveLayer.clearLayers();
+      liveIgnorePopupClose = false;
+      liveMarkersByKey = {};
+      livePaintEvId = ev.id;
+    }
     const latlngs = [];
-    let reopen = null;
+    const seen = {};
     pts.forEach((p) => {
+      seen[p.key] = true;
       const rec = Llive ? Llive.get(ev.id, p.team.id, p.stop.label) : null;
       const up = !!(rec && rec.on);
-      const m = L.marker([p.stop.lat, p.stop.lon], {
-        icon: liveMarkerIcon(p.team.color, up, p.mark),
-        zIndexOffset: up ? 400 : (p.mark === "S" || p.mark === "M" ? 280 : 0)
-      });
-      m.bindPopup(livePopupHtml(p, rec, up), {
-        className: "live-pop",
-        maxWidth: 300,
-        closeButton: true,
-        autoPan: true,
-        autoPanPadding: [20, 56],
-        autoClose: true,
-        closeOnClick: true
-      });
-      m.on("popupopen", () => {
-        liveFocusKey = p.key;
-        fillLiveInfo(p, rec, up);
-      });
-      m.on("popupclose", () => {
-        if (!liveIgnorePopupClose && liveFocusKey === p.key) liveFocusKey = "";
-      });
-      m.addTo(liveLayer);
-      latlngs.push([p.stop.lat, p.stop.lon]);
-      if (p.key === keep) {
-        fillLiveInfo(p, rec, up);
-        reopen = m;
+      const html = livePopupHtml(p, rec, up);
+      const sig = (up ? "1" : "0") + "|" + p.mark + "|" + p.team.color;
+      let m = liveMarkersByKey[p.key];
+      if (!m) {
+        m = L.marker([p.stop.lat, p.stop.lon], {
+          icon: liveMarkerIcon(p.team.color, up, p.mark),
+          zIndexOffset: up ? 400 : (p.mark === "S" || p.mark === "M" ? 280 : 0)
+        });
+        m.bindPopup(html, {
+          className: "live-pop",
+          maxWidth: 300,
+          closeButton: true,
+          autoPan: true,
+          autoPanPadding: [20, 56],
+          autoClose: true,
+          closeOnClick: true
+        });
+        m.on("popupopen", () => {
+          const live = m._live || { p: p, rec: rec, up: up };
+          liveFocusKey = live.p.key;
+          fillLiveInfo(live.p, live.rec, live.up);
+        });
+        m.on("popupclose", () => {
+          if (!liveIgnorePopupClose && m._live && liveFocusKey === m._live.p.key) liveFocusKey = "";
+        });
+        m.addTo(liveLayer);
+        liveMarkersByKey[p.key] = m;
+        m._liveSig = sig;
+        m._liveHtml = html;
+      } else {
+        if (m._liveSig !== sig) {
+          m.setIcon(liveMarkerIcon(p.team.color, up, p.mark));
+          m.setZIndexOffset(up ? 400 : (p.mark === "S" || p.mark === "M" ? 280 : 0));
+          m._liveSig = sig;
+        }
+        if (m._liveHtml !== html) {
+          m.setPopupContent(html);
+          m._liveHtml = html;
+        }
       }
+      m._live = { p: p, rec: rec, up: up };
+      latlngs.push([p.stop.lat, p.stop.lon]);
+      if (p.key === liveFocusKey) fillLiveInfo(p, rec, up);
+    });
+    Object.keys(liveMarkersByKey).forEach((k) => {
+      if (seen[k]) return;
+      liveIgnorePopupClose = true;
+      try { liveLayer.removeLayer(liveMarkersByKey[k]); } catch (e) {}
+      liveIgnorePopupClose = false;
+      delete liveMarkersByKey[k];
     });
     if (fit && latlngs.length) {
       liveMap.fitBounds(L.latLngBounds(latlngs), { padding: [28, 28], maxZoom: 15 });
       liveFitId = ev.id;
     }
-    if (reopen) setTimeout(() => { if (liveMap) reopen.openPopup(); }, 60);
   }
   function renderLiveBoard() {
     const status = document.getElementById("liveStatus");
@@ -285,6 +315,7 @@
       if (title) title.textContent = "Vad som är uppe";
       if (prog) prog.textContent = "Öppna ett lopp först";
       if (legend) legend.innerHTML = "";
+      liveLegendSig = "";
       if (info) info.textContent = "";
       return;
     }
@@ -292,7 +323,13 @@
     const upCount = pts.filter((p) => Llive && Llive.isOn(ev.id, p.team.id, p.stop.label)).length;
     if (title) title.textContent = ev.name;
     if (prog) prog.textContent = upCount + " av " + pts.length + " uppe";
-    if (legend) {
+    const legendSig = ev.id + "|" + upCount + "/" + pts.length + "|" + (ev.teams || []).map((t) => {
+      const groupPts = pts.filter((p) => p.team.id === t.id);
+      const nUp = groupPts.filter((p) => Llive && Llive.isOn(ev.id, t.id, p.stop.label)).length;
+      return t.id + ":" + nUp + "/" + groupPts.length;
+    }).join(",");
+    if (legend && liveLegendSig !== legendSig) {
+      liveLegendSig = legendSig;
       legend.innerHTML = "";
       const allBtn = document.createElement("button");
       allBtn.type = "button";
@@ -320,8 +357,9 @@
       });
     }
     if (info && !liveFocusKey) info.textContent = "Siffra = km längs banan (h = halv) · tryck för tider";
-    ensureLiveMap();
-    paintLiveMarkers(ev, liveFitId !== ev.id);
+    const needFit = liveFitId !== ev.id;
+    ensureLiveMap(needFit);
+    paintLiveMarkers(ev, needFit);
   }
   function openLiveBoard() {
     if (!isOverview()) return;
@@ -344,6 +382,9 @@
     document.body.classList.remove("live-open");
     liveFitId = "";
     liveFocusKey = "";
+    livePaintEvId = "";
+    liveLegendSig = "";
+    liveMarkersByKey = {};
     if (isOverview()) {
       ignoreHash = true;
       history.replaceState(null, "", location.pathname);
