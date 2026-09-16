@@ -110,6 +110,32 @@
     return getRemovedIds().indexOf(id) >= 0;
   }
 
+  function isPlaceholderRaceName(name) {
+    return /^lopp\s*\d+$/i.test(String(name || "").trim());
+  }
+
+  function fixEventCoords(ev) {
+    if (!ev || !Array.isArray(ev.teams)) return ev;
+    ev.teams.forEach((t) => {
+      const modes = t.modes || {};
+      ["kortast", "iga"].forEach((k) => {
+        const stops = modes[k] && modes[k].stops;
+        if (!Array.isArray(stops)) return;
+        stops.forEach((s) => {
+          const n = normalizeLatLon(Number(s.lat), Number(s.lon));
+          if (n) { s.lat = n.lat; s.lon = n.lon; }
+        });
+      });
+      if (Array.isArray(t.points)) {
+        t.points.forEach((s) => {
+          const n = normalizeLatLon(Number(s.lat), Number(s.lon));
+          if (n) { s.lat = n.lat; s.lon = n.lon; }
+        });
+      }
+    });
+    return ev;
+  }
+
   function hydrateEvent(ev) {
     if (!ev || !ev.id) return null;
     if (isRemoved(ev.id)) return null;
@@ -118,11 +144,13 @@
       if (!seed) return null;
       if (!ev.teams || !ev.teams.length) return seed;
       if ((Number(ev.rev) || 0) < seedRev(ev.id)) return seed;
-      return mergeBuiltIn(ev, ev.id);
+      const merged = mergeBuiltIn(ev, ev.id);
+      if (!merged.name || isPlaceholderRaceName(merged.name)) merged.name = seed.name;
+      return fixEventCoords(merged);
     }
     const t0 = ev.teams && ev.teams[0];
-    if (t0 && Array.isArray(t0.points) && !t0.modes) return inflateEvent(ev);
-    return ev;
+    if (t0 && Array.isArray(t0.points) && !t0.modes) return fixEventCoords(inflateEvent(ev));
+    return fixEventCoords(ev);
   }
 
   function serializeStore(data) {
@@ -898,7 +926,7 @@
   function mergeBuiltIn(saved, seedId) {
     const seed = seedEvent(seedId);
     if (!seed) return saved;
-    if (saved.name) seed.name = saved.name;
+    if (saved.name && !isPlaceholderRaceName(saved.name)) seed.name = saved.name;
     (saved.teams || []).forEach((st) => {
       let t = seed.teams.find((x) => x.id === st.id);
       const pts = Array.isArray(st.points) ? st.points : pointsOf(st);
