@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Utsättning 2" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="description" content="Utsättning 2.0 — mobilvy för tidtagningsmattor." />
+  <title>Utsättning 2.0</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a26;
+      --card: #182233;
+      --line: #2c3848;
+      --text: #f4f7fb;
+      --muted: #9aa6b4;
+      --accent: #f59e0b;
+      --ok: #22c55e;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      touch-action: manipulation;
+    }
+    .top {
+      flex: none;
+      padding: calc(8px + var(--safe-top)) 10px 8px;
+      background: #0e1522;
+      border-bottom: 1px solid var(--line);
+      z-index: 20;
+    }
+    .top-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .top h1 {
+      margin: 0;
+      font-size: 1.02rem;
+      font-weight: 800;
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .icon {
+      width: 44px; height: 44px; flex: none;
+      border: 0; border-radius: 12px;
+      background: var(--card);
+      color: var(--text);
+      display: grid; place-items: center;
+    }
+    .groups {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin-top: 8px;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .groups::-webkit-scrollbar { display: none; }
+    .groups button {
+      flex: none;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--text);
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+    .groups button[aria-pressed="true"] { color: #0b1220; }
+    #map {
+      flex: 1 1 auto;
+      min-height: 160px;
+      background: var(--bg);
+    }
+    .leaflet-control-attribution {
+      max-width: 42vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 10px !important;
+    }
+    .dock {
+      flex: none;
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      padding: 8px 12px calc(10px + var(--safe-bot));
+      z-index: 30;
+    }
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 2px 0 10px;
+      scrollbar-width: none;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: none;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      font-weight: 800;
+      color: #0b1220;
+      display: grid; place-items: center;
+    }
+    .chip.is-on {
+      outline: 3px solid color-mix(in srgb, var(--accent) 70%, white);
+      width: 46px; height: 46px;
+    }
+    .chip.is-done { background: var(--ok) !important; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .num {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 800; color: #0b1220; flex: none;
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 1.12rem;
+      line-height: 1.2;
+    }
+    .setup {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .card-actions { display: flex; gap: 6px; flex: none; }
+    .been {
+      width: 44px; height: 44px;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      background: #10161c;
+      color: var(--muted);
+      display: grid; place-items: center;
+      padding: 0;
+    }
+    .been svg { width: 22px; height: 22px; }
+    .been[aria-pressed="true"] {
+      background: var(--ok);
+      border-color: var(--ok);
+      color: #052e16;
+    }
+    .nav {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; padding: 0 14px; border-radius: 12px;
+      background: var(--accent); color: #0b1220;
+      font-weight: 800; text-decoration: none; font-size: 0.95rem;
+    }
+    .times {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .times div {
+      background: #10161c;
+      border-radius: 12px;
+      padding: 8px 6px 7px;
+      text-align: center;
+    }
+    .times span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+    .times strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 1.12rem;
+      font-weight: 800;
+    }
+    .times .is-first { outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .note { flex: 1; min-width: 0; font-size: 0.86rem; }
+    .thumb {
+      width: 64px; height: 64px; flex: none;
+      border-radius: 10px; object-fit: cover;
+      cursor: zoom-in;
+    }
+    .row-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .row-btns button, .ghost {
+      flex: 1;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #10161c;
+      color: var(--text);
+      font-weight: 800;
+    }
+    .modes {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .modes button {
+      flex: 1;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #10161c;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 0.82rem;
+    }
+    .modes button[aria-pressed="true"] {
+      background: var(--accent);
+      color: #0b1220;
+      border-color: transparent;
+    }
+    .mk-num {
+      width: 34px; height: 34px; border-radius: 50%;
+      color: #0b1220; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 5px rgba(0,0,0,.4);
+      font-size: 15px;
+    }
+    .mk.is-on .mk-num { width: 42px; height: 42px; border-width: 3px; }
+    .mk.is-done .mk-num { background: var(--ok) !important; }
+    .mk-num svg { width: 18px; height: 18px; display: block; }
+    .more {
+      position: absolute; right: 10px;
+      top: calc(56px + var(--safe-top));
+      z-index: 40; display: none;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 12px; padding: 6px; min-width: 210px;
+    }
+    .more a, .more button {
+      display: block; width: 100%; text-align: left;
+      background: none; border: 0; color: var(--text);
+      padding: 12px; font-weight: 700; text-decoration: none;
+    }
+    .list-sheet {
+      display: none;
+      position: absolute; left: 0; right: 0; bottom: 0;
+      max-height: min(72dvh, 560px);
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      border-radius: 18px 18px 0 0;
+      z-index: 50;
+      flex-direction: column;
+      padding-bottom: var(--safe-bot);
+    }
+    .list-sheet.open { display: flex; }
+    .list-sheet h3 { margin: 12px 16px 8px; font-size: 1rem; }
+    .list {
+      overflow: auto;
+      padding: 0 12px 16px;
+    }
+    .stop {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 8px;
+      width: 100%;
+      color: inherit;
+      text-align: left;
+      font: inherit;
+    }
+    .stop.is-on { border-color: var(--accent); }
+    .stop.is-done { opacity: .72; }
+    .stop small { display: block; color: var(--muted); font-size: 0.75rem; }
+    .chooser {
+      display: none;
+      position: fixed; inset: 0; z-index: 80;
+      background: var(--bg);
+      padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bot));
+      overflow: auto;
+      flex-direction: column;
+    }
+    .chooser.open { display: flex; }
+    .chooser h1 { margin: 0 0 8px; font-size: 1.7rem; }
+    .chooser p { color: var(--muted); margin: 0 0 18px; }
+    .chooser-item {
+      width: 100%; text-align: left;
+      min-height: 68px; margin-bottom: 10px;
+      border: 1px solid var(--line); border-radius: 16px;
+      background: var(--card); color: var(--text);
+      padding: 16px; font: inherit;
+    }
+    .chooser-item strong { display: block; font-size: 1.15rem; }
+    .chooser-item span { display: block; color: var(--muted); margin-top: 4px; }
+    .v1-link { color: var(--muted); margin-top: auto; padding-top: 16px; font-size: 0.9rem; }
+    .toast {
+      position: fixed; left: 50%; top: calc(12px + var(--safe-top));
+      transform: translateX(-50%);
+      background: #e8eef4; color: #0b1220;
+      padding: 10px 14px; border-radius: 999px;
+      font-weight: 700; z-index: 90; display: none;
+      white-space: nowrap;
+    }
+    .busy {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(11,18,32,.72);
+      align-items: center; justify-content: center; font-weight: 800;
+    }
+    .busy.on { display: flex; }
+    .img-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.88);
+      z-index: 110; display: none; align-items: center; justify-content: center;
+      cursor: zoom-out;
+    }
+    .img-overlay img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px; }
+    body.choosing #map, body.choosing .dock, body.choosing .top { visibility: hidden; }
+    @media (min-width: 860px) and (hover: hover) and (pointer: fine) {
+      body { flex-direction: row; flex-wrap: wrap; }
+      .top { width: 420px; }
+      #map { position: absolute; top: 0; left: 420px; right: 0; bottom: 0; }
+      .dock { width: 420px; }
+    }
+  </style>
+</head>
+<body class="choosing">
+  <header class="top">
+    <div class="top-row">
+      <button type="button" class="icon" id="backBtn" aria-label="Byt lopp">←</button>
+      <h1 id="raceTitle">Utsättning 2.0</h1>
+      <button type="button" class="icon" id="share" aria-label="Kopiera länk">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+      </button>
+      <button type="button" class="icon" id="moreBtn" aria-label="Mer">···</button>
+    </div>
+    <div class="groups" id="groups"></div>
+  </header>
+  <div id="map"></div>
+  <div class="more" id="more">
+    <a id="gmaps" target="_blank" rel="noopener">Hela rutten i Maps</a>
+    <button type="button" id="gpxBtn">Ladda ner GPX</button>
+    <button type="button" id="clearDone">Rensa avbockning</button>
+    <a id="editV1" href="../">Redigera i originalet (1.0)</a>
+  </div>
+  <section class="dock">
+    <div class="chips" id="chips"></div>
+    <article class="card" id="card"></article>
+    <div class="row-btns">
+      <button type="button" id="prevBtn">Föregående</button>
+      <button type="button" id="nextBtn">Nästa</button>
+      <button type="button" id="listBtn">Alla punkter</button>
+    </div>
+    <div class="modes" id="modes">
+      <button type="button" data-mode="kortast" aria-pressed="true">Körordning</button>
+      <button type="button" data-mode="iga">Igång-tid</button>
+    </div>
+  </section>
+  <section class="list-sheet" id="listSheet">
+    <h3>Alla punkter</h3>
+    <div class="list" id="list"></div>
+    <div style="padding:0 12px 12px"><button type="button" class="ghost" id="listClose" style="width:100%">Stäng</button></div>
+  </section>
+  <section class="chooser open" id="chooser">
+    <h1>Välj lopp</h1>
+    <p>2.0 är gjord för telefonen. Originalet finns kvar orört.</p>
+    <div id="chooserList"></div>
+    <p class="v1-link"><a href="../" style="color:inherit">Öppna originalet (1.0)</a></p>
+  </section>
+  <div class="toast" id="toast"></div>
+  <div class="busy" id="busy"><span id="busyText">Laddar…</span></div>
+  <div class="img-overlay" id="imgOverlay" aria-hidden="true"><img id="imgOverlayImg" alt="" /></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../app.js?v=43"></script>
+  <script src="../races.js?v=31"></script>
+  <script src="ui.js?v=1"></script>
+</body>
+</html>
