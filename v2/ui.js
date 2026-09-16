@@ -25,6 +25,8 @@
   let publishing = false;
   const GH_REPO = "Thomazzo91/utsattning";
   const GH_TOKEN_KEY = "utsattning-publish-token";
+  const editorEl = document.getElementById("editor");
+  const editorBody = document.getElementById("editorBody");
   let liveMap = null;
   let liveLayer = null;
   let liveFitId = "";
@@ -139,7 +141,7 @@
     const raw = String((stop && (stop.label || stop.name)) || "").trim();
     const name = raw.toLowerCase();
     const half = /\bhalv\b/.test(name);
-    const finish = /målgång|malgang|\bfinish\b/.test(name) || (/\bmål\b/.test(name) && !/start/.test(name));
+    const finish = /mÃ¥lgÃ¥ng|malgang|\bfinish\b/.test(name) || (/\bmÃ¥l\b/.test(name) && !/start/.test(name));
     const start = /start/.test(name);
     const vxl = name.match(/vxl\s*(\d+)/);
     const kmM = name.match(/(\d+(?:[.,]\d+)?)\s*km/);
@@ -191,25 +193,25 @@
   }
   function liveStatusText(rec, up) {
     return up
-      ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
+      ? ("Uppe " + liveClock(rec.t) + (rec.who ? " Â· " + rec.who : ""))
       : "Inte uppe";
   }
   function livePopupHtml(p, rec, up) {
     const name = p.stop.label || p.stop.name || "Punkt";
     return `<div class="live-pop-body">
       <strong>${esc(name)}</strong>
-      <em>${esc(p.team.name)} · ${esc(liveStatusText(rec, up))}</em>
+      <em>${esc(p.team.name)} Â· ${esc(liveStatusText(rec, up))}</em>
       <div class="live-pop-times">
-        <div><span>Igång</span><b>${esc(p.stop.iga || "—")}</b></div>
-        <div class="is-first"><span>Första</span><b>${esc(p.stop.forsta || "—")}</b></div>
-        <div><span>Sista</span><b>${esc(p.stop.sista || "—")}</b></div>
+        <div><span>IgÃ¥ng</span><b>${esc(p.stop.iga || "â")}</b></div>
+        <div class="is-first"><span>FÃ¶rsta</span><b>${esc(p.stop.forsta || "â")}</b></div>
+        <div><span>Sista</span><b>${esc(p.stop.sista || "â")}</b></div>
       </div>
     </div>`;
   }
   function fillLiveInfo(p, rec, up) {
     const info = document.getElementById("liveInfo");
     if (!info) return;
-    info.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(liveStatusText(rec, up))}</span>`;
+    info.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} Â· ${esc(liveStatusText(rec, up))}</span>`;
   }
   function ensureLiveMap(forceSize) {
     const el = document.getElementById("liveMap");
@@ -305,15 +307,15 @@
     if (status) {
       const on = Llive && Llive.connected();
       status.classList.toggle("is-on", !!on);
-      status.textContent = on ? "Live · kartan uppdateras när någon bockar av" : "Ansluter till live-status…";
+      status.textContent = on ? "Live Â· kartan uppdateras nÃ¤r nÃ¥gon bockar av" : "Ansluter till live-statusâ¦";
     }
     const title = document.getElementById("liveTitle");
     const prog = document.getElementById("liveProg");
     const legend = document.getElementById("liveLegend");
     const info = document.getElementById("liveInfo");
     if (!ev) {
-      if (title) title.textContent = "Vad som är uppe";
-      if (prog) prog.textContent = "Öppna ett lopp först";
+      if (title) title.textContent = "Vad som Ã¤r uppe";
+      if (prog) prog.textContent = "Ãppna ett lopp fÃ¶rst";
       if (legend) legend.innerHTML = "";
       liveLegendSig = "";
       if (info) info.textContent = "";
@@ -334,7 +336,7 @@
       const allBtn = document.createElement("button");
       allBtn.type = "button";
       allBtn.className = "live-chip is-all";
-      allBtn.textContent = "Alla · " + upCount + "/" + pts.length;
+      allBtn.textContent = "Alla Â· " + upCount + "/" + pts.length;
       allBtn.addEventListener("click", () => {
         if (!liveMap || !pts.length) return;
         liveMap.fitBounds(L.latLngBounds(pts.map((p) => [p.stop.lat, p.stop.lon])), { padding: [28, 28], maxZoom: 15 });
@@ -348,7 +350,7 @@
         b.type = "button";
         b.className = "live-chip";
         b.style.background = t.color;
-        b.textContent = t.name + " · " + nUp + "/" + groupPts.length;
+        b.textContent = t.name + " Â· " + nUp + "/" + groupPts.length;
         b.addEventListener("click", () => {
           if (!liveMap) return;
           liveMap.fitBounds(L.latLngBounds(groupPts.map((p) => [p.stop.lat, p.stop.lon])), { padding: [36, 36], maxZoom: 15 });
@@ -356,7 +358,7 @@
         legend.appendChild(b);
       });
     }
-    if (info && !liveFocusKey) info.textContent = "Siffra = km längs banan (h = halv) · tryck för tider";
+    if (info && !liveFocusKey) info.textContent = "Siffra = km lÃ¤ngs banan (h = halv) Â· tryck fÃ¶r tider";
     const needFit = liveFitId !== ev.id;
     ensureLiveMap(needFit);
     paintLiveMarkers(ev, needFit);
@@ -366,7 +368,7 @@
     const more = document.getElementById("more");
     if (more) more.style.display = "none";
     if (!liveEvent()) {
-      showToast("Öppna ett lopp först");
+      showToast("Ãppna ett lopp fÃ¶rst");
       return;
     }
     const board = document.getElementById("liveBoard");
@@ -443,7 +445,7 @@
     showToast.t = setTimeout(() => { el.style.display = "none"; }, 1800);
   }
   function setBusy(on, text) {
-    document.getElementById("busyText").textContent = text || "Laddar…";
+    document.getElementById("busyText").textContent = text || "Laddarâ¦";
     document.getElementById("busy").classList.toggle("on", !!on);
   }
   function markerIcon(color, n, on, done) {
@@ -487,7 +489,7 @@
       if (t.id === currentId) b.style.background = t.color;
       b.addEventListener("click", () => {
         if (M.needsRouteRebuild(t)) {
-          setBusy(true, "Beräknar " + t.name + "…");
+          setBusy(true, "BerÃ¤knar " + t.name + "â¦");
           M.recalcTeam(t).then(() => {
             persist();
             setBusy(false);
@@ -508,7 +510,7 @@
     const s = g.stops[selected];
     const card = document.getElementById("card");
     if (!s) {
-      card.innerHTML = "<p class=\"setup\">Inga punkter i den här gruppen.</p>";
+      card.innerHTML = "<p class=\"setup\">Inga punkter i den hÃ¤r gruppen.</p>";
       return;
     }
     const done = isDone(g.id, s.label);
@@ -519,7 +521,7 @@
         <span class="num" style="background:${g.color}">${selected + 1}</span>
         <div style="flex:1;min-width:0">
           <h2>${esc(s.label || s.name || "Punkt")}</h2>
-          <p class="setup">${esc(s.setup || "")}${nextLeg ? " · " + nextLeg.km + " km till nästa" : ""}</p>
+          <p class="setup">${esc(s.setup || "")}${nextLeg ? " Â· " + nextLeg.km + " km till nÃ¤sta" : ""}</p>
         </div>
         <div class="card-actions">
           <button type="button" class="been" id="doneBtn" aria-pressed="${done}" aria-label="Bocka av">${CHECK_SVG}</button>
@@ -527,9 +529,9 @@
         </div>
       </div>
       <div class="times">
-        <div><span>Igång</span><strong>${esc(s.iga || "—")}</strong></div>
-        <div class="is-first"><span>Första</span><strong>${esc(s.forsta || "—")}</strong></div>
-        <div><span>Sista</span><strong>${esc(s.sista || "—")}</strong></div>
+        <div><span>IgÃ¥ng</span><strong>${esc(s.iga || "â")}</strong></div>
+        <div class="is-first"><span>FÃ¶rsta</span><strong>${esc(s.forsta || "â")}</strong></div>
+        <div><span>Sista</span><strong>${esc(s.sista || "â")}</strong></div>
       </div>
       <div class="meta">
         <div class="note">${esc(s.placering || s.note || "")}</div>
@@ -577,7 +579,7 @@
       return `<button type="button" class="stop${i === selected ? " is-on" : ""}${done ? " is-done" : ""}" data-i="${i}">
         <span class="num" style="background:${g.color}">${i + 1}</span>
         <span style="flex:1"><strong>${esc(s.label || s.name)}</strong>
-        <small>Igång ${esc(s.iga || "—")} · Första ${esc(s.forsta || "—")} · Sista ${esc(s.sista || "—")}</small></span>
+        <small>IgÃ¥ng ${esc(s.iga || "â")} Â· FÃ¶rsta ${esc(s.forsta || "â")} Â· Sista ${esc(s.sista || "â")}</small></span>
       </button>`;
     }).join("");
     list.querySelectorAll(".stop").forEach((b) => {
@@ -676,8 +678,8 @@
     if (!fromHash && currentId) setHash(currentId, currentMode, selected);
     document.documentElement.style.setProperty("--accent", g.color || "#f59e0b");
     const ev = currentEvent();
-    document.getElementById("raceTitle").textContent = ev ? ev.name : "Utsättning 2.0";
-    document.title = ev ? ev.name : "Utsättning 2.0";
+    document.getElementById("raceTitle").textContent = ev ? ev.name : "UtsÃ¤ttning 2.0";
+    document.title = ev ? ev.name : "UtsÃ¤ttning 2.0";
     document.getElementById("modes").querySelectorAll("button").forEach((b) => {
       b.setAttribute("aria-pressed", String(b.dataset.mode === currentMode));
     });
@@ -696,7 +698,7 @@
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chooser-item";
-      const names = (ev.teams || []).map((t) => t.name).join(" · ");
+      const names = (ev.teams || []).map((t) => t.name).join(" Â· ");
       b.innerHTML = `<strong>${esc(ev.name)}</strong><span>${esc(names) || "Inga grupper"}</span>`;
       b.addEventListener("click", () => {
         if (isOverview()) {
@@ -730,10 +732,10 @@
     const first = priorityId ? need.filter((t) => t.id === priorityId) : [];
     const blocking = first.length ? first : need;
     const rest = first.length ? need.filter((t) => t.id !== priorityId) : [];
-    setBusy(true, "Laddar körvägar…");
+    setBusy(true, "Laddar kÃ¶rvÃ¤garâ¦");
     try {
       for (const t of blocking) {
-        document.getElementById("busyText").textContent = "Beräknar " + t.name + "…";
+        document.getElementById("busyText").textContent = "BerÃ¤knar " + t.name + "â¦";
         await M.recalcTeam(t, (msg) => { document.getElementById("busyText").textContent = msg; });
       }
       persist();
@@ -785,9 +787,9 @@
     const url = PUBLIC_BASE.replace(/\/?$/, "/") + "?lopp=" + encodeURIComponent(ev ? ev.id : "") + hashFor(currentId, currentMode, selected);
     try {
       await navigator.clipboard.writeText(url);
-      showToast("Länk till 2.0 kopierad");
+      showToast("LÃ¤nk till 2.0 kopierad");
     } catch {
-      prompt("Kopiera länken", url);
+      prompt("Kopiera lÃ¤nken", url);
     }
   });
   document.getElementById("gpxBtn").addEventListener("click", () => {
@@ -804,7 +806,7 @@
   document.getElementById("clearDone").addEventListener("click", () => {
     document.getElementById("more").style.display = "none";
     const g = viewOf(currentId, currentMode);
-    if (!confirm("Rensa avbockning för " + g.name + "?")) return;
+    if (!confirm("Rensa avbockning fÃ¶r " + g.name + "?")) return;
     g.stops.forEach((s) => setDone(g.id, s.label, false));
     show(currentId, currentMode, selected, true, false);
     showToast("Avbockning rensad");
@@ -861,8 +863,8 @@
       store.currentEventId = imported.id;
       persist();
       enterEvent(imported.id);
-      showToast("Lopp öppnat");
-    } catch (e) { showToast("Kunde inte läsa filen"); }
+      showToast("Lopp Ã¶ppnat");
+    } catch (e) { showToast("Kunde inte lÃ¤sa filen"); }
   });
   document.getElementById("prevBtn").addEventListener("click", () => {
     if (selected > 0) show(currentId, currentMode, selected - 1, false, true);
@@ -917,7 +919,7 @@
   }
   function utf8ToB64(str) { return btoa(unescape(encodeURIComponent(str))); }
   function fileSlug(s) {
-    return String(s || "").toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+    return String(s || "").toLowerCase().replace(/[Ã¥Ã¤]/g, "a").replace(/Ã¶/g, "o").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
   }
   function dataImagePayload(dataUrl) {
     const t = String(dataUrl || "");
@@ -948,7 +950,7 @@
   async function ensurePublishToken() {
     let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
     if (t) return t;
-    t = (window.prompt("Klistra in GitHub-token med skrivrätt till utsattning (en gång). Sen syns ändringar för alla.") || "").trim();
+    t = (window.prompt("Klistra in GitHub-token med skrivrÃ¤tt till utsattning (en gÃ¥ng). Sen syns Ã¤ndringar fÃ¶r alla.") || "").trim();
     if (t) localStorage.setItem(GH_TOKEN_KEY, t);
     return t;
   }
@@ -967,7 +969,7 @@
             if (!payload) continue;
             const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
             const rel = "img/" + fname;
-            document.getElementById("busyText").textContent = "Laddar upp bild " + (s.label || fname) + "…";
+            document.getElementById("busyText").textContent = "Laddar upp bild " + (s.label || fname) + "â¦";
             await putRepoFile(rel, payload.b64, "Bild " + (s.label || fname));
             seen.set(raw, rel);
             s.image = rel;
@@ -993,16 +995,16 @@
     if (isViewOnly() || publishing) return false;
     const token = await ensurePublishToken();
     if (!token) {
-      showToast("Sparat på den här enheten. Publicera via Meny → Spara för alla");
+      showToast("Sparat pÃ¥ den hÃ¤r enheten. Publicera via Meny â Spara fÃ¶r alla");
       return false;
     }
     publishing = true;
-    setBusy(true, "Sparar för alla…");
+    setBusy(true, "Sparar fÃ¶r allaâ¦");
     try {
       for (const ev of store.events || []) {
         for (const t of ev.teams || []) {
           if (M.needsRouteRebuild(t)) {
-            document.getElementById("busyText").textContent = "Beräknar " + t.name + "…";
+            document.getElementById("busyText").textContent = "BerÃ¤knar " + t.name + "â¦";
             try { await M.recalcTeam(t); } catch (e) {}
           }
         }
@@ -1014,7 +1016,7 @@
       const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
       const racesMeta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js");
       await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js", {
-        message: "Uppdatera lopp för alla",
+        message: "Uppdatera lopp fÃ¶r alla",
         content: utf8ToB64(racesBody),
         branch: "main",
         sha: racesMeta.sha
@@ -1027,13 +1029,13 @@
         if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
       });
       persist();
-      showToast("Sparat för alla på utsattning-länken");
+      showToast("Sparat fÃ¶r alla pÃ¥ utsattning-lÃ¤nken");
       return true;
     } catch (e) {
       const msg = (e && e.message) || "";
       if (/bad credentials|401|unauthorized/i.test(msg)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
-        showToast("Token ogiltig. Försök Spara för alla igen.");
+        showToast("Token ogiltig. FÃ¶rsÃ¶k Spara fÃ¶r alla igen.");
       } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
       return false;
     } finally {
@@ -1045,12 +1047,12 @@
     const m = String(value || "").trim().match(/^(\d{1,2}):(\d{2})/);
     const curH = m ? String(m[1]).padStart(2, "0") : "";
     const curM = m ? m[2] : "";
-    const hours = ["<option value=\"\">—</option>"];
+    const hours = ["<option value=\"\">â</option>"];
     for (let i = 0; i < 24; i++) {
       const v = String(i).padStart(2, "0");
       hours.push(`<option value="${v}"${curH === v ? " selected" : ""}>${v}</option>`);
     }
-    const mins = ["<option value=\"\">—</option>"];
+    const mins = ["<option value=\"\">â</option>"];
     const seen = new Set();
     for (let i = 0; i < 60; i += 5) {
       const v = String(i).padStart(2, "0");
@@ -1136,7 +1138,7 @@
     const team = teamById(editTeamId);
     const pts = team ? M.pointsOf(team) : [];
     editorBody.innerHTML = `
-      <label>Namn på loppet</label>
+      <label>Namn pÃ¥ loppet</label>
       <input id="evName" value="${esc(ev.name)}" placeholder="Nytt lopp" />
       <div class="edit-actions">
         <button type="button" class="btn" id="newEvent">Nytt lopp</button>
@@ -1145,10 +1147,10 @@
       <div class="edit-actions" id="teamChips"></div>
       <div class="row">
         <div><label>Grupp</label><input id="teamName" value="${esc(team ? team.name : "")}" /></div>
-        <div><label>Färg</label><input id="teamColor" type="color" value="${team ? team.color : "#f59e0b"}" /></div>
+        <div><label>FÃ¤rg</label><input id="teamColor" type="color" value="${team ? team.color : "#f59e0b"}" /></div>
       </div>
       <label>Ansvariga</label>
-      <input id="teamPeople" value="${esc(team ? team.ansvarig : "")}" placeholder="Vilka som kör" />
+      <input id="teamPeople" value="${esc(team ? team.ansvarig : "")}" placeholder="Vilka som kÃ¶r" />
       <div class="edit-actions">
         <button type="button" class="btn" id="addTeam">+ Grupp</button>
         <button type="button" class="btn btn-danger" id="delTeam">Ta bort grupp</button>
@@ -1157,7 +1159,7 @@
       <div id="ptList"></div>
       <div class="edit-actions">
         <button type="button" class="btn" id="addPt">+ Punkt</button>
-        <button type="button" class="btn btn-accent" id="recalc">Beräkna körvägar</button>
+        <button type="button" class="btn btn-accent" id="recalc">BerÃ¤kna kÃ¶rvÃ¤gar</button>
       </div>
       <div id="ptForm"></div>
     `;
@@ -1175,10 +1177,10 @@
     pts.forEach((p, i) => {
       const card = document.createElement("div");
       card.className = "pt-card" + (i === ptFormIndex ? " is-edit" : "");
-      card.innerHTML = `<div class="pt-body"><strong>${i + 1}. ${esc(p.label) || "Namnlös"}</strong>
-        <div class="who">${p.lat ? p.lat.toFixed(5) + ", " + p.lon.toFixed(5) : "Ingen GPS"} · Igång ${esc(p.iga) || "—"}${p.image ? " · bild" : ""}</div></div>
-        <button type="button" class="btn pt-up" ${i === 0 ? "disabled" : ""}>▲</button>
-        <button type="button" class="btn pt-down" ${i === pts.length - 1 ? "disabled" : ""}>▼</button>`;
+      card.innerHTML = `<div class="pt-body"><strong>${i + 1}. ${esc(p.label) || "NamnlÃ¶s"}</strong>
+        <div class="who">${p.lat ? p.lat.toFixed(5) + ", " + p.lon.toFixed(5) : "Ingen GPS"} Â· IgÃ¥ng ${esc(p.iga) || "â"}${p.image ? " Â· bild" : ""}</div></div>
+        <button type="button" class="btn pt-up" ${i === 0 ? "disabled" : ""}>â²</button>
+        <button type="button" class="btn pt-down" ${i === pts.length - 1 ? "disabled" : ""}>â¼</button>`;
       card.addEventListener("click", (ev) => {
         if (ev.target.closest(".pt-up, .pt-down")) return;
         renderPointForm(i);
@@ -1220,22 +1222,22 @@
     const preview = p.image ? `<img class="pt-img" src="${esc(imgSrc(p.image))}" alt="">` : "";
     box.innerHTML = `
       <label>Namn</label><input id="pLabel" value="${esc((p.label || "") === "Ny punkt" ? "" : (p.label || ""))}" placeholder="Ny punkt" />
-      <label>Igång</label>${timeSelectHtml("pIga", p.iga)}
-      <label>Första</label>${timeSelectHtml("pForsta", p.forsta)}
+      <label>IgÃ¥ng</label>${timeSelectHtml("pIga", p.iga)}
+      <label>FÃ¶rsta</label>${timeSelectHtml("pForsta", p.forsta)}
       <label>Sista</label>${timeSelectHtml("pSista", p.sista)}
-      <label>Vad ska sättas upp</label><input id="pSetup" value="${esc(p.setup || "")}" />
+      <label>Vad ska sÃ¤ttas upp</label><input id="pSetup" value="${esc(p.setup || "")}" />
       <label>Placering / notering</label><textarea id="pNote">${esc(p.placering || "")}</textarea>
-      <label>GPS eller kartlänk</label>
+      <label>GPS eller kartlÃ¤nk</label>
       <input id="pGps" value="${p.lat ? p.lat.toFixed(6) + ", " + p.lon.toFixed(6) : ""}" placeholder="56.05, 12.68" />
       <label>Bild</label>
       ${preview}
       <div class="edit-actions">
         <input type="file" id="pImgFile" accept="image/*" hidden />
-        <button type="button" class="btn" id="pImgPick">Välj bild</button>
+        <button type="button" class="btn" id="pImgPick">VÃ¤lj bild</button>
         ${p.image ? `<button type="button" class="btn btn-danger" id="pImgDel">Ta bort bild</button>` : ""}
       </div>
       <div class="edit-actions">
-        <button type="button" class="btn btn-accent" id="pPick">Välj på karta</button>
+        <button type="button" class="btn btn-accent" id="pPick">VÃ¤lj pÃ¥ karta</button>
         <button type="button" class="btn" id="pSave">Spara punkt</button>
         <button type="button" class="btn btn-danger" id="pDel">Ta bort punkt</button>
       </div>
@@ -1256,7 +1258,7 @@
         list[i].lat = parsed.lat; list[i].lon = parsed.lon;
         writePoints(teamById(editTeamId), list);
         box.querySelector("#pGps").value = parsed.lat.toFixed(6) + ", " + parsed.lon.toFixed(6);
-      } else if (raw) showToast("Kunde inte läsa GPS");
+      } else if (raw) showToast("Kunde inte lÃ¤sa GPS");
     });
     const fileInput = box.querySelector("#pImgFile");
     box.querySelector("#pImgPick").addEventListener("click", () => fileInput && fileInput.click());
@@ -1264,7 +1266,7 @@
       fileInput.addEventListener("change", async (ev) => {
         const file = ev.target.files && ev.target.files[0];
         if (!file) return;
-        setBusy(true, "Komprimerar bild…");
+        setBusy(true, "Komprimerar bildâ¦");
         try {
           const dataUrl = await M.compressImage(file, 1600, 0.82);
           const list = M.pointsOf(teamById(editTeamId));
@@ -1272,8 +1274,8 @@
           writePoints(teamById(editTeamId), list);
           renderEditor();
           renderPointForm(i);
-          showToast("Bild sparad. Tryck Klar så alla ser den");
-        } catch (e) { showToast("Kunde inte läsa bilden"); }
+          showToast("Bild sparad. Tryck Klar sÃ¥ alla ser den");
+        } catch (e) { showToast("Kunde inte lÃ¤sa bilden"); }
         finally { setBusy(false); }
       });
     }
@@ -1291,9 +1293,9 @@
     renderEditor();
     renderPointForm(i);
     if ((localStorage.getItem(GH_TOKEN_KEY) || "").trim()) {
-      showToast("Punkt sparad, publicerar…");
+      showToast("Punkt sparad, publicerarâ¦");
       await publishCatalog();
-    } else showToast("Sparat här. Tryck Klar · spara för alla");
+    } else showToast("Sparat hÃ¤r. Tryck Klar Â· spara fÃ¶r alla");
   }
   function addPoint() {
     saveEditorFields();
@@ -1327,7 +1329,7 @@
   }
   function deleteTeam() {
     const ev = currentEvent();
-    if (ev.teams.length < 2) { showToast("Minst en grupp behövs"); return; }
+    if (ev.teams.length < 2) { showToast("Minst en grupp behÃ¶vs"); return; }
     if (!confirm("Ta bort " + teamById(editTeamId).name + "?")) return;
     ev.teams = ev.teams.filter((t) => t.id !== editTeamId);
     editTeamId = ev.teams[0].id;
@@ -1336,7 +1338,7 @@
     renderEditor();
     show(currentId, currentMode, 0, false);
   }
-  function newEvent() {
+  async function newEvent() {
     if (isViewOnly()) return;
     if (editorEl.classList.contains("open")) saveEditorFields();
     const ev = {
@@ -1348,7 +1350,7 @@
     store.currentEventId = ev.id;
     M.forgetRemoved(ev.id);
     persist();
-    enterEvent(ev.id);
+    await enterEvent(ev.id);
     openEditor();
   }
   function resetBuiltInStore(preferredId) {
@@ -1366,10 +1368,10 @@
     const ev = store.events.find((e) => e.id === id);
     if (!ev) return;
     if (M.isCoreRace(id)) {
-      if (!confirm("Rensa " + ev.name + " och återställ originalet?")) return;
+      if (!confirm("Rensa " + ev.name + " och Ã¥terstÃ¤ll originalet?")) return;
       resetBuiltInStore(id);
     } else if (store.events.length < 2) {
-      if (!confirm("Rensa loppet och återställ standardlopp?")) return;
+      if (!confirm("Rensa loppet och Ã¥terstÃ¤ll standardlopp?")) return;
       M.rememberRemoved(id);
       resetBuiltInStore();
     } else {
@@ -1413,20 +1415,21 @@
     saveEditorFields();
     const team = teamById(editTeamId || currentId);
     if (!team) return;
-    setBusy(true, "Beräknar körväg för " + team.name + "…");
+    setBusy(true, "BerÃ¤knar kÃ¶rvÃ¤g fÃ¶r " + team.name + "â¦");
     try {
       await M.recalcTeam(team, (msg) => { document.getElementById("busyText").textContent = msg; });
       persist();
-      if (fromBtn) showToast("Körvägar uppdaterade");
+      if (fromBtn) showToast("KÃ¶rvÃ¤gar uppdaterade");
       if (editorEl.classList.contains("open")) renderEditor();
-    } catch (err) { showToast("Kunde inte räkna körväg"); }
+    } catch (err) { showToast("Kunde inte rÃ¤kna kÃ¶rvÃ¤g"); }
     setBusy(false);
   }
   function openEditor() {
     if (isViewOnly()) return;
     document.getElementById("more").style.display = "none";
+    closeChooser();
     editTeamId = currentId || (teams()[0] && teams()[0].id) || "";
-    document.body.classList.add("editing");
+    document.body.classList.add("editing", "in-race");
     editorEl.classList.add("open");
     renderEditor();
   }
@@ -1441,7 +1444,7 @@
       const pts = M.pointsOf(t).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
       const routed = t.modes && t.modes.kortast && t.modes.kortast.track && t.modes.kortast.track.length;
       if (pts.length && !routed) {
-        setBusy(true, "Beräknar körväg för " + t.name + "…");
+        setBusy(true, "BerÃ¤knar kÃ¶rvÃ¤g fÃ¶r " + t.name + "â¦");
         try { await M.recalcTeam(t); } catch (err) {}
       }
     }
