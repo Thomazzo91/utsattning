@@ -25,9 +25,10 @@
   let publishing = false;
   const GH_REPO = "Thomazzo91/utsattning";
   const GH_TOKEN_KEY = "utsattning-publish-token";
-  const editorEl = document.getElementById("editor");
-  const editorBody = document.getElementById("editorBody");
-  const pickBanner = document.getElementById("pickBanner");
+  let liveMap = null;
+  let liveLayer = null;
+  let liveFitId = "";
+  let liveFocusKey = "";
 
   let visited = {};
   let applyingLive = false;
@@ -120,49 +121,142 @@
       renderList(g);
     }
   }
-  function renderLiveBoard() {
-    const status = document.getElementById("liveStatus");
-    const body = document.getElementById("liveBody");
-    const L = window.MattorLive;
-    if (status) {
-      const on = L && L.connected();
-      status.classList.toggle("is-on", !!on);
-      status.textContent = on ? "Live · uppdateras direkt när någon bockar av" : "Ansluter till live-status…";
-    }
-    if (!body) return;
-    const events = (store && store.events) || [];
-    if (!events.length) {
-      body.innerHTML = "<p class=\"setup\">Inga lopp att visa.</p>";
+  function liveEvent() {
+    if (document.body.classList.contains("in-race")) return currentEvent();
+    const lopp = new URLSearchParams(location.search).get("lopp");
+    if (lopp && store && store.events) return store.events.find((e) => e.id === lopp) || null;
+    return null;
+  }
+  function liveStops(ev) {
+    const out = [];
+    ((ev && ev.teams) || []).forEach((t) => {
+      (M.pointsOf(t) || []).forEach((s, i) => {
+        if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return;
+        out.push({ team: t, stop: s, idx: i + 1, key: ev.id + "|" + t.id + "|" + s.label });
+      });
+    });
+    return out;
+  }
+  function liveMarkerIcon(color, up, n) {
+    return L.divIcon({
+      className: "",
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+      html: `<div class="live-mk${up ? " is-up" : ""}"><div class="live-mk-num" style="background:${up ? "var(--ok)" : color}">${up ? CHECK_SVG : n}</div></div>`
+    });
+  }
+  function ensureLiveMap() {
+    const el = document.getElementById("liveMap");
+    if (!el) return;
+    if (liveMap) {
+      setTimeout(() => liveMap.invalidateSize(), 60);
       return;
     }
-    body.innerHTML = events.map((ev) => {
-      const groups = (ev.teams || []).map((t) => {
-        const stops = (M.pointsOf(t) || []).filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon));
-        const rows = stops.map((s) => {
-          const rec = L ? L.get(ev.id, t.id, s.label) : null;
-          const up = !!(rec && rec.on);
-          const meta = up
-            ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
-            : "Inte uppe";
-          return `<div class="live-stop${up ? " is-up" : ""}"><div class="live-dot"></div><div><strong>${esc(s.label || s.name || "Punkt")}</strong><span>${esc(meta)}</span></div></div>`;
-        }).join("");
-        const upCount = stops.filter((s) => L && L.isOn(ev.id, t.id, s.label)).length;
-        return `<div class="live-group"><h4>${esc(t.name)} · ${upCount}/${stops.length}</h4>${rows || "<div class=\"live-stop\"><span>Inga punkter</span></div>"}</div>`;
-      }).join("");
-      const allStops = (ev.teams || []).reduce((n, t) => n + (M.pointsOf(t) || []).filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon)).length, 0);
-      const allUp = (ev.teams || []).reduce((n, t) => n + (M.pointsOf(t) || []).filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon) && L && L.isOn(ev.id, t.id, s.label)).length, 0);
-      return `<div class="live-event"><h3>${esc(ev.name)}</h3><div class="live-prog">${allUp} av ${allStops} uppe</div>${groups}</div>`;
-    }).join("");
+    liveMap = L.map(el, { tap: true, zoomControl: false, attributionControl: true }).setView([62.5, 17], 5);
+    L.control.zoom({ position: "bottomright" }).addTo(liveMap);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "&copy; OpenStreetMap"
+    }).addTo(liveMap);
+    liveLayer = L.layerGroup().addTo(liveMap);
+  }
+  function paintLiveMarkers(ev, fit) {
+    if (!liveMap || !liveLayer) return;
+    const Llive = window.MattorLive;
+    const pts = liveStops(ev);
+    liveLayer.clearLayers();
+    const latlngs = [];
+    pts.forEach((p) => {
+      const rec = Llive ? Llive.get(ev.id, p.team.id, p.stop.label) : null;
+      const up = !!(rec && rec.on);
+      const m = L.marker([p.stop.lat, p.stop.lon], {
+        icon: liveMarkerIcon(p.team.color, up, p.idx),
+        zIndexOffset: up ? 400 : 0
+      });
+      m.on("click", () => {
+        liveFocusKey = p.key;
+        const info = document.getElementById("liveInfo");
+        const meta = up
+          ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
+          : "Inte uppe";
+        if (info) info.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(meta)}</span>`;
+      });
+      m.addTo(liveLayer);
+      latlngs.push([p.stop.lat, p.stop.lon]);
+      if (p.key === liveFocusKey) {
+        const infoEl = document.getElementById("liveInfo");
+        const meta = up
+          ? ("Uppe " + liveClock(rec.t) + (rec.who ? " · " + rec.who : ""))
+          : "Inte uppe";
+        if (infoEl) infoEl.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(meta)}</span>`;
+      }
+    });
+    if (fit && latlngs.length) {
+      liveMap.fitBounds(L.latLngBounds(latlngs), { padding: [28, 28], maxZoom: 15 });
+      liveFitId = ev.id;
+    }
+  }
+  function renderLiveBoard() {
+    const status = document.getElementById("liveStatus");
+    const Llive = window.MattorLive;
+    const ev = liveEvent();
+    if (status) {
+      const on = Llive && Llive.connected();
+      status.classList.toggle("is-on", !!on);
+      status.textContent = on ? "Live · kartan uppdateras när någon bockar av" : "Ansluter till live-status…";
+    }
+    const title = document.getElementById("liveTitle");
+    const prog = document.getElementById("liveProg");
+    const legend = document.getElementById("liveLegend");
+    const info = document.getElementById("liveInfo");
+    if (!ev) {
+      if (title) title.textContent = "Vad som är uppe";
+      if (prog) prog.textContent = "Öppna ett lopp först";
+      if (legend) legend.innerHTML = "";
+      if (info) info.textContent = "";
+      return;
+    }
+    const pts = liveStops(ev);
+    const upCount = pts.filter((p) => Llive && Llive.isOn(ev.id, p.team.id, p.stop.label)).length;
+    if (title) title.textContent = ev.name;
+    if (prog) prog.textContent = upCount + " av " + pts.length + " uppe";
+    if (legend) {
+      legend.innerHTML = "";
+      (ev.teams || []).forEach((t) => {
+        const groupPts = pts.filter((p) => p.team.id === t.id);
+        if (!groupPts.length) return;
+        const nUp = groupPts.filter((p) => Llive && Llive.isOn(ev.id, t.id, p.stop.label)).length;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "live-chip";
+        b.style.background = t.color;
+        b.textContent = t.name + " · " + nUp + "/" + groupPts.length;
+        b.addEventListener("click", () => {
+          if (!liveMap) return;
+          liveMap.fitBounds(L.latLngBounds(groupPts.map((p) => [p.stop.lat, p.stop.lon])), { padding: [36, 36], maxZoom: 15 });
+        });
+        legend.appendChild(b);
+      });
+    }
+    if (info && !liveFocusKey) info.textContent = "Tryck på en punkt för detaljer";
+    ensureLiveMap();
+    paintLiveMarkers(ev, liveFitId !== ev.id);
   }
   function openLiveBoard() {
     document.getElementById("more").style.display = "none";
+    if (!liveEvent()) {
+      showToast("Öppna ett lopp först");
+      return;
+    }
     document.getElementById("liveBoard").classList.add("open");
     document.body.classList.add("live-open");
     renderLiveBoard();
+    setTimeout(() => { if (liveMap) liveMap.invalidateSize(); }, 80);
   }
   function closeLiveBoard() {
     document.getElementById("liveBoard").classList.remove("open");
     document.body.classList.remove("live-open");
+    liveFitId = "";
+    liveFocusKey = "";
   }
   function viewOf(id, mode) {
     const t = teamById(id);
@@ -509,7 +603,6 @@
     newEvent();
   });
   document.getElementById("chooserNew").addEventListener("click", newEvent);
-  document.getElementById("chooserLive").addEventListener("click", openLiveBoard);
   document.getElementById("liveMenuBtn").addEventListener("click", openLiveBoard);
   document.getElementById("liveClose").addEventListener("click", closeLiveBoard);
   document.getElementById("publishBtn").addEventListener("click", async () => {
@@ -1180,7 +1273,6 @@
       return;
     }
     openChooser();
-    if (params.get("oversikt") === "1" || params.get("admin") === "1") openLiveBoard();
   }
   if (window.MattorLive) {
     window.MattorLive.on(() => {
