@@ -7,10 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Live-Ã¶versikt" />
+  <meta name="apple-mobile-web-app-title" content="Live-översikt" />
   <meta name="format-detection" content="telephone=no" />
-  <meta name="description" content="Admin-Ã¶versikt: alla tidtagningspunkter live." />
-  <title>Live-Ã¶versikt</title>
+  <meta name="description" content="Admin-översikt: alla tidtagningspunkter live." />
+  <title>Live-översikt</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -565,19 +565,19 @@
 <body class="choosing overview-mode">
   <header class="top">
     <div class="top-row">
-      <button type="button" class="icon" id="backBtn" aria-label="Byt lopp">â</button>
-      <h1 id="raceTitle">UtsÃ¤ttning 2.0</h1>
-      <button type="button" class="icon" id="share" aria-label="Kopiera lÃ¤nk">
+      <button type="button" class="icon" id="backBtn" aria-label="Byt lopp">←</button>
+      <h1 id="raceTitle">Utsättning 2.0</h1>
+      <button type="button" class="icon" id="share" aria-label="Kopiera länk">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
       </button>
       <div class="more-wrap">
-        <button type="button" class="icon" id="moreBtn" aria-label="Mer">Â·Â·Â·</button>
+        <button type="button" class="icon" id="moreBtn" aria-label="Mer">···</button>
         <div class="more" id="more">
           <button type="button" class="admin-only" id="editBtn">Redigera lopp</button>
           <button type="button" class="admin-only" id="newEventBtn">Nytt lopp</button>
-          <button type="button" class="admin-only" id="publishBtn">Spara fÃ¶r alla</button>
+          <button type="button" class="admin-only" id="publishBtn">Spara för alla</button>
           <button type="button" class="admin-only" id="exportBtn">Spara lopp som fil</button>
-          <button type="button" class="admin-only" id="importBtn">Ãppna lopp frÃ¥n fil</button>
+          <button type="button" class="admin-only" id="importBtn">Öppna lopp från fil</button>
           <a id="gmaps" target="_blank" rel="noopener">Hela rutten i Maps</a>
           <button type="button" id="gpxBtn">Ladda ner GPX</button>
           <button type="button" id="clearDone">Rensa avbockning</button>
@@ -591,50 +591,50 @@
     <div class="chips" id="chips"></div>
     <article class="card" id="card"></article>
     <div class="row-btns">
-      <button type="button" id="prevBtn">FÃ¶regÃ¥ende</button>
-      <button type="button" id="nextBtn">NÃ¤sta</button>
+      <button type="button" id="prevBtn">Föregående</button>
+      <button type="button" id="nextBtn">Nästa</button>
       <button type="button" id="listBtn">Alla punkter</button>
     </div>
     <div class="modes" id="modes">
-      <button type="button" data-mode="kortast" aria-pressed="true">KÃ¶rordning</button>
-      <button type="button" data-mode="iga">IgÃ¥ng-tid</button>
+      <button type="button" data-mode="kortast" aria-pressed="true">Körordning</button>
+      <button type="button" data-mode="iga">Igång-tid</button>
     </div>
   </section>
   <section class="list-sheet" id="listSheet">
     <h3>Alla punkter</h3>
     <div class="list" id="list"></div>
-    <div style="padding:0 12px 12px"><button type="button" class="ghost" id="listClose" style="width:100%">StÃ¤ng</button></div>
+    <div style="padding:0 12px 12px"><button type="button" class="ghost" id="listClose" style="width:100%">Stäng</button></div>
   </section>
   <section class="chooser open" id="chooser">
-    <h1>Live-Ã¶versikt</h1>
-    <p>Adminvy. VÃ¤lj lopp sÃ¥ visas alla tidtagningspunkter pÃ¥ en karta â utan att vÃ¤lja grupp.</p>
+    <h1>Live-översikt</h1>
+    <p>Adminvy. Välj lopp så visas alla tidtagningspunkter på en karta — utan att välja grupp.</p>
     <div id="chooserList"></div>
     <button type="button" class="chooser-item admin-only" id="chooserNew" style="border-style:dashed">+ Nytt lopp</button>
   </section>
   <section class="live-board" id="liveBoard">
     <div class="live-head">
-      <h2 id="liveTitle">Vad som Ã¤r uppe</h2>
+      <h2 id="liveTitle">Vad som är uppe</h2>
       <button type="button" class="btn" id="liveClose">Byt lopp</button>
     </div>
     <div class="live-meta">
-      <div class="live-status" id="liveStatus">Ansluterâ¦</div>
+      <div class="live-status" id="liveStatus">Ansluter…</div>
       <div class="live-prog" id="liveProg"></div>
     </div>
     <div class="live-legend" id="liveLegend"></div>
     <div id="liveMap"></div>
-    <div class="live-info" id="liveInfo">Siffra = km lÃ¤ngs banan (h = halv) Â· tryck fÃ¶r tider</div>
+    <div class="live-info" id="liveInfo">Siffra = km längs banan (h = halv) · tryck för tider</div>
   </section>
   <section class="editor" id="editor">
     <div class="editor-head">
       <h2>Redigera lopp</h2>
-      <button type="button" class="btn btn-accent" id="editorDone">Klar Â· spara fÃ¶r alla</button>
+      <button type="button" class="btn btn-accent" id="editorDone">Klar · spara för alla</button>
     </div>
     <div class="editor-body" id="editorBody"></div>
   </section>
-  <div class="pick-banner" id="pickBanner">Tryck pÃ¥ kartan fÃ¶r att sÃ¤tta punkten</div>
+  <div class="pick-banner" id="pickBanner">Tryck på kartan för att sätta punkten</div>
   <input type="file" id="importFile" accept="application/json,.json" hidden />
   <div class="toast" id="toast">Sparat</div>
-  <div class="busy" id="busy"><span id="busyText">Laddarâ¦</span></div>
+  <div class="busy" id="busy"><span id="busyText">Laddar…</span></div>
   <div class="img-overlay" id="imgOverlay" aria-hidden="true"><img id="imgOverlayImg" alt="" /></div>
   <script>window.OVERVIEW_ADMIN = true;</script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
