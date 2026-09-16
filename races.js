@@ -13297,9 +13297,9 @@ window.RACES = {
   ],
   "rev": 40
  },
-  "lopp2": {
+ "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 40,
+  "rev": 41,
   "groups": [
    {
     "id": "startmal",
@@ -13519,12 +13519,12 @@ window.RACES = {
         "forsta": "",
         "sista": "13:00",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
-        "setup": "Tidtagningsmatta 21,1 km halvmarathon + marathon",
+        "note": "3M Cykelbana",
+        "place": "3M Cykelbana",
+        "placering": "3M Cykelbana",
+        "setup": "Tidtagningsmatta 21,1 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-21-1-km-mitt.jpg"
        },
        {
         "idx": 2,
@@ -13543,12 +13543,12 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
+        "note": "3 m",
+        "place": "3 m",
+        "placering": "3 m",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-20-km-hel.jpg"
        },
        {
         "idx": 3,
@@ -13567,12 +13567,12 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
+        "note": "2,5 M Cykelbana",
+        "place": "2,5 M Cykelbana",
+        "placering": "2,5 M Cykelbana",
         "setup": "Tidtagningsmatta 10 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-10-km-hel.jpg"
        },
        {
         "idx": 4,
@@ -13591,12 +13591,12 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
+        "note": "4M Cykelbana",
+        "place": "4M Cykelbana",
+        "placering": "4M Cykelbana",
         "setup": "Tidtagningsmatta 15 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-15-km-hel.jpg"
        }
       ],
       "legs": [],
@@ -13624,12 +13624,12 @@ window.RACES = {
         "forsta": "",
         "sista": "13:00",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
-        "setup": "Tidtagningsmatta 21,1 km halvmarathon + marathon",
+        "note": "3M Cykelbana",
+        "place": "3M Cykelbana",
+        "placering": "3M Cykelbana",
+        "setup": "Tidtagningsmatta 21,1 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-21-1-km-mitt.jpg"
        },
        {
         "idx": 2,
@@ -13648,12 +13648,12 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
+        "note": "3 m",
+        "place": "3 m",
+        "placering": "3 m",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-20-km-hel.jpg"
        },
        {
         "idx": 3,
@@ -13672,12 +13672,12 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
+        "note": "2,5 M Cykelbana",
+        "place": "2,5 M Cykelbana",
+        "placering": "2,5 M Cykelbana",
         "setup": "Tidtagningsmatta 10 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-10-km-hel.jpg"
        },
        {
         "idx": 4,
@@ -13696,12 +13696,12 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "note": "",
-        "place": "",
-        "placering": "",
+        "note": "4M Cykelbana",
+        "place": "4M Cykelbana",
+        "placering": "4M Cykelbana",
         "setup": "Tidtagningsmatta 15 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-sodra-15-km-hel.jpg"
        }
       ],
       "legs": [],
