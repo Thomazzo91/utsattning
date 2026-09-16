@@ -128,24 +128,62 @@
   function liveEvent() {
     return currentEvent();
   }
+  function liveMinutes(v) {
+    const m = String(v || "").trim().match(/^(\d{1,2}):(\d{2})/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : 99999;
+  }
+  function liveRaceMeta(stop) {
+    const raw = String((stop && (stop.label || stop.name)) || "").trim();
+    const name = raw.toLowerCase();
+    const half = /\bhalv\b/.test(name);
+    const finish = /målgång|malgang|\bfinish\b/.test(name) || (/\bmål\b/.test(name) && !/start/.test(name));
+    const start = /start/.test(name);
+    const vxl = name.match(/vxl\s*(\d+)/);
+    const kmM = name.match(/(\d+(?:[.,]\d+)?)\s*km/);
+    const km = kmM ? parseFloat(kmM[1].replace(",", ".")) : NaN;
+    let mark = raw ? raw.slice(0, 3) : "?";
+    let sort = 5000 + liveMinutes(stop && stop.forsta);
+    if (start) {
+      mark = "S";
+      sort = -1;
+    } else if (finish) {
+      mark = "M";
+      sort = 10000;
+    } else if (vxl) {
+      mark = "V" + vxl[1] + (half ? "h" : "");
+      sort = 800 + Number(vxl[1]) + (half ? 0.5 : 0);
+    } else if (Number.isFinite(km)) {
+      const shown = Math.abs(km - Math.round(km)) < 0.15 ? String(Math.round(km)) : String(km).replace(".", ",");
+      mark = shown + (half ? "h" : "");
+      sort = km * 10 + (half ? 1 : 0);
+    }
+    return { mark: mark, sort: sort, half: half };
+  }
   function liveStops(ev) {
     const out = [];
-    let n = 0;
     ((ev && ev.teams) || []).forEach((t) => {
       (M.pointsOf(t) || []).forEach((s) => {
         if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return;
-        n += 1;
-        out.push({ team: t, stop: s, idx: n, key: ev.id + "|" + t.id + "|" + s.label });
+        const meta = liveRaceMeta(s);
+        out.push({
+          team: t,
+          stop: s,
+          mark: meta.mark,
+          key: ev.id + "|" + t.id + "|" + s.label,
+          sort: meta.sort
+        });
       });
     });
+    out.sort((a, b) => a.sort - b.sort || String(a.mark).localeCompare(String(b.mark), "sv"));
     return out;
   }
-  function liveMarkerIcon(color, up, n) {
+  function liveMarkerIcon(color, up, mark) {
+    const long = String(mark || "").length > 2;
     return L.divIcon({
       className: "",
       iconSize: [36, 36],
       iconAnchor: [18, 18],
-      html: `<div class="live-mk${up ? " is-up" : ""}"><div class="live-mk-num" style="background:${up ? "var(--ok)" : color}">${up ? CHECK_SVG : n}</div></div>`
+      html: `<div class="live-mk${up ? " is-up" : ""}"><div class="live-mk-num${long ? " is-long" : ""}" style="background:${up ? "var(--ok)" : color}">${esc(mark)}</div></div>`
     });
   }
   function liveStatusText(rec, up) {
@@ -198,8 +236,8 @@
       const rec = Llive ? Llive.get(ev.id, p.team.id, p.stop.label) : null;
       const up = !!(rec && rec.on);
       const m = L.marker([p.stop.lat, p.stop.lon], {
-        icon: liveMarkerIcon(p.team.color, up, p.idx),
-        zIndexOffset: up ? 400 : 0
+        icon: liveMarkerIcon(p.team.color, up, p.mark),
+        zIndexOffset: up ? 400 : (p.mark === "S" || p.mark === "M" ? 280 : 0)
       });
       m.bindPopup(livePopupHtml(p, rec, up), {
         className: "live-pop",
@@ -281,7 +319,7 @@
         legend.appendChild(b);
       });
     }
-    if (info && !liveFocusKey) info.textContent = "Alla tidtagningspunkter · tryck på en punkt för detaljer";
+    if (info && !liveFocusKey) info.textContent = "Siffra = km längs banan (h = halv) · tryck för tider";
     ensureLiveMap();
     paintLiveMarkers(ev, liveFitId !== ev.id);
   }
