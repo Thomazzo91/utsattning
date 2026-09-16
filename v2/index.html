@@ -437,6 +437,48 @@
     body.editing .dock { visibility: hidden; }
     body.view-only .admin-only { display: none !important; }
     body.view-only .editor { display: none !important; }
+    .live-board {
+      display: none;
+      position: fixed; inset: 0; z-index: 1450;
+      background: var(--bg);
+      flex-direction: column;
+      padding-bottom: var(--safe-bot);
+    }
+    .live-board.open { display: flex; }
+    .live-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: calc(10px + var(--safe-top)) 12px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #0e1522;
+      flex: none;
+    }
+    .live-head h2 { margin: 0; font-size: 1.05rem; flex: 1; }
+    .live-status { color: var(--muted); font-size: 0.78rem; font-weight: 700; padding: 8px 14px 0; }
+    .live-status.is-on { color: var(--ok); }
+    .live-body { overflow: auto; -webkit-overflow-scrolling: touch; padding: 8px 14px 28px; flex: 1; }
+    .live-event { margin: 14px 0 8px; }
+    .live-event h3 { margin: 0 0 8px; font-size: 1.05rem; }
+    .live-prog {
+      color: var(--muted); font-size: 0.8rem; font-weight: 700; margin: -4px 0 10px;
+    }
+    .live-group {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 14px; padding: 10px 12px; margin-bottom: 10px;
+    }
+    .live-group h4 { margin: 0 0 8px; font-size: 0.95rem; }
+    .live-stop {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0; border-top: 1px solid var(--line);
+    }
+    .live-stop:first-of-type { border-top: 0; }
+    .live-dot {
+      width: 14px; height: 14px; border-radius: 50%; flex: none; margin-top: 4px;
+      background: #334155; border: 2px solid #64748b;
+    }
+    .live-stop.is-up .live-dot { background: var(--ok); border-color: #86efac; }
+    .live-stop strong { display: block; font-size: 0.95rem; }
+    .live-stop span { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+    .live-stop.is-up span { color: #86efac; }
     body.picking .editor { display: none; }
     body.picking .dock { visibility: hidden; }
     body.choosing #map, body.choosing .dock, body.choosing .top { visibility: hidden; }
@@ -474,6 +516,7 @@
         <div class="more" id="more">
           <button type="button" class="admin-only" id="editBtn">Redigera lopp</button>
           <button type="button" class="admin-only" id="newEventBtn">Nytt lopp</button>
+          <button type="button" id="liveMenuBtn">Live-översikt</button>
           <button type="button" class="admin-only" id="publishBtn">Spara för alla</button>
           <button type="button" class="admin-only" id="exportBtn">Spara lopp som fil</button>
           <button type="button" class="admin-only" id="importBtn">Öppna lopp från fil</button>
@@ -509,6 +552,15 @@
     <p>Mobilappen för utsättning. Skapa och redigera lopp här — det publiceras för alla.</p>
     <div id="chooserList"></div>
     <button type="button" class="chooser-item admin-only" id="chooserNew" style="border-style:dashed">+ Nytt lopp</button>
+    <button type="button" class="chooser-item" id="chooserLive" style="margin-top:8px">Live-översikt · vad som är uppe</button>
+  </section>
+  <section class="live-board" id="liveBoard">
+    <div class="live-head">
+      <h2>Vad som är uppe</h2>
+      <button type="button" class="btn" id="liveClose">Stäng</button>
+    </div>
+    <div class="live-status" id="liveStatus">Ansluter…</div>
+    <div class="live-body" id="liveBody"></div>
   </section>
   <section class="editor" id="editor">
     <div class="editor-head">
@@ -525,6 +577,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../app.js?v=43"></script>
   <script src="../races.js?v=31"></script>
-  <script src="ui.js?v=6"></script>
+  <script src="../live.js?v=1"></script>
+  <script src="ui.js?v=7"></script>
 </body>
 </html>
