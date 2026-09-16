@@ -22,6 +22,10 @@
     return !!(id && global.RACES && typeof global.RACES[id] === "object");
   }
 
+  function isCoreRace(id) {
+    return id === "lopp1" || id === "lopp2";
+  }
+
   const OBSOLETE_IDS = ["hbgm26", "malmo26", "hbgm", "malmomarathon", "hbgm26-marathon", "malmomarathon26"];
   function isObsoleteId(id) {
     return !!(id && typeof id === "string" && OBSOLETE_IDS.indexOf(id.toLowerCase()) >= 0);
@@ -83,14 +87,14 @@
   function getRemovedIds() {
     try {
       const ids = JSON.parse(localStorage.getItem(REMOVED) || "[]");
-      return Array.isArray(ids) ? ids.filter((id) => typeof id === "string" && id && !isBuiltIn(id)) : [];
+      return Array.isArray(ids) ? ids.filter((id) => typeof id === "string" && id && !isCoreRace(id)) : [];
     } catch (e) {
       return [];
     }
   }
 
   function rememberRemoved(id) {
-    if (!id || isBuiltIn(id)) return;
+    if (!id || isCoreRace(id)) return;
     const ids = getRemovedIds();
     if (ids.indexOf(id) < 0) ids.push(id);
     try { localStorage.setItem(REMOVED, JSON.stringify(ids)); } catch (e) {}
@@ -102,7 +106,8 @@
   }
 
   function isRemoved(id) {
-    return !!(id && !isBuiltIn(id) && getRemovedIds().indexOf(id) >= 0);
+    if (!id || isCoreRace(id)) return false;
+    return getRemovedIds().indexOf(id) >= 0;
   }
 
   function hydrateEvent(ev) {
@@ -112,6 +117,7 @@
       const seed = seedEvent(ev.id);
       if (!seed) return null;
       if (!ev.teams || !ev.teams.length) return seed;
+      if ((Number(ev.rev) || 0) < seedRev(ev.id)) return seed;
       return mergeBuiltIn(ev, ev.id);
     }
     const t0 = ev.teams && ev.teams[0];
@@ -170,6 +176,7 @@
         if (full) events.push(full);
       });
       getAllBuiltInIds().forEach((bid) => {
+        if (isRemoved(bid)) return;
         if (!events.some((e) => e.id === bid)) {
           const s = seedEvent(bid);
           if (s) events.unshift(s);
@@ -1125,18 +1132,77 @@
     return xml;
   }
 
+  function parseNum(s) {
+    return Number(String(s || "").trim().replace(",", "."));
+  }
+
+  function normalizeLatLon(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    if (Math.abs(a) > 180 || Math.abs(b) > 180) return null;
+    let lat = a, lon = b;
+    const aLat = Math.abs(a) <= 90;
+    const bLat = Math.abs(b) <= 90;
+    if (!aLat && bLat && Math.abs(a) <= 180) {
+      lat = b;
+      lon = a;
+    } else if (aLat && Math.abs(b) <= 180) {
+      if (a >= 5 && a <= 33 && b >= 54 && b <= 72) {
+        lat = b;
+        lon = a;
+      }
+    } else {
+      return null;
+    }
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return { lat, lon };
+  }
+
   function parseLatLon(text) {
     const t = String(text || "").trim();
-    let m = t.match(/(-?\d+\.\d+)\s*[, ]\s*(-?\d+\.\d+)/);
-    if (m) {
-      const a = Number(m[1]), b = Number(m[2]);
-      if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lon: b };
-    }
-    m = t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (m) return { lat: Number(m[1]), lon: Number(m[2]) };
-    m = t.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (m) return { lat: Number(m[1]), lon: Number(m[2]) };
+    if (!t) return null;
+    let m = t.match(/@(-?\d+[.,]\d+)\s*,\s*(-?\d+[.,]\d+)/);
+    if (m) return normalizeLatLon(parseNum(m[1]), parseNum(m[2]));
+    m = t.match(/[?&](?:q|ll|query)=(-?\d+[.,]\d+)\s*,\s*(-?\d+[.,]\d+)/i);
+    if (m) return normalizeLatLon(parseNum(m[1]), parseNum(m[2]));
+    m = t.match(/(-?\d+[.,]\d+)\s*[,;\s]\s*(-?\d+[.,]\d+)/);
+    if (m) return normalizeLatLon(parseNum(m[1]), parseNum(m[2]));
+    m = t.match(/(-?\d+)\s*[,;\s]\s*(-?\d+)/);
+    if (m) return normalizeLatLon(parseNum(m[1]), parseNum(m[2]));
     return null;
+  }
+
+  function eventToRace(ev) {
+    const prev = isBuiltIn(ev.id) ? seedRev(ev.id) : 0;
+    return {
+      name: ev.name || "Nytt lopp",
+      rev: Math.max(prev, Number(ev.rev) || 0) + 1,
+      groups: (ev.teams || []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        ansvarig: t.ansvarig || "",
+        color: t.color,
+        modes: clone(t.modes || emptyModes())
+      }))
+    };
+  }
+
+  function buildRacesObject(events) {
+    const live = {};
+    (events || []).forEach((ev) => {
+      if (!ev || !ev.id || isRemoved(ev.id) || isObsoleteId(ev.id)) return;
+      live[ev.id] = ev;
+    });
+    const out = {};
+    Object.keys(global.RACES || {}).forEach((id) => {
+      if (isObsoleteId(id) || isRemoved(id)) return;
+      if (!live[id] && !isCoreRace(id)) return;
+      const ev = live[id];
+      out[id] = ev ? eventToRace(ev) : clone(global.RACES[id]);
+    });
+    Object.keys(live).forEach((id) => {
+      if (!out[id]) out[id] = eventToRace(live[id]);
+    });
+    return out;
   }
 
   global.Mattor = {
@@ -1146,7 +1212,7 @@
     toB64url, fromB64url,
     needsRouteRebuild,
     gpxFor, parseLatLon, igaSort, rememberRemoved, forgetRemoved, isRemoved,
-    isBuiltIn, seedEvent, seedRev, builtInDisplayName, defaultEventId, getAllBuiltInIds,
-    compressImage, mergeBuiltIn, mergeFirstBuiltIn
+    isBuiltIn, isCoreRace, seedEvent, seedRev, builtInDisplayName, defaultEventId, getAllBuiltInIds,
+    compressImage, mergeBuiltIn, mergeFirstBuiltIn, eventToRace, buildRacesObject, normalizeLatLon
   };
 })(window);
