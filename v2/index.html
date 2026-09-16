@@ -326,7 +326,7 @@
     .stop small { display: block; color: var(--muted); font-size: 0.75rem; }
     .chooser {
       display: none;
-      position: fixed; inset: 0; z-index: 80;
+      position: fixed; inset: 0; z-index: 1250;
       background: var(--bg);
       padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bot));
       overflow: auto;
@@ -350,11 +350,11 @@
       transform: translateX(-50%);
       background: #e8eef4; color: #0b1220;
       padding: 10px 14px; border-radius: 999px;
-      font-weight: 700; z-index: 90; display: none;
+      font-weight: 700; z-index: 2000; display: none;
       white-space: nowrap;
     }
     .busy {
-      display: none; position: fixed; inset: 0; z-index: 100;
+      display: none; position: fixed; inset: 0; z-index: 1800;
       background: rgba(11,18,32,.72);
       align-items: center; justify-content: center; font-weight: 800;
     }
@@ -378,6 +378,67 @@
       border-radius: 8px;
       box-shadow: 0 8px 40px rgba(0,0,0,.5);
     }
+    .editor {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1400;
+      background: var(--bg);
+      flex-direction: column;
+      padding-bottom: var(--safe-bot);
+    }
+    .editor.open { display: flex; }
+    .editor-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: calc(10px + var(--safe-top)) 12px 10px;
+      border-bottom: 1px solid var(--line);
+      flex: none;
+      background: #0e1522;
+    }
+    .editor-head h2 { margin: 0; font-size: 1.05rem; flex: 1; }
+    .editor-body {
+      overflow: auto; -webkit-overflow-scrolling: touch;
+      padding: 12px 14px 28px; flex: 1;
+    }
+    .editor label { display: block; color: var(--muted); font-size: 0.75rem; font-weight: 700; margin: 12px 0 4px; }
+    .editor input, .editor textarea, .editor select {
+      width: 100%; background: var(--card); color: var(--text);
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px; font: inherit;
+    }
+    .editor textarea { min-height: 72px; resize: vertical; }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; min-width: 0; }
+    .edit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .btn {
+      min-height: 44px; border: 0; border-radius: 10px;
+      background: var(--card); color: var(--text); font-weight: 800; padding: 0 12px;
+    }
+    .btn-accent { background: var(--accent); color: #0b1220; }
+    .btn-danger { background: #7f1d1d; }
+    .pt-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; padding: 12px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .pt-card.is-edit { border-color: var(--accent); }
+    .pt-card .pt-body { flex: 1; min-width: 0; }
+    .pt-card .who { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+    .time-pick { display: flex; align-items: center; gap: 8px; }
+    .time-pick select { flex: 1; min-height: 48px; font-size: 1.2rem; font-weight: 800; text-align: center; }
+    .pick-banner {
+      display: none; position: fixed; left: 50%; top: calc(12px + var(--safe-top));
+      transform: translateX(-50%); z-index: 1500;
+      background: #fde68a; color: #0b1220; font-weight: 800;
+      padding: 10px 14px; border-radius: 999px; white-space: nowrap;
+    }
+    .pick-banner.on { display: block; }
+    .pt-img { border-radius: 10px; margin-top: 8px; max-width: 100%; height: auto; }
+    body.editing .dock { visibility: hidden; }
+    body.view-only .admin-only { display: none !important; }
+    body.view-only .editor { display: none !important; }
+    body.picking .editor { display: none; }
+    body.picking .dock { visibility: hidden; }
     body.choosing #map, body.choosing .dock, body.choosing .top { visibility: hidden; }
     @media (min-width: 860px) and (hover: hover) and (pointer: fine) {
       body {
@@ -411,10 +472,14 @@
       <div class="more-wrap">
         <button type="button" class="icon" id="moreBtn" aria-label="Mer">···</button>
         <div class="more" id="more">
+          <button type="button" class="admin-only" id="editBtn">Redigera lopp</button>
+          <button type="button" class="admin-only" id="newEventBtn">Nytt lopp</button>
+          <button type="button" class="admin-only" id="publishBtn">Spara för alla</button>
+          <button type="button" class="admin-only" id="exportBtn">Spara lopp som fil</button>
+          <button type="button" class="admin-only" id="importBtn">Öppna lopp från fil</button>
           <a id="gmaps" target="_blank" rel="noopener">Hela rutten i Maps</a>
           <button type="button" id="gpxBtn">Ladda ner GPX</button>
           <button type="button" id="clearDone">Rensa avbockning</button>
-          <a id="editV1" href="../">Redigera i originalet (1.0)</a>
         </div>
       </div>
     </div>
@@ -441,16 +506,25 @@
   </section>
   <section class="chooser open" id="chooser">
     <h1>Välj lopp</h1>
-    <p>2.0 är gjord för telefonen. Originalet finns kvar orört.</p>
+    <p>Mobilappen för utsättning. Skapa och redigera lopp här — det publiceras för alla.</p>
     <div id="chooserList"></div>
-    <p class="v1-link"><a href="../" style="color:inherit">Öppna originalet (1.0)</a></p>
+    <button type="button" class="chooser-item admin-only" id="chooserNew" style="border-style:dashed">+ Nytt lopp</button>
   </section>
-  <div class="toast" id="toast"></div>
+  <section class="editor" id="editor">
+    <div class="editor-head">
+      <h2>Redigera lopp</h2>
+      <button type="button" class="btn btn-accent" id="editorDone">Klar · spara för alla</button>
+    </div>
+    <div class="editor-body" id="editorBody"></div>
+  </section>
+  <div class="pick-banner" id="pickBanner">Tryck på kartan för att sätta punkten</div>
+  <input type="file" id="importFile" accept="application/json,.json" hidden />
+  <div class="toast" id="toast">Sparat</div>
   <div class="busy" id="busy"><span id="busyText">Laddar…</span></div>
   <div class="img-overlay" id="imgOverlay" aria-hidden="true"><img id="imgOverlayImg" alt="" /></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../app.js?v=43"></script>
   <script src="../races.js?v=31"></script>
-  <script src="ui.js?v=3"></script>
+  <script src="ui.js?v=5"></script>
 </body>
 </html>
