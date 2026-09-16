@@ -65,10 +65,20 @@
   }
   function teams() { const ce = currentEvent(); return ce ? (ce.teams || []) : []; }
   function teamById(id) { const ts = teams(); return ts.find((t) => t.id === id) || ts[0]; }
+  function imgCacheTag() {
+    const ev = currentEvent();
+    const id = ev && ev.id;
+    const a = Number(ev && ev.rev) || 0;
+    const b = Number(id && window.RACES && window.RACES[id] && window.RACES[id].rev) || 0;
+    return String(Math.max(a, b) || "");
+  }
   function imgSrc(src) {
     if (!src) return "";
-    if (/^(data:|https?:|\/\/)/i.test(src)) return src;
-    return "../" + String(src).replace(/^\.\//, "");
+    if (/^(data:|blob:|https?:|\/\/)/i.test(src)) return src;
+    const path = "../" + String(src).replace(/^\.\//, "");
+    const v = imgCacheTag();
+    if (!v || path.indexOf("?") >= 0) return path;
+    return path + "?v=" + encodeURIComponent(v);
   }
   function isOverview() {
     return !!window.OVERVIEW_ADMIN || /oversikt/i.test(location.pathname);
@@ -1040,7 +1050,7 @@
             if (seen.has(raw)) { s.image = seen.get(raw); continue; }
             const payload = dataImagePayload(raw);
             if (!payload) continue;
-            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
+            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "-" + Date.now().toString(36) + "." + payload.ext;
             const rel = "img/" + fname;
             document.getElementById("busyText").textContent = "Laddar upp bild " + (s.label || fname) + "…";
             await putRepoFile(rel, payload.b64, "Bild " + (s.label || fname));
@@ -1065,7 +1075,11 @@
     });
   }
   async function publishCatalog() {
-    if (isViewOnly() || publishing) return false;
+    if (isViewOnly()) return false;
+    if (publishing) {
+      showToast("Publicerar redan…");
+      return false;
+    }
     const token = await ensurePublishToken();
     if (!token) {
       showToast("Sparat på den här enheten. Publicera via Meny → Spara för alla");
@@ -1074,14 +1088,6 @@
     publishing = true;
     setBusy(true, "Sparar för alla…");
     try {
-      for (const ev of store.events || []) {
-        for (const t of ev.teams || []) {
-          if (M.needsRouteRebuild(t)) {
-            document.getElementById("busyText").textContent = "Beräknar " + t.name + "…";
-            try { await M.recalcTeam(t); } catch (e) {}
-          }
-        }
-      }
       persist();
       await publishStopImages();
       persist();
@@ -1097,6 +1103,7 @@
       const stamp = String(Date.now());
       await bustHtmlCache("index.html", stamp);
       await bustHtmlCache("v2/index.html", stamp);
+      await bustHtmlCache("v2/oversikt.html", stamp);
       window.RACES = races;
       (store.events || []).forEach((ev) => {
         if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;

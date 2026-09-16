@@ -131,7 +131,7 @@
             }
             const payload = dataImagePayload(raw);
             if (!payload) continue;
-            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
+            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "-" + Date.now().toString(36) + "." + payload.ext;
             const rel = "img/" + fname;
             busyText.textContent = "Laddar upp bild " + (s.label || fname) + "…";
             await putRepoFile(rel, payload.b64, "Bild " + (s.label || fname));
@@ -175,7 +175,11 @@
   }
 
   async function publishCatalog() {
-    if (isViewOnly() || publishing) return false;
+    if (isViewOnly()) return false;
+    if (publishing) {
+      showToast("Publicerar redan…");
+      return false;
+    }
     const token = await ensurePublishToken();
     if (!token) {
       showToast("Sparat på den här datorn. Publicera för alla via Meny → Spara för alla");
@@ -184,14 +188,6 @@
     publishing = true;
     setBusy(true, "Sparar för alla…");
     try {
-      for (const ev of store.events || []) {
-        for (const t of ev.teams || []) {
-          if (M.needsRouteRebuild(t)) {
-            busyText.textContent = "Beräknar " + t.name + "…";
-            try { await M.recalcTeam(t); } catch (e) {}
-          }
-        }
-      }
       persist();
       await publishStopImages();
       persist();
@@ -673,7 +669,7 @@
       ${g.stops.map((s, i) => {
         const warn = /kod|fredriksdal|kolla bilden/i.test(s.placering || "");
         const done = isDone(g.id, s.label);
-        const imgHtml = (s && s.image) ? `<img class="pt-img" data-src="${esc(s.image)}" src="${esc(s.image)}" alt="${esc(s.label || "")} bild" />` : "";
+        const imgHtml = (s && s.image) ? `<img class="pt-img" data-src="${esc(s.image)}" src="${esc(imgSrc(s.image))}" alt="${esc(s.label || "")} bild" />` : "";
         return `<article class="stop${done ? " is-done" : ""}" data-i="${i}">
           <div class="stop-head">
             <h3><span class="num" style="background:${g.color}">${i + 1}</span>${esc(s.label || s.name || "Punkt")}</h3>
@@ -698,7 +694,7 @@
       imgEl.addEventListener("click", (ev) => {
         ev.stopPropagation();
         const src = imgEl.getAttribute("data-src") || imgEl.src;
-        if (src) openImageOverlay(src);
+        if (src) openImageOverlay(imgSrc(src));
       });
     });
     paintSelection(fromHash && /\/[1-9]\d*$/.test(location.hash));
@@ -740,6 +736,21 @@
 
   function esc(t) {
     return String(t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  }
+  function imgCacheTag() {
+    const ev = currentEvent();
+    const id = ev && ev.id;
+    const a = Number(ev && ev.rev) || 0;
+    const b = Number(id && window.RACES && window.RACES[id] && window.RACES[id].rev) || 0;
+    return String(Math.max(a, b) || "");
+  }
+  function imgSrc(src) {
+    if (!src) return "";
+    if (/^(data:|blob:|https?:|\/\/)/i.test(src)) return src;
+    const path = String(src).replace(/^\.\//, "");
+    const v = imgCacheTag();
+    if (!v || path.indexOf("?") >= 0) return path;
+    return path + "?v=" + encodeURIComponent(v);
   }
 
   function timeSelectHtml(id, value) {
@@ -964,7 +975,7 @@
     if (!p) return;
     ptFormIndex = i;
     const box = editorBody.querySelector("#ptForm");
-    const imgPreview = p.image ? `<img class="pt-img" id="pImgPreview" src="${esc(p.image)}" alt="Förhandsbild" />` : "";
+    const imgPreview = p.image ? `<img class="pt-img" id="pImgPreview" src="${esc(imgSrc(p.image))}" alt="Förhandsbild" />` : "";
     box.innerHTML = `
       <label>Namn</label><input id="pLabel" value="${esc(isHintName(p.label) ? "" : (p.label || ""))}" placeholder="Ny punkt" />
       <label>Igång</label>${timeSelectHtml("pIga", p.iga)}
