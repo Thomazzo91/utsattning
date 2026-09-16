@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 43,
+  "rev": 44,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 44,
+  "rev": 45,
   "groups": [
    {
     "id": "startmal",
@@ -13555,8 +13555,8 @@ window.RACES = {
         "name": "10 km hel",
         "label": "10 km hel",
         "who": "",
-        "lat": 55.5881757,
-        "lon": 12.9249734,
+        "lat": 55.588176,
+        "lon": 12.924973,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -13567,8 +13567,8 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "placering": "2,5 M Cykelbana",
-        "note": "2,5 M Cykelbana",
+        "placering": "2,5M Cykelbana",
+        "note": "2,5M Cykelbana",
         "place": "2,5 M Cykelbana",
         "setup": "Tidtagningsmatta 10 km marathon",
         "gpx": "",
@@ -14031,8 +14031,8 @@ window.RACES = {
         55.58811
        ],
        [
-        12.9249734,
-        55.5881757
+        12.924973,
+        55.588176
        ],
        [
         12.924881,
@@ -15656,8 +15656,8 @@ window.RACES = {
         "name": "10 km hel",
         "label": "10 km hel",
         "who": "",
-        "lat": 55.5881757,
-        "lon": 12.9249734,
+        "lat": 55.588176,
+        "lon": 12.924973,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -15668,8 +15668,8 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "placering": "2,5 M Cykelbana",
-        "note": "2,5 M Cykelbana",
+        "placering": "2,5M Cykelbana",
+        "note": "2,5M Cykelbana",
         "place": "2,5 M Cykelbana",
         "setup": "Tidtagningsmatta 10 km marathon",
         "gpx": "",
@@ -16132,8 +16132,8 @@ window.RACES = {
         55.58811
        ],
        [
-        12.9249734,
-        55.5881757
+        12.924973,
+        55.588176
        ],
        [
         12.924881,
