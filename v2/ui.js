@@ -58,6 +58,9 @@
     if (/^(data:|https?:|\/\/)/i.test(src)) return src;
     return "../" + String(src).replace(/^\.\//, "");
   }
+  function isOverview() {
+    return !!window.OVERVIEW_ADMIN || /oversikt/i.test(location.pathname);
+  }
   function isViewOnly() {
     const p = new URLSearchParams(location.search);
     if (!p.has("view")) return false;
@@ -122,17 +125,16 @@
     }
   }
   function liveEvent() {
-    if (document.body.classList.contains("in-race")) return currentEvent();
-    const lopp = new URLSearchParams(location.search).get("lopp");
-    if (lopp && store && store.events) return store.events.find((e) => e.id === lopp) || null;
-    return null;
+    return currentEvent();
   }
   function liveStops(ev) {
     const out = [];
+    let n = 0;
     ((ev && ev.teams) || []).forEach((t) => {
-      (M.pointsOf(t) || []).forEach((s, i) => {
+      (M.pointsOf(t) || []).forEach((s) => {
         if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return;
-        out.push({ team: t, stop: s, idx: i + 1, key: ev.id + "|" + t.id + "|" + s.label });
+        n += 1;
+        out.push({ team: t, stop: s, idx: n, key: ev.id + "|" + t.id + "|" + s.label });
       });
     });
     return out;
@@ -180,6 +182,7 @@
           : "Inte uppe";
         if (info) info.innerHTML = `<strong>${esc(p.stop.label || p.stop.name || "Punkt")}</strong><span>${esc(p.team.name)} · ${esc(meta)}</span>`;
       });
+      m.bindTooltip(p.team.name + " · " + (p.stop.label || p.stop.name || "Punkt"), { direction: "top", opacity: 0.92 });
       m.addTo(liveLayer);
       latlngs.push([p.stop.lat, p.stop.lon]);
       if (p.key === liveFocusKey) {
@@ -221,6 +224,15 @@
     if (prog) prog.textContent = upCount + " av " + pts.length + " uppe";
     if (legend) {
       legend.innerHTML = "";
+      const allBtn = document.createElement("button");
+      allBtn.type = "button";
+      allBtn.className = "live-chip is-all";
+      allBtn.textContent = "Alla · " + upCount + "/" + pts.length;
+      allBtn.addEventListener("click", () => {
+        if (!liveMap || !pts.length) return;
+        liveMap.fitBounds(L.latLngBounds(pts.map((p) => [p.stop.lat, p.stop.lon])), { padding: [28, 28], maxZoom: 15 });
+      });
+      legend.appendChild(allBtn);
       (ev.teams || []).forEach((t) => {
         const groupPts = pts.filter((p) => p.team.id === t.id);
         if (!groupPts.length) return;
@@ -237,26 +249,37 @@
         legend.appendChild(b);
       });
     }
-    if (info && !liveFocusKey) info.textContent = "Tryck på en punkt för detaljer";
+    if (info && !liveFocusKey) info.textContent = "Alla tidtagningspunkter · tryck på en punkt för detaljer";
     ensureLiveMap();
     paintLiveMarkers(ev, liveFitId !== ev.id);
   }
   function openLiveBoard() {
-    document.getElementById("more").style.display = "none";
+    if (!isOverview()) return;
+    const more = document.getElementById("more");
+    if (more) more.style.display = "none";
     if (!liveEvent()) {
       showToast("Öppna ett lopp först");
       return;
     }
-    document.getElementById("liveBoard").classList.add("open");
+    const board = document.getElementById("liveBoard");
+    if (!board) return;
+    board.classList.add("open");
     document.body.classList.add("live-open");
     renderLiveBoard();
     setTimeout(() => { if (liveMap) liveMap.invalidateSize(); }, 80);
   }
   function closeLiveBoard() {
-    document.getElementById("liveBoard").classList.remove("open");
+    const board = document.getElementById("liveBoard");
+    if (board) board.classList.remove("open");
     document.body.classList.remove("live-open");
     liveFitId = "";
     liveFocusKey = "";
+    if (isOverview()) {
+      ignoreHash = true;
+      history.replaceState(null, "", location.pathname);
+      setTimeout(() => { ignoreHash = false; }, 0);
+      openChooser();
+    }
   }
   function viewOf(id, mode) {
     const t = teamById(id);
@@ -530,7 +553,19 @@
       b.className = "chooser-item";
       const names = (ev.teams || []).map((t) => t.name).join(" · ");
       b.innerHTML = `<strong>${esc(ev.name)}</strong><span>${esc(names) || "Inga grupper"}</span>`;
-      b.addEventListener("click", () => enterEvent(ev.id));
+      b.addEventListener("click", () => {
+        if (isOverview()) {
+          store.currentEventId = ev.id;
+          ignoreHash = true;
+          history.replaceState(null, "", location.pathname + "?lopp=" + encodeURIComponent(ev.id));
+          setTimeout(() => { ignoreHash = false; }, 0);
+          closeChooser();
+          liveFitId = "";
+          openLiveBoard();
+          return;
+        }
+        enterEvent(ev.id);
+      });
       box.appendChild(b);
     });
   }
@@ -603,7 +638,8 @@
     newEvent();
   });
   document.getElementById("chooserNew").addEventListener("click", newEvent);
-  document.getElementById("liveMenuBtn").addEventListener("click", openLiveBoard);
+  const liveMenuBtn = document.getElementById("liveMenuBtn");
+  if (liveMenuBtn) liveMenuBtn.addEventListener("click", openLiveBoard);
   document.getElementById("liveClose").addEventListener("click", closeLiveBoard);
   document.getElementById("publishBtn").addEventListener("click", async () => {
     document.getElementById("more").style.display = "none";
@@ -1232,6 +1268,13 @@
 
   async function start() {
     const params = new URLSearchParams(location.search);
+    if (!isOverview() && (params.get("oversikt") === "1" || params.get("admin") === "1")) {
+      params.delete("oversikt");
+      params.delete("admin");
+      const q = params.toString();
+      location.replace("oversikt.html" + (q ? "?" + q : "") + location.hash);
+      return;
+    }
     const lopp = params.get("lopp");
     store = M.loadStore();
     if (!store) {
@@ -1240,10 +1283,22 @@
     }
     ensureSeed();
     document.body.classList.toggle("view-only", isViewOnly());
+    document.body.classList.toggle("overview-mode", isOverview());
     if (!isViewOnly()) persist();
     if (lopp && store.events.some((e) => e.id === lopp)) store.currentEventId = lopp;
 
     if (window.MattorLive) applyLiveCache();
+
+    if (isOverview()) {
+      if (lopp && store.events.some((e) => e.id === lopp)) {
+        store.currentEventId = lopp;
+        closeChooser();
+        openLiveBoard();
+        return;
+      }
+      openChooser();
+      return;
+    }
 
     const focusEv = currentEvent();
     if (focusEv) {
@@ -1263,13 +1318,11 @@
       closeChooser();
       const startH = parseHash();
       show(startH.id, startH.mode, startH.idx, true, false);
-      if (params.get("oversikt") === "1" || params.get("admin") === "1") openLiveBoard();
       return;
     }
     if (isViewOnly()) {
       const bid = lopp && M.isBuiltIn(lopp) ? lopp : M.defaultEventId();
       enterEvent(bid);
-      if (params.get("oversikt") === "1" || params.get("admin") === "1") openLiveBoard();
       return;
     }
     openChooser();
