@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 42,
+  "rev": 43,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 45,
+  "rev": 46,
   "groups": [
    {
     "id": "startmal",
