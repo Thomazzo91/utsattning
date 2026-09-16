@@ -453,32 +453,39 @@
       flex: none;
     }
     .live-head h2 { margin: 0; font-size: 1.05rem; flex: 1; }
-    .live-status { color: var(--muted); font-size: 0.78rem; font-weight: 700; padding: 8px 14px 0; }
+    .live-status { color: var(--muted); font-size: 0.78rem; font-weight: 700; }
     .live-status.is-on { color: var(--ok); }
-    .live-body { overflow: auto; -webkit-overflow-scrolling: touch; padding: 8px 14px 28px; flex: 1; }
-    .live-event { margin: 14px 0 8px; }
-    .live-event h3 { margin: 0 0 8px; font-size: 1.05rem; }
-    .live-prog {
-      color: var(--muted); font-size: 0.8rem; font-weight: 700; margin: -4px 0 10px;
+    .live-meta {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      padding: 8px 14px 0; flex: none;
     }
-    .live-group {
-      background: var(--card); border: 1px solid var(--line);
-      border-radius: 14px; padding: 10px 12px; margin-bottom: 10px;
+    .live-prog { color: var(--muted); font-size: 0.85rem; font-weight: 800; }
+    .live-legend {
+      display: flex; gap: 6px; overflow-x: auto;
+      padding: 8px 12px; flex: none; scrollbar-width: none;
     }
-    .live-group h4 { margin: 0 0 8px; font-size: 0.95rem; }
-    .live-stop {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 8px 0; border-top: 1px solid var(--line);
+    .live-legend::-webkit-scrollbar { display: none; }
+    .live-chip {
+      flex: none; min-height: 36px; border: 0; border-radius: 999px;
+      color: #0b1220; font-weight: 800; padding: 0 12px; font-size: 0.85rem;
     }
-    .live-stop:first-of-type { border-top: 0; }
-    .live-dot {
-      width: 14px; height: 14px; border-radius: 50%; flex: none; margin-top: 4px;
-      background: #334155; border: 2px solid #64748b;
+    #liveMap { flex: 1; min-height: 180px; z-index: 1; background: var(--bg); }
+    .live-info {
+      flex: none; padding: 10px 14px calc(12px + var(--safe-bot));
+      background: #0e1522; border-top: 1px solid var(--line); min-height: 58px;
     }
-    .live-stop.is-up .live-dot { background: var(--ok); border-color: #86efac; }
-    .live-stop strong { display: block; font-size: 0.95rem; }
-    .live-stop span { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
-    .live-stop.is-up span { color: #86efac; }
+    .live-info strong { display: block; }
+    .live-info span { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+    .live-mk-num {
+      width: 34px; height: 34px; border-radius: 50%;
+      color: #0b1220; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 5px rgba(0,0,0,.45);
+      font-size: 13px;
+    }
+    .live-mk.is-up .live-mk-num { border-color: #86efac; }
+    .live-mk-num svg { width: 16px; height: 16px; display: block; }
     body.picking .editor { display: none; }
     body.picking .dock { visibility: hidden; }
     body.choosing #map, body.choosing .dock, body.choosing .top { visibility: hidden; }
@@ -552,15 +559,19 @@
     <p>Mobilappen för utsättning. Skapa och redigera lopp här — det publiceras för alla.</p>
     <div id="chooserList"></div>
     <button type="button" class="chooser-item admin-only" id="chooserNew" style="border-style:dashed">+ Nytt lopp</button>
-    <button type="button" class="chooser-item" id="chooserLive" style="margin-top:8px">Live-översikt · vad som är uppe</button>
   </section>
   <section class="live-board" id="liveBoard">
     <div class="live-head">
-      <h2>Vad som är uppe</h2>
+      <h2 id="liveTitle">Vad som är uppe</h2>
       <button type="button" class="btn" id="liveClose">Stäng</button>
     </div>
-    <div class="live-status" id="liveStatus">Ansluter…</div>
-    <div class="live-body" id="liveBody"></div>
+    <div class="live-meta">
+      <div class="live-status" id="liveStatus">Ansluter…</div>
+      <div class="live-prog" id="liveProg"></div>
+    </div>
+    <div class="live-legend" id="liveLegend"></div>
+    <div id="liveMap"></div>
+    <div class="live-info" id="liveInfo">Tryck på en punkt för detaljer</div>
   </section>
   <section class="editor" id="editor">
     <div class="editor-head">
@@ -578,6 +589,6 @@
   <script src="../app.js?v=43"></script>
   <script src="../races.js?v=31"></script>
   <script src="../live.js?v=1"></script>
-  <script src="ui.js?v=7"></script>
+  <script src="ui.js?v=8"></script>
 </body>
 </html>
