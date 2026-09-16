@@ -724,6 +724,12 @@
       legs: (built.legs || []).slice().reverse().map((l) => ({
         from: l.to, to: l.from, km: l.km, min: l.min
       })),
+      segs: (built.segs || []).slice().reverse().map((s) => ({
+        profile: s.profile,
+        geom: (s.geom || []).slice().reverse(),
+        dist: s.dist,
+        dur: s.dur
+      })),
       stops
     };
   }
@@ -973,15 +979,14 @@
     const n = (pts && pts.length) || 0;
     if (n < 2) return true;
     if (!mode) return false;
-    const minPts = Math.max(n + 4, 8);
-    const tr = mode.track;
-    if (Array.isArray(tr) && tr.length >= minPts) return true;
     const segs = mode.segs;
-    if (Array.isArray(segs) && segs.length) {
-      const count = segs.reduce((s, g) => s + ((g && g.geom && g.geom.length) || 0), 0);
-      if (count >= minPts) return true;
+    if (Array.isArray(segs) && segs.some((s) => s && Array.isArray(s.geom) && s.geom.length >= 2)) {
+      return true;
     }
-    return false;
+    const tr = mode.track;
+    if (!Array.isArray(tr) || tr.length < 2) return false;
+    if (n === 2) return tr.length >= 2;
+    return tr.length >= Math.max(n + 4, 8);
   }
 
   function needsRouteRebuild(team) {

@@ -10,8 +10,7 @@
     zoomControl: false,
     attributionControl: true,
     fadeAnimation: false,
-    markerZoomAnimation: false,
-    preferCanvas: true
+    markerZoomAnimation: false
   }).setView([62.5, 17], 5);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -243,8 +242,7 @@
       zoomControl: false,
       attributionControl: true,
       fadeAnimation: false,
-      markerZoomAnimation: false,
-      preferCanvas: true
+      markerZoomAnimation: false
     }).setView([62.5, 17], 5);
     L.control.zoom({ position: "bottomright" }).addTo(liveMap);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -644,13 +642,11 @@
     layer.clearLayers();
     markers = [];
     routeLines = [];
-    const curSegs = (g.segs && g.segs.length) ? g.segs : null;
-    const segsPts = curSegs ? curSegs.reduce((n, s) => n + ((s && s.geom && s.geom.length) || 0), 0) : 0;
+    const usableSegs = (g.segs || []).filter((s) => s && s.geom && s.geom.length >= 2);
     const trackPts = (g.track && g.track.length) || 0;
     const lineOpts = { interactive: false, bubblingMouseEvents: false };
-    if (curSegs && segsPts >= 3 && segsPts >= trackPts) {
-      curSegs.forEach((s) => {
-        if (!s || !s.geom || !s.geom.length) return;
+    if (usableSegs.length) {
+      usableSegs.forEach((s) => {
         const latlngs = s.geom.map(([lon, lat]) => [lat, lon]);
         let opts = Object.assign({ color: g.color, weight: 6, opacity: 0.92 }, lineOpts);
         if (s.profile === "foot") opts = Object.assign({ color: "#0b1220", weight: 7, opacity: 0.92, dashArray: "16 8" }, lineOpts);
@@ -658,7 +654,7 @@
         else if (s.profile === "crow") opts = Object.assign({ color: "#111827", weight: 3, opacity: 0.85, dashArray: "2 8" }, lineOpts);
         routeLines.push(L.polyline(latlngs, opts).addTo(layer));
       });
-    } else if (trackPts >= 3) {
+    } else if (trackPts >= 2) {
       const latlngs = g.track.map(([lon, lat]) => [lat, lon]);
       routeLines.push(L.polyline(latlngs, Object.assign({ color: g.color, weight: 6, opacity: 0.92 }, lineOpts)).addTo(layer));
     } else {

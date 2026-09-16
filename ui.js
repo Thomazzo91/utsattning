@@ -591,11 +591,10 @@
     layer.clearLayers();
     markers = [];
     routeLines = [];
-    const curSegs = (g.segs && g.segs.length) ? g.segs : null;
-    const segsPts = curSegs ? curSegs.reduce((n, s) => n + ((s && s.geom && s.geom.length) || 0), 0) : 0;
+    const usableSegs = (g.segs || []).filter((s) => s && s.geom && s.geom.length >= 2);
     const trackPts = (g.track && g.track.length) || 0;
-    if (curSegs && segsPts >= 3 && segsPts >= trackPts) {
-      curSegs.forEach((s) => {
+    if (usableSegs.length) {
+      usableSegs.forEach((s) => {
         if (!s || !s.geom || !s.geom.length) return;
         const latlngs = s.geom.map(([lon, lat]) => [lat, lon]);
         let opts;
@@ -610,7 +609,7 @@
         }
         routeLines.push(L.polyline(latlngs, opts).addTo(layer));
       });
-    } else if (trackPts >= 3) {
+    } else if (trackPts >= 2) {
       const latlngs = g.track.map(([lon, lat]) => [lat, lon]);
       routeLines.push(L.polyline(latlngs, { color: g.color, weight: 6, opacity: 0.92 }).addTo(layer));
     } else {
