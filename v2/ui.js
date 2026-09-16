@@ -670,6 +670,19 @@
     newEvent();
   });
   document.getElementById("chooserNew").addEventListener("click", newEvent);
+  const chooserLive = document.getElementById("chooserLive");
+  if (chooserLive) {
+    chooserLive.addEventListener("click", () => {
+      location.href = "oversikt.html";
+    });
+  }
+  const liveOverviewBtn = document.getElementById("liveOverviewBtn");
+  if (liveOverviewBtn) {
+    liveOverviewBtn.addEventListener("click", () => {
+      const ev = currentEvent();
+      location.href = "oversikt.html" + (ev && ev.id ? "?lopp=" + encodeURIComponent(ev.id) : "");
+    });
+  }
   const liveMenuBtn = document.getElementById("liveMenuBtn");
   if (liveMenuBtn) liveMenuBtn.addEventListener("click", openLiveBoard);
   document.getElementById("liveClose").addEventListener("click", closeLiveBoard);

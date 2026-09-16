@@ -344,6 +344,10 @@
     }
     .chooser-item strong { display: block; font-size: 1.15rem; }
     .chooser-item span { display: block; color: var(--muted); margin-top: 4px; }
+    .chooser-item.is-overview {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, var(--card));
+    }
     .v1-link { color: var(--muted); margin-top: auto; padding-top: 16px; font-size: 0.9rem; }
     .toast {
       position: fixed; left: 50%; top: calc(12px + var(--safe-top));
@@ -607,6 +611,10 @@
   <section class="chooser open" id="chooser">
     <h1>Välj lopp</h1>
     <p>Mobilappen för utsättning. Skapa och redigera lopp här — det publiceras för alla.</p>
+    <button type="button" class="chooser-item is-overview admin-only" id="chooserLive">
+      <strong>Live-översikt</strong>
+      <span>Alla tidtagningspunkter live</span>
+    </button>
     <div id="chooserList"></div>
     <button type="button" class="chooser-item admin-only" id="chooserNew" style="border-style:dashed">+ Nytt lopp</button>
   </section>
@@ -639,6 +647,6 @@
   <script src="../app.js?v=43"></script>
   <script src="../races.js?v=31"></script>
   <script src="../live.js?v=1"></script>
-  <script src="ui.js?v=11"></script>
+  <script src="ui.js?v=12"></script>
 </body>
 </html>
