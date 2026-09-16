@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 42,
+  "rev": 43,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 43,
+  "rev": 44,
   "groups": [
    {
     "id": "startmal",
@@ -13531,8 +13531,8 @@ window.RACES = {
         "name": "20 km hel",
         "label": "20 km hel",
         "who": "",
-        "lat": 55.5882061,
-        "lon": 12.9376527,
+        "lat": 55.588206,
+        "lon": 12.937653,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -13543,8 +13543,8 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "placering": "3 m",
-        "note": "3 m",
+        "placering": "3M Cykelbana",
+        "note": "3M Cykelbana",
         "place": "3 m",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
@@ -13811,8 +13811,8 @@ window.RACES = {
         55.588106
        ],
        [
-        12.9376527,
-        55.5882061
+        12.937653,
+        55.588206
        ],
        [
         12.937805,
@@ -15632,8 +15632,8 @@ window.RACES = {
         "name": "20 km hel",
         "label": "20 km hel",
         "who": "",
-        "lat": 55.5882061,
-        "lon": 12.9376527,
+        "lat": 55.588206,
+        "lon": 12.937653,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -15644,8 +15644,8 @@ window.RACES = {
         "forsta": "",
         "sista": "",
         "maps": "",
-        "placering": "3 m",
-        "note": "3 m",
+        "placering": "3M Cykelbana",
+        "note": "3M Cykelbana",
         "place": "3 m",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
@@ -15912,8 +15912,8 @@ window.RACES = {
         55.588106
        ],
        [
-        12.9376527,
-        55.5882061
+        12.937653,
+        55.588206
        ],
        [
         12.937805,
