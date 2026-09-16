@@ -37,6 +37,7 @@
   let ptFormIndex = -1;
 
   let visited = {};
+  let applyingLive = false;
   try {
     visited = JSON.parse(localStorage.getItem(VISITED_KEY) || "{}") || {};
     if (typeof visited !== "object" || visited === null) visited = {};
@@ -281,6 +282,10 @@
   }
   function isDone(teamId, label) {
     const evId = currentEvent() ? currentEvent().id : "";
+    if (window.MattorLive) {
+      const rec = window.MattorLive.get(evId, teamId, label);
+      if (rec) return !!rec.on;
+    }
     return !!(visited[visitKey(teamId, label)] ||
       (evId === "lopp1" && visited[teamId + "|" + label]));
   }
@@ -288,8 +293,9 @@
     try { localStorage.setItem(VISITED_KEY, JSON.stringify(visited)); } catch (e) {}
   }
   function setDone(teamId, label, on) {
+    const ev = currentEvent();
     const k = visitKey(teamId, label);
-    const legacy = currentEvent() && currentEvent().id === "lopp1" ? teamId + "|" + label : null;
+    const legacy = ev && ev.id === "lopp1" ? teamId + "|" + label : null;
     if (on) {
       visited[k] = true;
     } else {
@@ -297,6 +303,10 @@
       if (legacy) delete visited[legacy];
     }
     saveVisited();
+    if (!applyingLive && window.MattorLive && ev) {
+      const t = teamById(teamId);
+      window.MattorLive.report(ev.id, teamId, label, on, t ? t.name : "");
+    }
   }
 
   function viewOf(id, mode) {
@@ -1504,6 +1514,15 @@
     }
     ensureSeed();
     dropRemovedFromStore();
+    if (window.MattorLive) {
+      window.MattorLive.on(() => {
+        applyingLive = true;
+        try {
+          const g = viewOf(currentId, currentMode);
+          if (g && g.id) paintDone(g);
+        } finally { applyingLive = false; }
+      });
+    }
     if (lopp && store.events.some((e) => e.id === lopp)) {
       store.currentEventId = lopp;
     }
