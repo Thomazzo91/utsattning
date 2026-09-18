@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 59,
+  "rev": 60,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 62,
+  "rev": 63,
   "groups": [
    {
     "id": "startmal",
@@ -16174,7 +16174,7 @@ window.RACES = {
         "name": "25 km hel",
         "label": "25 km hel",
         "who": "",
-        "lat": 55.6035319,
+        "lat": 55.603532,
         "lon": 12.993924,
         "starth": 0,
         "startm": 0,
@@ -16215,7 +16215,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-ostra-10-km-halv.jpg"
        },
        {
         "idx": 4,
@@ -17373,7 +17373,7 @@ window.RACES = {
         "name": "25 km hel",
         "label": "25 km hel",
         "who": "",
-        "lat": 55.6035319,
+        "lat": 55.603532,
         "lon": 12.993924,
         "starth": 0,
         "startm": 0,
@@ -17414,7 +17414,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-ostra-10-km-halv.jpg"
        },
        {
         "idx": 4,
