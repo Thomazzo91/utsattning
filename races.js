@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 64,
+  "rev": 65,
   "groups": [
    {
     "id": "soder",
@@ -23,7 +23,12 @@ window.RACES = {
         "sista": "10:35",
         "maps": "https://maps.app.goo.gl/dnVM7ZkMffKsDGJX6",
         "placering": "Samma som tidigare år, vid dagvattenbrunnen",
-        "setup": "Startmatta marathon"
+        "setup": "Startmatta marathon",
+        "place": "Samma som tidigare år, vid dagvattenbrunnen",
+        "note": "Samma som tidigare år, vid dagvattenbrunnen",
+        "who": "",
+        "image": "",
+        "name": "Start"
        },
        {
         "label": "15 km hel",
@@ -34,7 +39,12 @@ window.RACES = {
         "sista": "12:15",
         "maps": "https://maps.app.goo.gl/CjKTbUoaPdnCQKyp6",
         "placering": "På gång- och cykelbanan",
-        "setup": "Tidtagningsmatta 15 km marathon"
+        "setup": "Tidtagningsmatta 15 km marathon",
+        "place": "På gång- och cykelbanan",
+        "note": "På gång- och cykelbanan",
+        "who": "",
+        "image": "",
+        "name": "15 km hel"
        },
        {
         "label": "Vxl 1 hel",
@@ -45,7 +55,12 @@ window.RACES = {
         "sista": "12:10",
         "maps": "https://goo.gl/maps/JLfs6R6ccU9yy6gs7",
         "placering": "Där asfaltsvägen blir grusväg",
-        "setup": "Växlingsmatta stafett 42 km, växling 1"
+        "setup": "Växlingsmatta stafett 42 km, växling 1",
+        "place": "Där asfaltsvägen blir grusväg",
+        "note": "Där asfaltsvägen blir grusväg",
+        "who": "",
+        "image": "",
+        "name": "Vxl 1 hel"
        },
        {
         "label": "10 km hel",
@@ -56,7 +71,12 @@ window.RACES = {
         "sista": "11:50",
         "maps": "https://maps.app.goo.gl/kuhDQvbH17QFEL1Z6",
         "placering": "",
-        "setup": "Tidtagningsmatta 10 km marathon"
+        "setup": "Tidtagningsmatta 10 km marathon",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "10 km hel"
        },
        {
         "label": "5 km hel",
@@ -67,7 +87,12 @@ window.RACES = {
         "sista": "11:10",
         "maps": "https://maps.app.goo.gl/3Jz3S1Evtzizaa6Q9",
         "placering": "",
-        "setup": "Tidtagningsmatta 5 km marathon"
+        "setup": "Tidtagningsmatta 5 km marathon",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "5 km hel"
        }
       ],
       "legs": [
@@ -2473,7 +2498,12 @@ window.RACES = {
         "sista": "10:35",
         "maps": "https://maps.app.goo.gl/dnVM7ZkMffKsDGJX6",
         "placering": "Samma som tidigare år, vid dagvattenbrunnen",
-        "setup": "Startmatta marathon"
+        "setup": "Startmatta marathon",
+        "place": "Samma som tidigare år, vid dagvattenbrunnen",
+        "note": "Samma som tidigare år, vid dagvattenbrunnen",
+        "who": "",
+        "image": "",
+        "name": "Start"
        },
        {
         "label": "5 km hel",
@@ -2484,7 +2514,12 @@ window.RACES = {
         "sista": "11:10",
         "maps": "https://maps.app.goo.gl/3Jz3S1Evtzizaa6Q9",
         "placering": "",
-        "setup": "Tidtagningsmatta 5 km marathon"
+        "setup": "Tidtagningsmatta 5 km marathon",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "5 km hel"
        },
        {
         "label": "10 km hel",
@@ -2495,7 +2530,12 @@ window.RACES = {
         "sista": "11:50",
         "maps": "https://maps.app.goo.gl/kuhDQvbH17QFEL1Z6",
         "placering": "",
-        "setup": "Tidtagningsmatta 10 km marathon"
+        "setup": "Tidtagningsmatta 10 km marathon",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "10 km hel"
        },
        {
         "label": "Vxl 1 hel",
@@ -2506,7 +2546,12 @@ window.RACES = {
         "sista": "12:10",
         "maps": "https://goo.gl/maps/JLfs6R6ccU9yy6gs7",
         "placering": "Där asfaltsvägen blir grusväg",
-        "setup": "Växlingsmatta stafett 42 km, växling 1"
+        "setup": "Växlingsmatta stafett 42 km, växling 1",
+        "place": "Där asfaltsvägen blir grusväg",
+        "note": "Där asfaltsvägen blir grusväg",
+        "who": "",
+        "image": "",
+        "name": "Vxl 1 hel"
        },
        {
         "label": "15 km hel",
@@ -2517,7 +2562,12 @@ window.RACES = {
         "sista": "12:15",
         "maps": "https://maps.app.goo.gl/CjKTbUoaPdnCQKyp6",
         "placering": "På gång- och cykelbanan",
-        "setup": "Tidtagningsmatta 15 km marathon"
+        "setup": "Tidtagningsmatta 15 km marathon",
+        "place": "På gång- och cykelbanan",
+        "note": "På gång- och cykelbanan",
+        "who": "",
+        "image": "",
+        "name": "15 km hel"
        }
       ],
       "legs": [
@@ -5147,7 +5197,12 @@ window.RACES = {
         "sista": "16:20",
         "maps": "https://maps.app.goo.gl/S7J4vDoyicbUXuTz7",
         "placering": "",
-        "setup": "Tidtagningsmatta 40 km marathon"
+        "setup": "Tidtagningsmatta 40 km marathon",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "40 km hel"
        },
        {
         "label": "Vxl 1 halv",
@@ -5158,7 +5213,12 @@ window.RACES = {
         "sista": "11:35",
         "maps": "https://goo.gl/maps/Jc7Jk41MN698QR8MA",
         "placering": "Mellan träden, kolla bilden",
-        "setup": "Växlingsmatta stafett 21 km, växling 1"
+        "setup": "Växlingsmatta stafett 21 km, växling 1",
+        "place": "Mellan träden, kolla bilden",
+        "note": "Mellan träden, kolla bilden",
+        "who": "",
+        "image": "",
+        "name": "Vxl 1 halv"
        },
        {
         "label": "5 km halv",
@@ -5169,7 +5229,12 @@ window.RACES = {
         "sista": "10:30",
         "maps": "https://maps.app.goo.gl/3rZUFRFXxvxkxygz5",
         "placering": "På cykelbanan",
-        "setup": "Tidtagningsmatta 5 km halvmaraton"
+        "setup": "Tidtagningsmatta 5 km halvmaraton",
+        "place": "På cykelbanan",
+        "note": "På cykelbanan",
+        "who": "",
+        "image": "",
+        "name": "5 km halv"
        },
        {
         "label": "25 km hel",
@@ -5180,7 +5245,12 @@ window.RACES = {
         "sista": "14:00",
         "maps": "https://maps.app.goo.gl/WgBq6mBK5b3gc3J2A",
         "placering": "På gatan",
-        "setup": "Tidtagningsmatta 25 km marathon"
+        "setup": "Tidtagningsmatta 25 km marathon",
+        "place": "På gatan",
+        "note": "På gatan",
+        "who": "",
+        "image": "",
+        "name": "25 km hel"
        },
        {
         "label": "Vxl 2 hel",
@@ -5191,7 +5261,12 @@ window.RACES = {
         "sista": "13:20",
         "maps": "https://goo.gl/maps/M8jK3yfSE1Qgt1yD7",
         "placering": "",
-        "setup": "Växlingsmatta stafett 42 km, växling 2"
+        "setup": "Växlingsmatta stafett 42 km, växling 2",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "Vxl 2 hel"
        },
        {
         "label": "21,1 km hel",
@@ -5202,7 +5277,12 @@ window.RACES = {
         "sista": "13:10",
         "maps": "https://maps.app.goo.gl/gAjojiY4n92RPR3C8",
         "placering": "På gatan 4 meter brett",
-        "setup": "Tidtagningsmatta 21,1 km marathon"
+        "setup": "Tidtagningsmatta 21,1 km marathon",
+        "place": "På gatan 4 meter brett",
+        "note": "På gatan 4 meter brett",
+        "who": "",
+        "image": "",
+        "name": "21,1 km hel"
        },
        {
         "label": "20 km hel",
@@ -5213,7 +5293,12 @@ window.RACES = {
         "sista": "13:00",
         "maps": "https://maps.app.goo.gl/2fYZ6AdAjEUY2y6F7",
         "placering": "Inne på Fredriksdal. Kör in via Oskar trapps väg. Kod: 2109",
-        "setup": "Tidtagningsmatta 20 km marathon"
+        "setup": "Tidtagningsmatta 20 km marathon",
+        "place": "Inne på Fredriksdal. Kör in via Oskar trapps väg. Kod: 2109",
+        "note": "Inne på Fredriksdal. Kör in via Oskar trapps väg. Kod: 2109",
+        "who": "",
+        "image": "",
+        "name": "20 km hel"
        }
       ],
       "legs": [
@@ -6311,7 +6396,12 @@ window.RACES = {
         "sista": "10:30",
         "maps": "https://maps.app.goo.gl/3rZUFRFXxvxkxygz5",
         "placering": "På cykelbanan",
-        "setup": "Tidtagningsmatta 5 km halvmaraton"
+        "setup": "Tidtagningsmatta 5 km halvmaraton",
+        "place": "På cykelbanan",
+        "note": "På cykelbanan",
+        "who": "",
+        "image": "",
+        "name": "5 km halv"
        },
        {
         "label": "Vxl 1 halv",
@@ -6322,7 +6412,12 @@ window.RACES = {
         "sista": "11:35",
         "maps": "https://goo.gl/maps/Jc7Jk41MN698QR8MA",
         "placering": "Mellan träden, kolla bilden",
-        "setup": "Växlingsmatta stafett 21 km, växling 1"
+        "setup": "Växlingsmatta stafett 21 km, växling 1",
+        "place": "Mellan träden, kolla bilden",
+        "note": "Mellan träden, kolla bilden",
+        "who": "",
+        "image": "",
+        "name": "Vxl 1 halv"
        },
        {
         "label": "25 km hel",
@@ -6333,7 +6428,12 @@ window.RACES = {
         "sista": "14:00",
         "maps": "https://maps.app.goo.gl/WgBq6mBK5b3gc3J2A",
         "placering": "På gatan",
-        "setup": "Tidtagningsmatta 25 km marathon"
+        "setup": "Tidtagningsmatta 25 km marathon",
+        "place": "På gatan",
+        "note": "På gatan",
+        "who": "",
+        "image": "",
+        "name": "25 km hel"
        },
        {
         "label": "20 km hel",
@@ -6344,7 +6444,12 @@ window.RACES = {
         "sista": "13:00",
         "maps": "https://maps.app.goo.gl/2fYZ6AdAjEUY2y6F7",
         "placering": "Inne på Fredriksdal. Kör in via Oskar trapps väg. Kod: 2109",
-        "setup": "Tidtagningsmatta 20 km marathon"
+        "setup": "Tidtagningsmatta 20 km marathon",
+        "place": "Inne på Fredriksdal. Kör in via Oskar trapps väg. Kod: 2109",
+        "note": "Inne på Fredriksdal. Kör in via Oskar trapps väg. Kod: 2109",
+        "who": "",
+        "image": "",
+        "name": "20 km hel"
        },
        {
         "label": "21,1 km hel",
@@ -6355,7 +6460,12 @@ window.RACES = {
         "sista": "13:10",
         "maps": "https://maps.app.goo.gl/gAjojiY4n92RPR3C8",
         "placering": "På gatan 4 meter brett",
-        "setup": "Tidtagningsmatta 21,1 km marathon"
+        "setup": "Tidtagningsmatta 21,1 km marathon",
+        "place": "På gatan 4 meter brett",
+        "note": "På gatan 4 meter brett",
+        "who": "",
+        "image": "",
+        "name": "21,1 km hel"
        },
        {
         "label": "Vxl 2 hel",
@@ -6366,7 +6476,12 @@ window.RACES = {
         "sista": "13:20",
         "maps": "https://goo.gl/maps/M8jK3yfSE1Qgt1yD7",
         "placering": "",
-        "setup": "Växlingsmatta stafett 42 km, växling 2"
+        "setup": "Växlingsmatta stafett 42 km, växling 2",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "Vxl 2 hel"
        },
        {
         "label": "40 km hel",
@@ -6377,7 +6492,12 @@ window.RACES = {
         "sista": "16:20",
         "maps": "https://maps.app.goo.gl/S7J4vDoyicbUXuTz7",
         "placering": "",
-        "setup": "Tidtagningsmatta 40 km marathon"
+        "setup": "Tidtagningsmatta 40 km marathon",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "40 km hel"
        }
       ],
       "legs": [
@@ -7911,7 +8031,12 @@ window.RACES = {
         "sista": "14:40",
         "maps": "https://maps.app.goo.gl/fXqyu2zBCS4vqK45A",
         "placering": "Mellan de två små husen, några meter innan km 30. Precis innan vätskestationen på grusvägen",
-        "setup": "Tidtagningsmatta 30 km marathon"
+        "setup": "Tidtagningsmatta 30 km marathon",
+        "place": "Mellan de två små husen, några meter innan km 30. Precis innan vätskestationen på grusvägen",
+        "note": "Mellan de två små husen, några meter innan km 30. Precis innan vätskestationen på grusvägen",
+        "who": "",
+        "image": "",
+        "name": "30 km hel"
        },
        {
         "label": "10 km halv",
@@ -7922,7 +8047,12 @@ window.RACES = {
         "sista": "11:00",
         "maps": "https://maps.app.goo.gl/13ihXbypWRt4whqPA",
         "placering": "",
-        "setup": "Tidtagningsmatta 10 km halvmaraton"
+        "setup": "Tidtagningsmatta 10 km halvmaraton",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "10 km halv"
        },
        {
         "label": "Vxl 3 hel",
@@ -7933,7 +8063,12 @@ window.RACES = {
         "sista": "14:15",
         "maps": "https://maps.app.goo.gl/qcomRg4vijstmY576",
         "placering": "Där grusparkeringen börjar",
-        "setup": "Växlingsmatta stafett 42 km växling 3 / 21 km växling 2"
+        "setup": "Växlingsmatta stafett 42 km växling 3 / 21 km växling 2",
+        "place": "Där grusparkeringen börjar",
+        "note": "Där grusparkeringen börjar",
+        "who": "",
+        "image": "",
+        "name": "Vxl 3 hel"
        },
        {
         "label": "20 km halv",
@@ -7944,7 +8079,12 @@ window.RACES = {
         "sista": "13:40",
         "maps": "https://maps.app.goo.gl/Qj7XekAyUDrQXMTH6",
         "placering": "",
-        "setup": "Tidtagningsmatta 20 km halvmaraton"
+        "setup": "Tidtagningsmatta 20 km halvmaraton",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "20 km halv"
        },
        {
         "label": "Vxl 3 halv",
@@ -7955,7 +8095,12 @@ window.RACES = {
         "sista": "14:34",
         "maps": "https://goo.gl/maps/CmdqQdyi95PmNHyd8",
         "placering": "Där grusvägen möter gräset. 2 m från vallen som vätter mot cykelbanan",
-        "setup": "Växlingsmatta stafett 21 km, växling 3"
+        "setup": "Växlingsmatta stafett 21 km, växling 3",
+        "place": "Där grusvägen möter gräset. 2 m från vallen som vätter mot cykelbanan",
+        "note": "Där grusvägen möter gräset. 2 m från vallen som vätter mot cykelbanan",
+        "who": "",
+        "image": "",
+        "name": "Vxl 3 halv"
        },
        {
         "label": "35 km hel",
@@ -7966,7 +8111,12 @@ window.RACES = {
         "sista": "15:30",
         "maps": "https://maps.app.goo.gl/FQbZP4JehxCw63Vq9",
         "placering": "På cykelbanan innan tunneln",
-        "setup": "Tidtagningsmatta 35 km marathon"
+        "setup": "Tidtagningsmatta 35 km marathon",
+        "place": "På cykelbanan innan tunneln",
+        "note": "På cykelbanan innan tunneln",
+        "who": "",
+        "image": "",
+        "name": "35 km hel"
        },
        {
         "label": "15 km halv",
@@ -7977,7 +8127,12 @@ window.RACES = {
         "sista": "13:30",
         "maps": "https://maps.app.goo.gl/TsnngU5fv71nd3Vn9",
         "placering": "",
-        "setup": "Tidtagningsmatta 15 km halvmaraton"
+        "setup": "Tidtagningsmatta 15 km halvmaraton",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "15 km halv"
        }
       ],
       "legs": [
@@ -9731,7 +9886,12 @@ window.RACES = {
         "sista": "11:00",
         "maps": "https://maps.app.goo.gl/13ihXbypWRt4whqPA",
         "placering": "",
-        "setup": "Tidtagningsmatta 10 km halvmaraton"
+        "setup": "Tidtagningsmatta 10 km halvmaraton",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "10 km halv"
        },
        {
         "label": "Vxl 3 halv",
@@ -9742,7 +9902,12 @@ window.RACES = {
         "sista": "14:34",
         "maps": "https://goo.gl/maps/CmdqQdyi95PmNHyd8",
         "placering": "Där grusvägen möter gräset. 2 m från vallen som vätter mot cykelbanan",
-        "setup": "Växlingsmatta stafett 21 km, växling 3"
+        "setup": "Växlingsmatta stafett 21 km, växling 3",
+        "place": "Där grusvägen möter gräset. 2 m från vallen som vätter mot cykelbanan",
+        "note": "Där grusvägen möter gräset. 2 m från vallen som vätter mot cykelbanan",
+        "who": "",
+        "image": "",
+        "name": "Vxl 3 halv"
        },
        {
         "label": "15 km halv",
@@ -9753,7 +9918,12 @@ window.RACES = {
         "sista": "13:30",
         "maps": "https://maps.app.goo.gl/TsnngU5fv71nd3Vn9",
         "placering": "",
-        "setup": "Tidtagningsmatta 15 km halvmaraton"
+        "setup": "Tidtagningsmatta 15 km halvmaraton",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "15 km halv"
        },
        {
         "label": "20 km halv",
@@ -9764,7 +9934,12 @@ window.RACES = {
         "sista": "13:40",
         "maps": "https://maps.app.goo.gl/Qj7XekAyUDrQXMTH6",
         "placering": "",
-        "setup": "Tidtagningsmatta 20 km halvmaraton"
+        "setup": "Tidtagningsmatta 20 km halvmaraton",
+        "place": "",
+        "note": "",
+        "who": "",
+        "image": "",
+        "name": "20 km halv"
        },
        {
         "label": "Vxl 3 hel",
@@ -9775,7 +9950,12 @@ window.RACES = {
         "sista": "14:15",
         "maps": "https://maps.app.goo.gl/qcomRg4vijstmY576",
         "placering": "Där grusparkeringen börjar",
-        "setup": "Växlingsmatta stafett 42 km växling 3 / 21 km växling 2"
+        "setup": "Växlingsmatta stafett 42 km växling 3 / 21 km växling 2",
+        "place": "Där grusparkeringen börjar",
+        "note": "Där grusparkeringen börjar",
+        "who": "",
+        "image": "",
+        "name": "Vxl 3 hel"
        },
        {
         "label": "30 km hel",
@@ -9786,7 +9966,12 @@ window.RACES = {
         "sista": "14:40",
         "maps": "https://maps.app.goo.gl/fXqyu2zBCS4vqK45A",
         "placering": "Mellan de två små husen, några meter innan km 30. Precis innan vätskestationen på grusvägen",
-        "setup": "Tidtagningsmatta 30 km marathon"
+        "setup": "Tidtagningsmatta 30 km marathon",
+        "place": "Mellan de två små husen, några meter innan km 30. Precis innan vätskestationen på grusvägen",
+        "note": "Mellan de två små husen, några meter innan km 30. Precis innan vätskestationen på grusvägen",
+        "who": "",
+        "image": "",
+        "name": "30 km hel"
        },
        {
         "label": "35 km hel",
@@ -9797,7 +9982,12 @@ window.RACES = {
         "sista": "15:30",
         "maps": "https://maps.app.goo.gl/FQbZP4JehxCw63Vq9",
         "placering": "På cykelbanan innan tunneln",
-        "setup": "Tidtagningsmatta 35 km marathon"
+        "setup": "Tidtagningsmatta 35 km marathon",
+        "place": "På cykelbanan innan tunneln",
+        "note": "På cykelbanan innan tunneln",
+        "who": "",
+        "image": "",
+        "name": "35 km hel"
        }
       ],
       "legs": [
@@ -13299,7 +13489,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 69,
+  "rev": 70,
   "groups": [
    {
     "id": "startmal",
@@ -13329,9 +13519,9 @@ window.RACES = {
         "forsta": "09:15",
         "sista": "10:15",
         "maps": "",
-        "placering": "Ribersborg – start- och målgång",
-        "note": "Ribersborg – start- och målgång",
-        "place": "Ribersborg – start- och målgång",
+        "placering": "Ribersborg – start- och målgång\nCykel & gångbana. 6 meter.",
+        "note": "Ribersborg – start- och målgång\nCykel & gångbana. 6 meter.",
+        "place": "Ribersborg – start- och målgång\nCykel & gångbana. 6 meter.",
         "setup": "Start- och målgång, biblancering",
         "gpx": "",
         "image": "img/lopp2-startmal-start-mal-ribersborg-mu6oe79b.jpg"
@@ -13407,9 +13597,9 @@ window.RACES = {
         "forsta": "09:15",
         "sista": "10:15",
         "maps": "",
-        "placering": "Ribersborg – start- och målgång",
-        "note": "Ribersborg – start- och målgång",
-        "place": "Ribersborg – start- och målgång",
+        "placering": "Ribersborg – start- och målgång\nCykel & gångbana. 6 meter.",
+        "note": "Ribersborg – start- och målgång\nCykel & gångbana. 6 meter.",
+        "place": "Ribersborg – start- och målgång\nCykel & gångbana. 6 meter.",
         "setup": "Start- och målgång, biblancering",
         "gpx": "",
         "image": "img/lopp2-startmal-start-mal-ribersborg-mu6oe79b.jpg"
@@ -13519,7 +13709,7 @@ window.RACES = {
         "maps": "",
         "placering": "3M Cykelbana",
         "note": "3M Cykelbana",
-        "place": "3 m",
+        "place": "3M Cykelbana",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-20-km-hel.jpg"
@@ -14618,7 +14808,7 @@ window.RACES = {
         "maps": "",
         "placering": "3M Cykelbana",
         "note": "3M Cykelbana",
-        "place": "3 m",
+        "place": "3M Cykelbana",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-20-km-hel.jpg"
@@ -16212,7 +16402,7 @@ window.RACES = {
         "maps": "",
         "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
         "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
-        "place": "",
+        "place": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
         "image": "img/lopp2-ostra-10-km-halv.jpg"
@@ -17411,7 +17601,7 @@ window.RACES = {
         "maps": "",
         "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
         "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
-        "place": "",
+        "place": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
         "image": "img/lopp2-ostra-10-km-halv.jpg"
@@ -18650,7 +18840,7 @@ window.RACES = {
         "maps": "",
         "placering": "Förvaring",
         "note": "Förvaring",
-        "place": "",
+        "place": "Förvaring",
         "setup": "Tidtagningsmatta 20 km halvmarathon",
         "gpx": "",
         "image": "img/lopp2-norra-20-km-halv.jpg"
@@ -19428,7 +19618,7 @@ window.RACES = {
         "maps": "",
         "placering": "Förvaring",
         "note": "Förvaring",
-        "place": "",
+        "place": "Förvaring",
         "setup": "Tidtagningsmatta 20 km halvmarathon",
         "gpx": "",
         "image": "img/lopp2-norra-20-km-halv.jpg"
