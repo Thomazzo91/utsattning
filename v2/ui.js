@@ -1287,29 +1287,50 @@
   async function ghJson(method, url, body, opts) {
     const token = localStorage.getItem(GH_TOKEN_KEY) || "";
     const headers = { Accept: "application/vnd.github+json", Authorization: "Bearer " + token };
-    if (method === "GET") headers["Cache-Control"] = "no-cache";
+    if (method === "GET") {
+      headers["Cache-Control"] = "no-cache";
+      url += (url.indexOf("?") >= 0 ? "&" : "?") + "ts=" + Date.now();
+    }
     const payload = body ? JSON.stringify(body) : undefined;
     if (payload) headers["Content-Type"] = "application/json";
     const tries = (opts && opts.tries) || (method === "GET" ? 2 : 3);
     const limitMs = (opts && opts.timeout) || (method === "GET" ? 8000 : 15000);
+    const skipBody = method === "PUT" || method === "PATCH";
     let lastErr;
     for (let i = 0; i < tries; i++) {
       const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
       const timer = ctrl ? setTimeout(() => ctrl.abort(), limitMs) : null;
       try {
         const res = await fetch(url, { method, headers, body: payload, signal: ctrl ? ctrl.signal : undefined });
-        const text = await res.text();
-        let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch (e) {}
-        if (res.status === 502 || res.status === 503 || res.status === 504) throw new Error("HTTP " + res.status);
+        if (res.status === 502 || res.status === 503 || res.status === 504) {
+          try { if (res.body && res.body.cancel) res.body.cancel(); } catch (e) {}
+          throw new Error("HTTP " + res.status);
+        }
         if (!res.ok) {
+          const text = await res.text();
+          let data = {};
+          try { data = text ? JSON.parse(text) : {}; } catch (e) {}
           const err = new Error((data && data.message) || ("HTTP " + res.status));
           err.status = res.status;
           throw err;
         }
+        if (skipBody) {
+          try { if (res.body && res.body.cancel) res.body.cancel(); } catch (e) {}
+          return { ok: true, status: res.status };
+        }
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (e) {}
         return data;
       } catch (e) {
         lastErr = e;
+        if (skipBody && isNetworkErr(e) && !(opts && opts.noVerify)) {
+          try {
+            await sleep(500);
+            const check = await ghJson("GET", url.split("?")[0], null, { tries: 1, timeout: 8000, noVerify: true });
+            if (check && (check.sha || check.content || check.ok)) return { ok: true, recovered: true };
+          } catch (e2) {}
+        }
         const status = e && e.status;
         const retry = isNetworkErr(e) || status === 502 || status === 503 || status === 504 || /HTTP 502|HTTP 503|HTTP 504/i.test(String((e && e.message) || ""));
         if (!retry || i === tries - 1) throw e;

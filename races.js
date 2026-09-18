@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 67,
+  "rev": 68,
   "groups": [
    {
     "id": "startmal",
@@ -18677,7 +18677,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 40 km marathon",
         "gpx": "",
-        "image": "img/lopp2-norra-40-km-hel-mu6pcl0s.jpg"
+        "image": "img/lopp2-norra-40-km-hel.jpg"
        }
       ],
       "legs": [],
@@ -19455,7 +19455,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 40 km marathon",
         "gpx": "",
-        "image": "img/lopp2-norra-40-km-hel-mu6pcl0s.jpg"
+        "image": "img/lopp2-norra-40-km-hel.jpg"
        }
       ],
       "legs": [],
