@@ -28,7 +28,7 @@
   let editTeamId = "";
   let pickingIndex = -1;
   let ptFormIndex = -1;
-  let publishing = false;
+  let publishGate = Promise.resolve();
   const GH_REPO = "Thomazzo91/utsattning";
   const GH_TOKEN_KEY = "utsattning-publish-token";
   const editorEl = document.getElementById("editor");
@@ -1273,6 +1273,7 @@
   async function ghJson(method, url, body) {
     const token = localStorage.getItem(GH_TOKEN_KEY) || "";
     const headers = { Accept: "application/vnd.github+json", Authorization: "Bearer " + token };
+    if (method === "GET") headers["Cache-Control"] = "no-cache";
     if (body) headers["Content-Type"] = "application/json";
     const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
     const text = await res.text();
@@ -1281,30 +1282,50 @@
     if (!res.ok) throw new Error((data && data.message) || ("HTTP " + res.status));
     return data;
   }
+  function isRetryableGitErr(err) {
+    const msg = String((err && err.message) || err || "");
+    return /fast.?forward|conflict|422|409|temporarily|rate limit|502|503|504|reference does not exist/i.test(msg);
+  }
   async function gitCommitFiles(entries, message) {
     const api = "https://api.github.com/repos/" + GH_REPO;
+    const treeItems = [];
+    for (let i = 0; i < entries.length; i++) {
+      const ent = entries[i];
+      const blob = await ghJson("POST", api + "/git/blobs", { content: ent.b64, encoding: "base64" });
+      treeItems.push({ path: ent.path, mode: "100644", type: "blob", sha: blob.sha });
+    }
+    const stamp = String(Date.now());
+    const htmlPaths = ["index.html", "v2/index.html", "v2/oversikt.html"];
     let lastErr;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 8; attempt++) {
       try {
         const ref = await ghJson("GET", api + "/git/ref/heads/main");
-        const commit = await ghJson("GET", api + "/git/commits/" + ref.object.sha);
-        const treeItems = [];
-        for (let i = 0; i < entries.length; i++) {
-          const ent = entries[i];
-          const blob = await ghJson("POST", api + "/git/blobs", { content: ent.b64, encoding: "base64" });
-          treeItems.push({ path: ent.path, mode: "100644", type: "blob", sha: blob.sha });
+        const headSha = ref && ref.object && ref.object.sha;
+        if (!headSha) throw new Error("Ingen main-branch");
+        const commit = await ghJson("GET", api + "/git/commits/" + headSha);
+        const items = treeItems.slice();
+        for (let h = 0; h < htmlPaths.length; h++) {
+          const path = htmlPaths[h];
+          try {
+            const meta = await ghJson("GET", api + "/contents/" + path);
+            let html = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
+            html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
+            const blob = await ghJson("POST", api + "/git/blobs", { content: utf8ToB64(html), encoding: "base64" });
+            items.push({ path: path, mode: "100644", type: "blob", sha: blob.sha });
+          } catch (e) {}
         }
-        const tree = await ghJson("POST", api + "/git/trees", { base_tree: commit.tree.sha, tree: treeItems });
+        const tree = await ghJson("POST", api + "/git/trees", { base_tree: commit.tree.sha, tree: items });
         const created = await ghJson("POST", api + "/git/commits", {
           message: message,
           tree: tree.sha,
-          parents: [ref.object.sha]
+          parents: [headSha]
         });
-        await ghJson("PATCH", api + "/git/refs/heads/main", { sha: created.sha });
+        await ghJson("PATCH", api + "/git/refs/heads/main", { sha: created.sha, force: false });
         return created.sha;
       } catch (e) {
         lastErr = e;
-        await new Promise((r) => setTimeout(r, 500));
+        if (!isRetryableGitErr(e) && attempt >= 1) break;
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
       }
     }
     throw lastErr || new Error("Git commit");
@@ -1341,14 +1362,21 @@
           const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
           if (!Array.isArray(stops)) return;
           stops.forEach((s) => {
-            if (!s || typeof s.image !== "string" || s.image.indexOf("data:image") !== 0) return;
-            const raw = s.image;
-            if (seen.has(raw)) { s.image = seen.get(raw); return; }
+            if (!s) return;
+            const pending = pendingImgs.get(stopImgKey(ev.id, t.id, s.label || ""));
+            let raw = "";
+            if (typeof s.image === "string" && s.image.indexOf("data:image") === 0) raw = s.image;
+            else if (pending && String(pending).indexOf("data:image") === 0) raw = pending;
+            if (!raw) return;
             const payload = dataImagePayload(raw);
             if (!payload) return;
             const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
-            const rel = "img/" + fname;
-            seen.set(raw, rel);
+            const rel = (typeof s.image === "string" && s.image.indexOf("img/") === 0) ? s.image : ("img/" + fname);
+            if (seen.has(rel)) {
+              s.image = rel;
+              return;
+            }
+            seen.set(rel, rel);
             uploads.push({ path: rel, b64: payload.b64, evId: ev.id, teamId: t.id, label: s.label || "" });
             s.image = rel;
           });
@@ -1357,18 +1385,18 @@
     });
     return uploads;
   }
-  async function publishCatalog() {
-    if (isViewOnly()) return false;
-    if (publishing) {
-      showToast("Publicerar redan…");
-      return false;
-    }
+  function publishCatalog() {
+    if (isViewOnly()) return Promise.resolve(false);
+    const job = publishGate.then(() => publishCatalogNow(), () => publishCatalogNow());
+    publishGate = job.then(() => undefined, () => undefined);
+    return job;
+  }
+  async function publishCatalogNow() {
     const token = await ensurePublishToken();
     if (!token) {
       showToast("Sparat på den här enheten. Publicera via Meny → Spara för alla");
       return false;
     }
-    publishing = true;
     setBusy(true, "Sparar för alla…");
     try {
       persist();
@@ -1376,19 +1404,8 @@
       persist();
       const races = M.buildRacesObject(store.events);
       const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
-      const stamp = String(Date.now());
       const files = [{ path: "races.js", b64: utf8ToB64(racesBody) }];
       uploads.forEach((u) => files.push({ path: u.path, b64: u.b64 }));
-      const htmlPaths = ["index.html", "v2/index.html", "v2/oversikt.html"];
-      for (let i = 0; i < htmlPaths.length; i++) {
-        const path = htmlPaths[i];
-        try {
-          const meta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path);
-          let html = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ""))));
-          html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
-          files.push({ path: path, b64: utf8ToB64(html) });
-        } catch (e) {}
-      }
       document.getElementById("busyText").textContent = uploads.length ? "Laddar upp bilder…" : "Sparar lopp…";
       await gitCommitFiles(files, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
       if (uploads.length) {
@@ -1400,7 +1417,7 @@
         if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
       });
       persist();
-      uploads.forEach((u) => pendingDel(stopImgKey(u.evId, u.teamId, u.label)));
+      await Promise.all(uploads.map((u) => pendingDel(stopImgKey(u.evId, u.teamId, u.label))));
       showToast("Sparat för alla på utsattning-länken");
       return true;
     } catch (e) {
@@ -1408,10 +1425,11 @@
       if (/bad credentials|401|unauthorized/i.test(msg)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
         showToast("Token ogiltig. Försök Spara för alla igen.");
+      } else if (/fast.?forward/i.test(msg)) {
+        showToast("Kunde inte spara för alla just nu. Tryck Spara för alla igen.");
       } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
       return false;
     } finally {
-      publishing = false;
       setBusy(false);
     }
   }
