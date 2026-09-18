@@ -16239,7 +16239,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
-        "image": "img/lopp2-ostra-30-km-hel.jpg"
+        "image": ""
        }
       ],
       "legs": [],
@@ -17438,7 +17438,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
-        "image": "img/lopp2-ostra-30-km-hel.jpg"
+        "image": ""
        }
       ],
       "legs": [],
@@ -18629,7 +18629,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-norra-35-km-hel.jpg"
        },
        {
         "idx": 2,
@@ -19407,7 +19407,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-norra-35-km-hel.jpg"
        },
        {
         "idx": 2,
