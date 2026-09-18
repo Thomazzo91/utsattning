@@ -1062,6 +1062,12 @@
     document.getElementById("more").style.display = "none";
     await publishCatalog();
   });
+  const tokenBtn = document.getElementById("tokenBtn");
+  if (tokenBtn) tokenBtn.addEventListener("click", async () => {
+    document.getElementById("more").style.display = "none";
+    const t = await askPublishToken();
+    showToast(t ? "Nyckel sparad på den här enheten" : "Ingen nyckel sparad");
+  });
   document.getElementById("editorDone").addEventListener("click", closeEditor);
   document.getElementById("exportBtn").addEventListener("click", () => {
     document.getElementById("more").style.display = "none";
@@ -1352,9 +1358,12 @@
       if (cancel) cancel.onclick = () => finish("");
     });
   }
-  async function ensurePublishToken() {
+  async function ensurePublishToken(force) {
     const t = loadPublishToken();
-    if (t) return t;
+    if (!force && t && t.length >= 32) return t;
+    if (t && t.length < 32) {
+      try { localStorage.removeItem(GH_TOKEN_KEY); } catch (e) {}
+    }
     return askPublishToken();
   }
   function collectUploads() {
@@ -1446,22 +1455,24 @@
       const msg = (e && e.message) || "";
       const name = (e && e.name) || "";
       const status = e && e.status;
-      if ((status === 401 || status === 403) && !retried) {
+      const authish = status === 401 || status === 403 || (P.isAuthFail && P.isAuthFail(e));
+      const netish = /abort/i.test(msg + " " + name) || (P.isNet && P.isNet(e));
+      if (!retried && (authish || netish)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
         keepBusy = true;
         setBusy(false);
-        showToast("Nyckeln avvisades. Klistra in den igen.");
+        showToast("Klistra in GitHub-nyckeln igen (samma som på datorn).");
         const again = await askPublishToken();
         if (again) return publishCatalogNow(true);
         showToast("Sparat på den här enheten. Publicera via Meny → Spara för alla");
         return false;
       }
-      if (status === 401 || status === 403) {
-        showToast("Nyckeln avvisades. Klistra in den igen via Spara för alla.");
+      if (authish) {
+        showToast("Nyckeln avvisades. Meny → Ny GitHub-nyckel.");
       } else if (P.isConflict && P.isConflict(e)) {
         showToast("GitHub var upptaget. Tryck Klar igen.");
-      } else if (/abort/i.test(msg + " " + name) || (P.isNet && P.isNet(e))) {
-        showToast("Nådde inte GitHub. Sparat här — tryck Klar igen.");
+      } else if (netish) {
+        showToast("Nådde inte GitHub. Meny → Ny GitHub-nyckel, sen Klar igen.");
       } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
       return false;
     } finally {

@@ -18,35 +18,60 @@
 
   async function req(token, method, url, body, timeoutMs) {
     const headers = {
-      Accept: "application/vnd.github+json",
-      Authorization: "Bearer " + token
+      Accept: "application/vnd.github+json"
     };
+    if (token) headers.Authorization = "Bearer " + token;
     if (method === "GET") {
       headers["Cache-Control"] = "no-cache";
       url += (url.indexOf("?") >= 0 ? "&" : "?") + "ts=" + Date.now();
     }
     if (body) headers["Content-Type"] = "application/json";
-    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs || (method === "GET" ? 12000 : 25000)) : null;
-    try {
-      const res = await fetch(url, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-        signal: ctrl ? ctrl.signal : undefined
-      });
-      const text = await res.text();
-      let data = {};
-      try { data = text ? JSON.parse(text) : {}; } catch (e) {}
-      if (!res.ok) {
-        const err = new Error((data && data.message) || ("HTTP " + res.status));
-        err.status = res.status;
-        throw err;
+    const tries = 2;
+    const limitMs = timeoutMs || (method === "GET" ? 20000 : 30000);
+    let lastErr;
+    for (let attempt = 0; attempt < tries; attempt++) {
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), limitMs) : null;
+      try {
+        const res = await fetch(url, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+          signal: ctrl ? ctrl.signal : undefined
+        });
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+        if (!res.ok) {
+          const err = new Error((data && data.message) || ("HTTP " + res.status));
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      } catch (e) {
+        lastErr = e;
+        if (!isNet(e) || attempt === tries - 1) throw e;
+        await sleep(500 * (attempt + 1));
+      } finally {
+        if (timer) clearTimeout(timer);
       }
-      return data;
-    } finally {
-      if (timer) clearTimeout(timer);
     }
+    throw lastErr || new Error("GitHub");
+  }
+
+  async function githubReachable() {
+    try {
+      await req("", "GET", API, null, 15000);
+      return true;
+    } catch (e) {
+      const status = e && e.status;
+      return status === 401 || status === 403 || status === 404;
+    }
+  }
+
+  function isAuthFail(err) {
+    const status = err && err.status;
+    return status === 401 || status === 403;
   }
 
   function utf8ToB64(str) {
@@ -92,7 +117,17 @@
   }
 
   async function checkToken(token) {
-    await req(token, "GET", API, null, 12000);
+    try {
+      await req(token, "GET", API, null, 20000);
+    } catch (e) {
+      if (isAuthFail(e)) throw e;
+      if (isNet(e) && (await githubReachable())) {
+        const err = new Error("Bad credentials");
+        err.status = 401;
+        throw err;
+      }
+      throw e;
+    }
   }
 
   async function readRaces(token) {
@@ -327,6 +362,8 @@
     checkToken,
     normalizeToken,
     isNet,
-    isConflict
+    isConflict,
+    isAuthFail,
+    githubReachable
   };
 })(window);
