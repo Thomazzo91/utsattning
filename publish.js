@@ -22,7 +22,6 @@
     };
     if (token) headers.Authorization = "Bearer " + token;
     if (method === "GET") {
-      headers["Cache-Control"] = "no-cache";
       url += (url.indexOf("?") >= 0 ? "&" : "?") + "ts=" + Date.now();
     }
     if (body) headers["Content-Type"] = "application/json";
