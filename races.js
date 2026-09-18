@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 51,
+  "rev": 52,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 54,
+  "rev": 55,
   "groups": [
    {
     "id": "startmal",
@@ -13308,74 +13308,61 @@ window.RACES = {
     "color": "#ef4444",
     "modes": {
      "kortast": {
-      "km": 0.11,
-      "min": 1.5,
+      "km": 0,
+      "min": 0,
       "gpx": "",
       "stops": [
        {
         "idx": 1,
-        "label": "Start/Mål Ribersborg",
         "name": "Start/Mål Ribersborg",
+        "label": "Start/Mål Ribersborg",
         "who": "",
-        "lat": 55.6029287,
+        "lat": 55.602929,
         "lon": 12.969633,
-        "iga": "06:00",
         "starth": 0,
         "startm": 0,
         "firsth": 0,
         "firstm": 0,
         "lasth": 0,
         "lastm": 0,
+        "iga": "06:00",
         "forsta": "09:15",
         "sista": "10:15",
         "maps": "",
-        "note": "",
-        "place": "Ribersborg – start- och målgång",
         "placering": "Ribersborg – start- och målgång",
+        "note": "Ribersborg – start- och målgång",
+        "place": "Ribersborg – start- och målgång",
         "setup": "Start- och målgång, biblancering",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-startmal-start-mal-ribersborg-mu6oe79b.jpg"
        },
        {
         "idx": 2,
-        "label": "Målgång Ribersborg",
         "name": "Målgång Ribersborg",
+        "label": "Målgång Ribersborg",
         "who": "",
         "lat": 55.6033681,
         "lon": 12.9711865,
-        "iga": "08:00",
         "starth": 0,
         "startm": 0,
         "firsth": 0,
         "firstm": 0,
         "lasth": 0,
         "lastm": 0,
+        "iga": "08:00",
         "forsta": "10:18",
         "sista": "16:00",
         "maps": "",
+        "placering": "Ribersborg – målgång",
         "note": "",
         "place": "Ribersborg – målgång",
-        "placering": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
         "image": ""
        }
       ],
       "legs": [],
-      "track": [
-       [
-        12.969633,
-        55.6029287
-       ],
-       [
-        12.97041,
-        55.6031484
-       ],
-       [
-        12.9711865,
-        55.6033681
-       ]
-      ],
+      "track": [],
       "segs": [
        {
         "profile": "foot",
@@ -13399,74 +13386,61 @@ window.RACES = {
       ]
      },
      "iga": {
-      "km": 0.11,
-      "min": 1.5,
+      "km": 0,
+      "min": 0,
       "gpx": "",
       "stops": [
        {
         "idx": 1,
-        "label": "Start/Mål Ribersborg",
         "name": "Start/Mål Ribersborg",
+        "label": "Start/Mål Ribersborg",
         "who": "",
-        "lat": 55.6029287,
+        "lat": 55.602929,
         "lon": 12.969633,
-        "iga": "06:00",
         "starth": 0,
         "startm": 0,
         "firsth": 0,
         "firstm": 0,
         "lasth": 0,
         "lastm": 0,
+        "iga": "06:00",
         "forsta": "09:15",
         "sista": "10:15",
         "maps": "",
-        "note": "",
-        "place": "Ribersborg – start- och målgång",
         "placering": "Ribersborg – start- och målgång",
+        "note": "Ribersborg – start- och målgång",
+        "place": "Ribersborg – start- och målgång",
         "setup": "Start- och målgång, biblancering",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-startmal-start-mal-ribersborg-mu6oe79b.jpg"
        },
        {
         "idx": 2,
-        "label": "Målgång Ribersborg",
         "name": "Målgång Ribersborg",
+        "label": "Målgång Ribersborg",
         "who": "",
         "lat": 55.6033681,
         "lon": 12.9711865,
-        "iga": "08:00",
         "starth": 0,
         "startm": 0,
         "firsth": 0,
         "firstm": 0,
         "lasth": 0,
         "lastm": 0,
+        "iga": "08:00",
         "forsta": "10:18",
         "sista": "16:00",
         "maps": "",
+        "placering": "Ribersborg – målgång",
         "note": "",
         "place": "Ribersborg – målgång",
-        "placering": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
         "image": ""
        }
       ],
       "legs": [],
-      "track": [
-       [
-        12.969633,
-        55.6029287
-       ],
-       [
-        12.97041,
-        55.6031484
-       ],
-       [
-        12.9711865,
-        55.6033681
-       ]
-      ],
+      "track": [],
       "segs": [
        {
         "profile": "foot",
