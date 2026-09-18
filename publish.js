@@ -59,6 +59,20 @@
     return btoa(binary);
   }
 
+  function b64ToUtf8(b64) {
+    const bin = atob(String(b64 || "").replace(/\s/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function normalizeToken(t) {
+    return String(t || "")
+      .replace(/^\uFEFF/, "")
+      .replace(/^\s*Bearer\s+/i, "")
+      .replace(/[\s\u200b\u00a0\ufeff]+/g, "");
+  }
+
   function parseRaces(text) {
     const a = String(text || "").indexOf("{");
     const b = String(text || "").lastIndexOf("}");
@@ -77,26 +91,140 @@
     return sha;
   }
 
+  async function checkToken(token) {
+    await req(token, "GET", API, null, 12000);
+  }
+
   async function readRaces(token) {
     const sha = await headSha(token);
-    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), 20000) : null;
-    try {
-      const res = await fetch(API + "/contents/races.js?ref=" + encodeURIComponent(sha) + "&ts=" + Date.now(), {
-        headers: {
-          Accept: "application/vnd.github.raw",
-          Authorization: "Bearer " + token,
-          "Cache-Control": "no-cache"
-        },
-        signal: ctrl ? ctrl.signal : undefined
-      });
-      if (res.status === 404) return {};
-      const text = await res.text();
-      if (!res.ok) throw new Error("Kunde inte läsa katalogen");
-      return parseRaces(text);
-    } finally {
-      if (timer) clearTimeout(timer);
+    const commit = await req(token, "GET", API + "/git/commits/" + sha);
+    const treeSha = commit && commit.tree && commit.tree.sha;
+    if (!treeSha) throw new Error("Kunde inte läsa katalogen");
+    const tree = await req(token, "GET", API + "/git/trees/" + treeSha);
+    const node = ((tree && tree.tree) || []).find((n) => n.path === "races.js");
+    if (!node || !node.sha) return {};
+    const blob = await req(token, "GET", API + "/git/blobs/" + node.sha, null, 30000);
+    return parseRaces(b64ToUtf8(blob && blob.content));
+  }
+
+  function clone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function stopLabel(s) {
+    return String((s && (s.label || s.name)) || "").trim().toLowerCase();
+  }
+
+  function pickText(localVal, remoteVal) {
+    const l = localVal == null ? "" : String(localVal).trim();
+    const r = remoteVal == null ? "" : String(remoteVal).trim();
+    return l || r;
+  }
+
+  function mergeStop(remoteS, localS, uploadPath) {
+    const r = Object.assign({}, remoteS || {}, localS || {});
+    ["setup", "placering", "place", "note", "iga", "forsta", "sista", "maps", "who"].forEach((k) => {
+      r[k] = pickText(localS && localS[k], remoteS && remoteS[k]);
+    });
+    r.place = r.placering || r.place || "";
+    if (!r.note) r.note = r.placering || "";
+    const llat = localS && Number(localS.lat);
+    const llon = localS && Number(localS.lon);
+    if (Number.isFinite(llat) && Number.isFinite(llon)) {
+      r.lat = llat;
+      r.lon = llon;
+    } else if (remoteS && Number.isFinite(Number(remoteS.lat))) {
+      r.lat = Number(remoteS.lat);
+      r.lon = Number(remoteS.lon);
     }
+    if (uploadPath) r.image = uploadPath;
+    else if (localS && String(localS.image || "").indexOf("img/") === 0) r.image = localS.image;
+    else if (remoteS && String(remoteS.image || "").indexOf("img/") === 0) r.image = remoteS.image;
+    else if (localS && localS.image && String(localS.image).indexOf("data:") !== 0) r.image = localS.image;
+    else r.image = (remoteS && remoteS.image && String(remoteS.image).indexOf("data:") !== 0) ? remoteS.image : "";
+    if (localS && (localS.label || localS.name)) {
+      r.label = localS.label || localS.name;
+      r.name = localS.name || localS.label;
+    }
+    return r;
+  }
+
+  function indexStops(stops) {
+    const m = {};
+    (stops || []).forEach((s) => {
+      const k = stopLabel(s);
+      if (k && !m[k]) m[k] = s;
+    });
+    return m;
+  }
+
+  function mergeModeStops(remoteStops, localStops, upForGroup) {
+    const rIndex = indexStops(remoteStops);
+    const used = {};
+    const src = (localStops && localStops.length) ? localStops : (remoteStops || []);
+    const out = src.map((s) => {
+      const k = stopLabel(s);
+      if (k) used[k] = true;
+      return mergeStop(rIndex[k], s, k && upForGroup[k]);
+    });
+    (remoteStops || []).forEach((s) => {
+      const k = stopLabel(s);
+      if (k && !used[k]) out.push(clone(s));
+    });
+    return out;
+  }
+
+  function mergeRaces(remote, local, opts) {
+    const removed = (opts && opts.removed) || [];
+    const uploads = (opts && opts.uploads) || [];
+    const up = {};
+    uploads.forEach((u) => {
+      up[String(u.evId) + "|" + String(u.teamId) + "|" + String(u.label || "").toLowerCase()] = u.path;
+    });
+    const out = clone(remote || {});
+    Object.keys(local || {}).forEach((id) => {
+      if (removed.indexOf(id) >= 0) return;
+      const loc = local[id];
+      const rem = remote && remote[id];
+      if (!rem) {
+        out[id] = clone(loc);
+        return;
+      }
+      const locGroups = loc.groups || [];
+      const remGroups = rem.groups || [];
+      const usedG = {};
+      const groups = locGroups.map((lg) => {
+        const rg = remGroups.find((g) => g.id === lg.id) || {};
+        usedG[lg.id] = true;
+        const g = clone(lg);
+        if (!g.modes) g.modes = {};
+        const upG = {};
+        Object.keys(up).forEach((k) => {
+          const p = k.split("|");
+          if (p[0] === id && p[1] === String(lg.id)) upG[p.slice(2).join("|")] = up[k];
+        });
+        ["kortast", "iga"].forEach((mn) => {
+          if (!g.modes[mn]) g.modes[mn] = (rg.modes && rg.modes[mn]) ? clone(rg.modes[mn]) : { stops: [] };
+          g.modes[mn].stops = mergeModeStops(
+            (rg.modes && rg.modes[mn] && rg.modes[mn].stops) || [],
+            (lg.modes && lg.modes[mn] && lg.modes[mn].stops) || [],
+            upG
+          );
+        });
+        if (rg.name && !g.name) g.name = rg.name;
+        return g;
+      });
+      remGroups.forEach((rg) => {
+        if (!usedG[rg.id]) groups.push(clone(rg));
+      });
+      out[id] = Object.assign({}, rem, loc, {
+        groups,
+        name: loc.name || rem.name,
+        rev: Math.max(Number(rem.rev) || 0, Number(loc.rev) || 0)
+      });
+    });
+    removed.forEach((id) => { delete out[id]; });
+    return out;
   }
 
   function walkStops(race, fn) {
@@ -108,42 +236,25 @@
     });
   }
 
-  function indexImages(race) {
-    const map = {};
-    walkStops(race || {}, (g, s) => {
-      const img = s && s.image;
-      if (img && String(img).indexOf("img/") === 0) {
-        map[String(g.id) + "|" + String(s.label || "").toLowerCase()] = img;
-      }
-    });
-    return map;
-  }
-
-  function mergeRaces(remote, local, opts) {
-    const removed = (opts && opts.removed) || [];
-    const uploads = (opts && opts.uploads) || [];
-    const up = {};
-    uploads.forEach((u) => {
-      up[String(u.evId) + "|" + String(u.teamId) + "|" + String(u.label || "").toLowerCase()] = u.path;
-    });
-    const out = JSON.parse(JSON.stringify(remote || {}));
-    Object.keys(local || {}).forEach((id) => {
-      if (removed.indexOf(id) >= 0) return;
-      const loc = JSON.parse(JSON.stringify(local[id]));
-      const remoteImgs = indexImages(remote && remote[id]);
-      walkStops(loc, (g, s) => {
-        if (!s) return;
-        const uk = id + "|" + g.id + "|" + String(s.label || "").toLowerCase();
-        const sk = g.id + "|" + String(s.label || "").toLowerCase();
-        if (up[uk]) s.image = up[uk];
-        else if (s.image && String(s.image).indexOf("img/") === 0) return;
-        else if (remoteImgs[sk]) s.image = remoteImgs[sk];
-        else if (s.image && String(s.image).indexOf("data:") === 0) s.image = "";
+  function missingNotes(live, localRaces) {
+    const missing = [];
+    Object.keys(localRaces || {}).forEach((id) => {
+      ((localRaces[id] && localRaces[id].groups) || []).forEach((g) => {
+        (((g.modes && g.modes.kortast && g.modes.kortast.stops) || [])).forEach((s) => {
+          const want = String((s && (s.placering || s.note)) || "").trim();
+          if (!want) return;
+          let hit = "";
+          ((live && live[id] && live[id].groups) || []).forEach((lg) => {
+            if (lg.id !== g.id) return;
+            (((lg.modes && lg.modes.kortast && lg.modes.kortast.stops) || [])).forEach((ls) => {
+              if (stopLabel(ls) === stopLabel(s)) hit = String((ls && (ls.placering || ls.note)) || "").trim();
+            });
+          });
+          if (hit !== want) missing.push((s.label || "") + ": " + want);
+        });
       });
-      out[id] = loc;
     });
-    removed.forEach((id) => { delete out[id]; });
-    return out;
+    return missing;
   }
 
   async function commitFiles(token, files, message) {
@@ -212,6 +323,9 @@
     mergeRaces,
     commitFiles,
     uploadsInCatalog,
+    missingNotes,
+    checkToken,
+    normalizeToken,
     isNet,
     isConflict
   };

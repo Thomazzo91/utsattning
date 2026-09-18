@@ -1316,12 +1316,46 @@
     if (cat && String(cat).indexOf("img/") === 0) return String(cat).replace(/\.[a-z0-9]+$/i, ".jpg");
     return stableImgPath(ev && ev.id, team && team.id, stop && (stop.label || stop.name));
   }
-  async function ensurePublishToken() {
-    let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
-    if (t) return t;
-    t = (window.prompt("Klistra in GitHub-token med skrivrätt till utsattning (en gång). Sen syns ändringar för alla.") || "").trim();
+  function loadPublishToken() {
+    const P = window.MattorPublish;
+    const raw = localStorage.getItem(GH_TOKEN_KEY) || "";
+    return P && P.normalizeToken ? P.normalizeToken(raw) : String(raw).trim();
+  }
+  function savePublishToken(t) {
+    const P = window.MattorPublish;
+    t = P && P.normalizeToken ? P.normalizeToken(t) : String(t || "").trim();
     if (t) localStorage.setItem(GH_TOKEN_KEY, t);
     return t;
+  }
+  function askPublishToken() {
+    return new Promise((resolve) => {
+      const modal = document.getElementById("tokenModal");
+      const input = document.getElementById("tokenInput");
+      const save = document.getElementById("tokenSave");
+      const cancel = document.getElementById("tokenCancel");
+      if (!modal || !input || !save) {
+        resolve(savePublishToken(window.prompt("Klistra in GitHub-token en gång på den här enheten.") || ""));
+        return;
+      }
+      const finish = (val) => {
+        modal.classList.remove("on");
+        modal.setAttribute("aria-hidden", "true");
+        save.onclick = null;
+        if (cancel) cancel.onclick = null;
+        resolve(savePublishToken(val || ""));
+      };
+      modal.classList.add("on");
+      modal.setAttribute("aria-hidden", "false");
+      input.value = "";
+      setTimeout(() => { try { input.focus(); } catch (e) {} }, 50);
+      save.onclick = () => finish(input.value);
+      if (cancel) cancel.onclick = () => finish("");
+    });
+  }
+  async function ensurePublishToken() {
+    const t = loadPublishToken();
+    if (t) return t;
+    return askPublishToken();
   }
   function collectUploads() {
     const uploads = [];
@@ -1364,7 +1398,7 @@
     publishGate = job.then(() => undefined, () => undefined);
     return job;
   }
-  async function publishCatalogNow() {
+  async function publishCatalogNow(retried) {
     const P = window.MattorPublish;
     if (!P) {
       showToast("Kunde inte publicera: publiceringskoden saknas");
@@ -1376,7 +1410,9 @@
       return false;
     }
     setBusy(true, "Sparar för alla…");
+    let keepBusy = false;
     try {
+      await P.checkToken(token);
       persist();
       const uploads = collectUploads();
       persist();
@@ -1396,6 +1432,8 @@
       if (uploads.length && !P.uploadsInCatalog(live, uploads)) {
         throw new Error("Bilden nådde inte katalogen");
       }
+      const lost = P.missingNotes ? P.missingNotes(live, localRaces) : [];
+      if (lost.length) throw new Error("Noteringarna nådde inte katalogen");
       window.RACES = live;
       (store.events || []).forEach((ev) => {
         if (live[ev.id] && live[ev.id].rev) ev.rev = live[ev.id].rev;
@@ -1407,18 +1445,27 @@
     } catch (e) {
       const msg = (e && e.message) || "";
       const name = (e && e.name) || "";
-      const P2 = window.MattorPublish || {};
-      if (/bad credentials|401|unauthorized/i.test(msg)) {
+      const status = e && e.status;
+      if ((status === 401 || status === 403) && !retried) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
-        showToast("Token ogiltig. Försök Spara för alla igen.");
-      } else if (P2.isConflict && P2.isConflict(e)) {
+        keepBusy = true;
+        setBusy(false);
+        showToast("Nyckeln avvisades. Klistra in den igen.");
+        const again = await askPublishToken();
+        if (again) return publishCatalogNow(true);
+        showToast("Sparat på den här enheten. Publicera via Meny → Spara för alla");
+        return false;
+      }
+      if (status === 401 || status === 403) {
+        showToast("Nyckeln avvisades. Klistra in den igen via Spara för alla.");
+      } else if (P.isConflict && P.isConflict(e)) {
         showToast("GitHub var upptaget. Tryck Klar igen.");
-      } else if (/abort/i.test(msg + " " + name) || (P2.isNet && P2.isNet(e))) {
+      } else if (/abort/i.test(msg + " " + name) || (P.isNet && P.isNet(e))) {
         showToast("Nådde inte GitHub. Sparat här — tryck Klar igen.");
       } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
       return false;
     } finally {
-      setBusy(false);
+      if (!keepBusy) setBusy(false);
     }
   }
   function timeSelectHtml(id, value) {
