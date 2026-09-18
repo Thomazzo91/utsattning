@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 64,
+  "rev": 65,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 67,
+  "rev": 68,
   "groups": [
    {
     "id": "startmal",
@@ -13353,8 +13353,8 @@ window.RACES = {
         "forsta": "10:18",
         "sista": "16:00",
         "maps": "",
-        "placering": "Ribersborg – målgång",
-        "note": "Ribersborg – målgång",
+        "placering": "Ribersborg – målgång\n6meter",
+        "note": "Ribersborg – målgång\n6meter",
         "place": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
@@ -13431,8 +13431,8 @@ window.RACES = {
         "forsta": "10:18",
         "sista": "16:00",
         "maps": "",
-        "placering": "Ribersborg – målgång",
-        "note": "Ribersborg – målgång",
+        "placering": "Ribersborg – målgång\n6meter",
+        "note": "Ribersborg – målgång\n6meter",
         "place": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
@@ -16162,8 +16162,8 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "10:45",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "6 meter",
+        "note": "6 meter",
         "place": "",
         "setup": "Tidtagningsmatta 5 km marathon",
         "gpx": "",
@@ -17361,8 +17361,8 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "10:45",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "6 meter",
+        "note": "6 meter",
         "place": "",
         "setup": "Tidtagningsmatta 5 km marathon",
         "gpx": "",
