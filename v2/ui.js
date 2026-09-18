@@ -189,7 +189,109 @@
       mark = shown + (half ? "h" : "");
       sort = km * 10 + (half ? 1 : 0);
     }
-    return { mark: mark, sort: sort, half: half };
+    return { mark: mark, sort: sort, half: half, km: km };
+  }
+  function stopDistM(a, b) {
+    if (!a || !b) return 1e9;
+    const r = 6371000;
+    const p1 = a.lat * Math.PI / 180, p2 = b.lat * Math.PI / 180;
+    const dlat = p2 - p1, dlon = (b.lon - a.lon) * Math.PI / 180;
+    const h = Math.sin(dlat / 2) * Math.sin(dlat / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dlon / 2) * Math.sin(dlon / 2);
+    return 2 * r * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  function bearingTo(a, b) {
+    const lat1 = a.lat * Math.PI / 180, lat2 = b.lat * Math.PI / 180;
+    const dLon = (b.lon - a.lon) * Math.PI / 180;
+    const y = Math.sin(dLon) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+  function cardinalSv(deg) {
+    return ["N", "NO", "O", "SO", "S", "SV", "V", "NV"][Math.round(deg / 45) % 8];
+  }
+  function raceHeadingAt(stop) {
+    const ev = currentEvent();
+    if (!ev || !stop || !Number.isFinite(Number(stop.lat)) || !Number.isFinite(Number(stop.lon))) return null;
+    const pts = liveStops(ev);
+    if (pts.length < 2) return null;
+    const hereKey = ev.id + "|" + currentId + "|" + stop.label;
+    let i = pts.findIndex((p) => p.key === hereKey);
+    if (i < 0) i = pts.findIndex((p) => p.stop.label === stop.label && stopDistM(p.stop, stop) < 30);
+    if (i < 0) {
+      i = pts.reduce((best, p, idx) => {
+        const d = stopDistM(p.stop, stop);
+        if (d >= 40) return best;
+        if (best < 0 || d < stopDistM(pts[best].stop, stop)) return idx;
+        return best;
+      }, -1);
+    }
+    if (i < 0) return null;
+    const later = pts.filter((p, idx) => idx !== i && p.sort > pts[i].sort && stopDistM(p.stop, stop) >= 35);
+    if (later.length) {
+      later.sort((a, b) => stopDistM(a.stop, stop) - stopDistM(b.stop, stop));
+      return bearingTo(stop, later[0].stop);
+    }
+    const earlier = pts.filter((p, idx) => idx !== i && p.sort < pts[i].sort && stopDistM(p.stop, stop) >= 35);
+    if (earlier.length) {
+      earlier.sort((a, b) => stopDistM(a.stop, stop) - stopDistM(b.stop, stop));
+      return bearingTo(earlier[0].stop, stop);
+    }
+    return null;
+  }
+  let deviceHeading = null;
+  let compassWatching = false;
+  function onDeviceOrient(e) {
+    let h = null;
+    if (typeof e.webkitCompassHeading === "number" && !isNaN(e.webkitCompassHeading)) h = e.webkitCompassHeading;
+    else if (typeof e.alpha === "number") h = (360 - e.alpha) % 360;
+    if (h == null || !isFinite(h)) return;
+    deviceHeading = h;
+    paintCompass();
+  }
+  async function enableDeviceCompass() {
+    try {
+      if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") {
+        const p = await DeviceOrientationEvent.requestPermission();
+        if (p !== "granted") {
+          showToast("Ingen kompasstyrning på den här enheten");
+          return;
+        }
+      }
+      if (compassWatching) return;
+      compassWatching = true;
+      window.addEventListener("deviceorientationabsolute", onDeviceOrient, true);
+      window.addEventListener("deviceorientation", onDeviceOrient, true);
+      showToast("Kompassen följer telefonen");
+    } catch (e) {
+      showToast("Kunde inte starta kompassen");
+    }
+  }
+  function paintCompass() {
+    const el = document.getElementById("raceCompass");
+    if (!el) return;
+    const hide = !document.body.classList.contains("in-race") || isOverview() ||
+      document.body.classList.contains("choosing") || document.body.classList.contains("editing");
+    if (hide) {
+      el.classList.remove("is-on");
+      return;
+    }
+    const g = viewOf(currentId, currentMode);
+    const s = g.stops[selected];
+    const heading = s ? raceHeadingAt(s) : null;
+    if (heading == null) {
+      el.classList.remove("is-on");
+      return;
+    }
+    el.classList.add("is-on");
+    const needle = document.getElementById("raceNeedle");
+    if (needle) needle.style.transform = "rotate(" + heading + "deg)";
+    const dial = document.getElementById("raceDial");
+    if (dial) dial.style.transform = (compassWatching && deviceHeading != null) ? ("rotate(" + (-deviceHeading) + "deg)") : "";
+    const label = document.getElementById("raceCompassLabel");
+    const card = cardinalSv(heading);
+    if (label) label.textContent = "Lopp " + card;
+    const btn = document.getElementById("raceCompassBtn");
+    if (btn) btn.setAttribute("aria-label", "Löparriktning " + card + (compassWatching ? ", följer telefonen" : ". Tryck för att rikta mot verkligheten"));
   }
   function liveStops(ev) {
     const out = [];
@@ -732,6 +834,7 @@
     if (pan && g.stops[selected]) {
       map.setView([g.stops[selected].lat, g.stops[selected].lon], Math.max(map.getZoom(), 15), { animate: false });
     }
+    paintCompass();
   }
 
   function show(id, mode, idx, fromHash, pan) {
@@ -760,6 +863,7 @@
     if (document.getElementById("listSheet").classList.contains("open")) renderList(g);
     drawMap(g, !!pan);
     mapViewKey = key;
+    paintCompass();
   }
 
   function renderChooser() {
@@ -887,6 +991,13 @@
     showToast("Avbockning rensad");
   });
   document.getElementById("editBtn").addEventListener("click", openEditor);
+  const compassBtn = document.getElementById("raceCompassBtn");
+  if (compassBtn) {
+    compassBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      enableDeviceCompass();
+    });
+  }
   document.getElementById("newEventBtn").addEventListener("click", () => {
     document.getElementById("more").style.display = "none";
     newEvent();

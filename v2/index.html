@@ -95,11 +95,116 @@
       font-size: 0.9rem;
     }
     .groups button[aria-pressed="true"] { color: #0b1220; }
-    #map {
+    .map-wrap {
       grid-row: 2;
+      position: relative;
+      min-height: 160px;
+      z-index: 1;
+    }
+    #map {
+      height: 100%;
       min-height: 160px;
       background: var(--bg);
-      z-index: 1;
+    }
+    .race-compass {
+      display: none;
+      position: absolute;
+      left: 10px;
+      bottom: 28px;
+      z-index: 500;
+      width: 78px;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      user-select: none;
+    }
+    body.in-race:not(.choosing):not(.overview-mode):not(.editing) .race-compass.is-on {
+      display: flex;
+    }
+    .race-compass-btn {
+      width: 78px;
+      height: 78px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: rgba(14, 21, 34, 0.9);
+      color: var(--text);
+      padding: 0;
+      position: relative;
+      box-shadow: 0 6px 18px rgba(0,0,0,.35);
+    }
+    .rc-dial {
+      position: absolute;
+      inset: 0;
+      transition: transform .12s linear;
+    }
+    .rc-n {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 800;
+      color: #f59e0b;
+      letter-spacing: .04em;
+    }
+    .rc-tick {
+      position: absolute;
+      left: 50%;
+      top: 14px;
+      width: 2px;
+      height: 7px;
+      margin-left: -1px;
+      background: #9aa6b4;
+      border-radius: 1px;
+      transform-origin: 50% 25px;
+    }
+    .rc-needle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 14px;
+      height: 54px;
+      margin: -27px 0 0 -7px;
+      transform-origin: 50% 50%;
+      pointer-events: none;
+    }
+    .rc-needle::before {
+      content: "";
+      display: block;
+      width: 0;
+      height: 0;
+      margin: 0 auto;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-bottom: 28px solid var(--accent);
+    }
+    .rc-needle::after {
+      content: "";
+      display: block;
+      width: 0;
+      height: 0;
+      margin: 2px auto 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 18px solid #64748b;
+    }
+    .rc-hub {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      margin: -4.5px 0 0 -4.5px;
+      border-radius: 50%;
+      background: #e8eef4;
+      box-shadow: 0 0 0 2px #0b1220;
+    }
+    .rc-text {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #e8eef4;
+      text-shadow: 0 1px 3px #0b1220;
+      letter-spacing: .02em;
     }
     .leaflet-control-attribution {
       max-width: 42vw;
@@ -538,13 +643,13 @@
     body.overview-mode .editor,
     body.overview-mode .pick-banner,
     body.overview-mode .admin-only { display: none !important; }
-    body.overview-mode #map { visibility: hidden; }
+    body.overview-mode .map-wrap { visibility: hidden; }
     body.overview-mode .live-board { z-index: 1600; }
     body.overview-mode .chooser { z-index: 1700; }
     body:not(.overview-mode) .live-board { display: none !important; }
     .live-chip.is-all { background: #e8eef4; }
     body.picking .dock { visibility: hidden; }
-    body.choosing #map, body.choosing .dock, body.choosing .top { visibility: hidden; }
+    body.choosing .map-wrap, body.choosing .dock, body.choosing .top { visibility: hidden; }
     @media (min-width: 860px) and (hover: hover) and (pointer: fine) {
       body {
         grid-template-columns: 400px minmax(0, 1fr);
@@ -558,11 +663,12 @@
         border-top: 0;
         border-right: 1px solid var(--line);
       }
-      #map {
+      .map-wrap {
         grid-column: 2;
         grid-row: 1 / span 2;
         min-height: 0;
       }
+      #map { min-height: 0; }
     }
   </style>
 </head>
@@ -590,7 +696,22 @@
     </div>
     <div class="groups" id="groups"></div>
   </header>
-  <div id="map"></div>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="race-compass" id="raceCompass">
+      <button type="button" class="race-compass-btn" id="raceCompassBtn" aria-label="Löparriktning">
+        <span class="rc-dial" id="raceDial">
+          <span class="rc-n">N</span>
+          <span class="rc-tick" style="transform:rotate(90deg)"></span>
+          <span class="rc-tick" style="transform:rotate(180deg)"></span>
+          <span class="rc-tick" style="transform:rotate(270deg)"></span>
+          <span class="rc-needle" id="raceNeedle"></span>
+          <span class="rc-hub"></span>
+        </span>
+      </button>
+      <span class="rc-text" id="raceCompassLabel">Lopp</span>
+    </div>
+  </div>
   <section class="dock">
     <div class="chips" id="chips"></div>
     <article class="card" id="card"></article>
@@ -648,6 +769,6 @@
   <script src="../app.js?v=45"></script>
   <script src="../races.js?v=31"></script>
   <script src="../live.js?v=3"></script>
-  <script src="ui.js?v=20"></script>
+  <script src="ui.js?v=21"></script>
 </body>
 </html>
