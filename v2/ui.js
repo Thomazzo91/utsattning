@@ -244,13 +244,74 @@
     }
     return null;
   }
+  let deviceHeading = null;
+  let deviceHeadingSmooth = null;
+  let compassListening = false;
+  let compassLive = false;
+  let compassRaf = 0;
+  function circLerp(a, b, t) {
+    const d = ((b - a + 540) % 360) - 180;
+    return (a + d * t + 360) % 360;
+  }
+  function compassNeedsPermission() {
+    return typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function";
+  }
+  function headingFromOrient(e) {
+    if (!e) return null;
+    if (typeof e.webkitCompassHeading === "number" && isFinite(e.webkitCompassHeading)) {
+      if (e.webkitCompassAccuracy === -1) return null;
+      return (Number(e.webkitCompassHeading) + 360) % 360;
+    }
+    const abs = e.absolute === true || e.type === "deviceorientationabsolute";
+    if (!abs || typeof e.alpha !== "number" || !isFinite(e.alpha)) return null;
+    return (360 - e.alpha + 360) % 360;
+  }
+  function onDeviceOrient(e) {
+    const h = headingFromOrient(e);
+    if (h == null) return;
+    deviceHeading = h;
+    compassLive = true;
+    if (compassRaf) return;
+    compassRaf = requestAnimationFrame(() => {
+      compassRaf = 0;
+      if (deviceHeadingSmooth == null) deviceHeadingSmooth = deviceHeading;
+      else {
+        const delta = Math.abs(((deviceHeading - deviceHeadingSmooth + 540) % 360) - 180);
+        deviceHeadingSmooth = circLerp(deviceHeadingSmooth, deviceHeading, delta > 35 ? 0.5 : 0.22);
+      }
+      paintCompass();
+    });
+  }
+  function startCompassListen() {
+    if (compassListening) return;
+    compassListening = true;
+    window.addEventListener("deviceorientationabsolute", onDeviceOrient, true);
+    window.addEventListener("deviceorientation", onDeviceOrient, true);
+  }
+  async function enableDeviceCompass() {
+    try {
+      if (compassNeedsPermission()) {
+        const st = await DeviceOrientationEvent.requestPermission();
+        if (st !== "granted") {
+          showToast("Tillåt rörelse och riktning");
+          return;
+        }
+      }
+    } catch (err) {
+      showToast("Kunde inte starta kompassen");
+      return;
+    }
+    startCompassListen();
+    paintCompass();
+  }
   function paintCompass() {
     const el = document.getElementById("raceCompass");
     if (!el) return;
     const hide = !document.body.classList.contains("in-race") || isOverview() ||
       document.body.classList.contains("choosing") || document.body.classList.contains("editing");
     if (hide) {
-      el.classList.remove("is-on");
+      el.classList.remove("is-on", "is-live");
       el.setAttribute("aria-hidden", "true");
       return;
     }
@@ -258,18 +319,31 @@
     const s = g.stops[selected];
     const heading = s ? raceHeadingAt(s) : null;
     if (heading == null) {
-      el.classList.remove("is-on");
+      el.classList.remove("is-on", "is-live");
       el.setAttribute("aria-hidden", "true");
       return;
     }
+    startCompassListen();
     el.classList.add("is-on");
     el.setAttribute("aria-hidden", "false");
+    const live = compassLive && deviceHeadingSmooth != null;
+    el.classList.toggle("is-live", live);
+    const dial = document.getElementById("raceDial");
     const needle = document.getElementById("raceNeedle");
-    if (needle) needle.style.transform = "rotate(" + heading.toFixed(1) + "deg)";
+    const north = document.getElementById("raceNorth");
+    if (live) {
+      if (dial) dial.style.transform = "rotate(" + (-deviceHeadingSmooth).toFixed(1) + "deg)";
+      if (needle) needle.style.transform = "rotate(" + heading.toFixed(1) + "deg)";
+      if (north) north.style.transform = "translateX(-50%) rotate(" + deviceHeadingSmooth.toFixed(1) + "deg)";
+    } else {
+      if (dial) dial.style.transform = "";
+      if (needle) needle.style.transform = "rotate(" + heading.toFixed(1) + "deg)";
+      if (north) north.style.transform = "";
+    }
     const card = cardinalSv(heading);
     const label = document.getElementById("raceCompassLabel");
-    if (label) label.textContent = card;
-    el.setAttribute("aria-label", "Löpriktning " + card);
+    if (label) label.textContent = (!live && compassNeedsPermission()) ? "Tryck" : card;
+    el.setAttribute("aria-label", live ? "Löpriktning " + card : "Aktivera kompass, löpriktning " + card);
   }
   function liveStops(ev) {
     const out = [];
@@ -931,6 +1005,14 @@
     setTimeout(persist, 0);
   }
 
+  const raceCompassEl = document.getElementById("raceCompass");
+  if (raceCompassEl) {
+    raceCompassEl.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      enableDeviceCompass();
+    });
+  }
   document.getElementById("backBtn").addEventListener("click", openChooser);
   document.getElementById("moreBtn").addEventListener("click", (e) => {
     e.stopPropagation();
