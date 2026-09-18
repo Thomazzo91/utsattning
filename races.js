@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 73,
+  "rev": 74,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 76,
+  "rev": 77,
   "groups": [
    {
     "id": "startmal",
@@ -18612,8 +18612,8 @@ window.RACES = {
         "name": "35 km hel",
         "label": "35 km hel",
         "who": "",
-        "lat": 55.6057527,
-        "lon": 12.9969298,
+        "lat": 55.605753,
+        "lon": 12.99693,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -18624,8 +18624,8 @@ window.RACES = {
         "forsta": "11:45",
         "sista": "15:00",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "Körbanan. 4 meter",
+        "note": "Körbanan. 4 meter",
         "place": "",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
@@ -19390,8 +19390,8 @@ window.RACES = {
         "name": "35 km hel",
         "label": "35 km hel",
         "who": "",
-        "lat": 55.6057527,
-        "lon": 12.9969298,
+        "lat": 55.605753,
+        "lon": 12.99693,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -19402,8 +19402,8 @@ window.RACES = {
         "forsta": "11:45",
         "sista": "15:00",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "Körbanan. 4 meter",
+        "note": "Körbanan. 4 meter",
         "place": "",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
