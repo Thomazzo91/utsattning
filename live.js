@@ -1,14 +1,15 @@
 /* Gemensam live-status för avbockade tidtagningspunkter. */
 (function (global) {
   const TOPIC = "utsattning_thomazzo91_v2live_r8k3n2";
-  const BASE = "https://ntfy.sh/" + TOPIC;
+  const HOSTS = [
+    "https://ntfy.adminforge.de/" + TOPIC,
+    "https://ntfy.sh/" + TOPIC
+  ];
   const CACHE_KEY = "utsattning-live-cache";
   const items = {};
   const listeners = [];
-  let es = null;
-  let connected = false;
+  const feeds = HOSTS.map((base) => ({ base: base, es: null, since: "12h", failUntil: 0 }));
   let lastEventAt = 0;
-  let sinceId = "all";
   let okAt = 0;
 
   function notify() {
@@ -37,9 +38,20 @@
     return true;
   }
 
-  function applyRaw(raw) {
-    if (!raw) return;
-    try { applyRec(typeof raw === "string" ? JSON.parse(raw) : raw); } catch (e) {}
+  function applyEnvelope(raw, silent) {
+    if (!raw) return false;
+    let msg = raw;
+    if (typeof raw === "string") {
+      try { msg = JSON.parse(raw); } catch (e) { return false; }
+    }
+    if (!msg || typeof msg !== "object") return false;
+    if (msg.event && msg.event !== "message") return false;
+    const body = msg.message != null ? msg.message : msg;
+    if (body && body.k) return applyRec(body, silent);
+    if (typeof body === "string") {
+      try { return applyRec(JSON.parse(body), silent); } catch (e) {}
+    }
+    return false;
   }
 
   try {
@@ -49,56 +61,85 @@
     }
   } catch (e) {}
 
-  async function replay() {
-    const res = await fetch(BASE + "/json?poll=1&since=" + encodeURIComponent(sinceId), { cache: "no-store" });
-    if (!res.ok) return;
+  function markOk() {
     okAt = Date.now();
-    connected = true;
-    const text = await res.text();
-    let changed = false;
-    text.split("\n").forEach((line) => {
-      if (!line.trim()) return;
-      try {
-        const msg = JSON.parse(line);
-        if (msg && msg.id) sinceId = msg.id;
-        if (msg && msg.event === "message") {
-          if (applyRec(typeof msg.message === "string" ? JSON.parse(msg.message) : msg.message, true)) changed = true;
+  }
+
+  async function replayOne(feed) {
+    if (Date.now() < feed.failUntil) return;
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 5000) : null;
+    try {
+      const res = await fetch(feed.base + "/json?poll=1&since=" + encodeURIComponent(feed.since), {
+        signal: ctrl ? ctrl.signal : undefined
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      markOk();
+      feed.failUntil = 0;
+      const text = await res.text();
+      let changed = false;
+      text.split("\n").forEach((line) => {
+        if (!line.trim()) return;
+        try {
+          const msg = JSON.parse(line);
+          if (msg && msg.id) feed.since = msg.id;
+          if (applyEnvelope(msg, true)) changed = true;
+        } catch (e) {}
+      });
+      if (changed) notify();
+    } catch (e) {
+      feed.failUntil = Date.now() + 8000;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async function replay() {
+    await Promise.all(feeds.map((feed) => replayOne(feed)));
+  }
+
+  function onSseData(feed, data) {
+    markOk();
+    feed.failUntil = 0;
+    applyEnvelope(data);
+  }
+
+  function connectOne(feed) {
+    if (feed.es) {
+      try { feed.es.close(); } catch (e) {}
+      feed.es = null;
+    }
+    if (Date.now() < feed.failUntil) return;
+    try {
+      const es = new EventSource(feed.base + "/sse?since=" + encodeURIComponent(feed.since));
+      feed.es = es;
+      es.onopen = () => { markOk(); feed.failUntil = 0; };
+      es.onmessage = (e) => { onSseData(feed, e.data); };
+      es.onerror = () => {
+        if (es.readyState === 2) {
+          feed.failUntil = Date.now() + 4000;
+          try { es.close(); } catch (e) {}
+          if (feed.es === es) feed.es = null;
         }
-      } catch (e) {}
-    });
-    if (sinceId === "all") sinceId = String(Math.floor(Date.now() / 1000));
-    if (changed) notify();
+      };
+    } catch (e) {
+      feed.failUntil = Date.now() + 8000;
+    }
   }
 
   function connect() {
-    if (es) {
-      try { es.close(); } catch (e) {}
-      es = null;
-    }
-    es = new EventSource(BASE + "/sse");
-    es.onopen = () => {
-      connected = true;
-      okAt = Date.now();
-    };
-    es.onmessage = (e) => {
-      connected = true;
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg && msg.event === "message") applyRaw(msg.message);
-        else applyRaw(e.data);
-      } catch (err) {
-        applyRaw(e.data);
-      }
-    };
-    es.onerror = () => {
-      connected = false;
-    };
+    feeds.forEach(connectOne);
   }
 
-  async function start() {
-    try { await replay(); } catch (e) {}
+  function start() {
     connect();
-    setInterval(() => { replay().catch(() => {}); }, 8000);
+    replay();
+    setInterval(() => { replay(); }, 5000);
+    setInterval(() => {
+      feeds.forEach((feed) => {
+        if (!feed.es || feed.es.readyState === 2) connectOne(feed);
+      });
+    }, 4000);
   }
 
   function report(ev, team, label, on, who) {
@@ -112,7 +153,17 @@
       who: who || ""
     };
     applyRec(rec);
-    return fetch(BASE, { method: "POST", body: JSON.stringify(rec) }).catch(() => {});
+    feeds.forEach((feed) => {
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), 6000) : null;
+      fetch(feed.base, {
+        method: "POST",
+        body: JSON.stringify(rec),
+        signal: ctrl ? ctrl.signal : undefined
+      }).then(() => { markOk(); feed.failUntil = 0; }, () => {
+        feed.failUntil = Date.now() + 4000;
+      }).finally(() => { if (timer) clearTimeout(timer); });
+    });
   }
 
   function get(ev, team, label) {
@@ -124,6 +175,11 @@
     return !!(rec && rec.on);
   }
 
+  function isConnected() {
+    if (feeds.some((feed) => feed.es && feed.es.readyState === 1)) return true;
+    return Date.now() - okAt < 15000;
+  }
+
   start();
 
   global.MattorLive = {
@@ -132,7 +188,7 @@
     isOn: isOn,
     items: items,
     on: function (fn) { listeners.push(fn); try { fn(items); } catch (e) {} },
-    connected: function () { return connected && ((es && es.readyState === 1) || (Date.now() - okAt < 8000)); },
+    connected: isConnected,
     lastEventAt: function () { return lastEventAt; },
     replay: replay
   };
