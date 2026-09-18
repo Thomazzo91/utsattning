@@ -87,6 +87,14 @@
     const v = p.get("view");
     return v === "" || v === "1" || v === "true";
   }
+  function shareUrl() {
+    const base = PUBLIC_BASE.replace(/\/?$/, "/");
+    const ev = currentEvent();
+    let url = base + "?view=1";
+    if (ev && ev.id) url += "&lopp=" + encodeURIComponent(ev.id);
+    if (currentId && !isOverview()) url += hashFor(currentId, currentMode, selected);
+    return url;
+  }
   function visitKey(teamId, label) {
     const ev = currentEvent() ? currentEvent().id : "";
     return ev + "|" + teamId + "|" + label;
@@ -1008,11 +1016,10 @@
     }
   });
   document.getElementById("share").addEventListener("click", async () => {
-    const ev = currentEvent();
-    const url = PUBLIC_BASE.replace(/\/?$/, "/") + "?lopp=" + encodeURIComponent(ev ? ev.id : "") + hashFor(currentId, currentMode, selected);
+    const url = shareUrl();
     try {
       await navigator.clipboard.writeText(url);
-      showToast("Länk till 2.0 kopierad");
+      showToast("Visningslänk kopierad");
     } catch {
       prompt("Kopiera länken", url);
     }
