@@ -690,7 +690,8 @@
       return;
     }
     const done = isDone(g.id, s.label);
-    const img = s.image ? `<img class="thumb" alt="">` : "";
+    const hasImg = !!(s.image || pendingFor(s) || catalogImage(s));
+    const img = hasImg ? `<img class="thumb" alt="">` : "";
     const nextLeg = g.legs[selected];
     const heading = raceHeadingAt(s);
     const dirTxt = heading == null ? "" : " · Löper " + cardinalSv(heading);
@@ -724,16 +725,7 @@
       paintMarkers(g);
     });
     const thumb = card.querySelector(".thumb");
-    if (thumb) {
-      thumb.addEventListener("error", () => { thumb.style.display = "none"; });
-      thumb.src = imgSrc(s.image);
-      thumb.addEventListener("click", () => {
-        const ov = document.getElementById("imgOverlay");
-        document.getElementById("imgOverlayImg").src = imgSrc(s.image);
-        ov.classList.add("open");
-        ov.setAttribute("aria-hidden", "false");
-      });
-    }
+    if (thumb) bindStopImg(thumb, s);
   }
 
   function renderChips(g) {
@@ -1172,6 +1164,112 @@
     if (!b64) return null;
     return { b64, ext: /image\/png/i.test(t.slice(0, i)) ? "png" : "jpg" };
   }
+  function stopImgKey(evId, teamId, label) {
+    return String(evId || "") + "|" + String(teamId || "") + "|" + String(label || "");
+  }
+  const pendingImgs = new Map();
+  function pendingDb(fn) {
+    return new Promise((resolve) => {
+      try {
+        const req = indexedDB.open("utsattning-img-v1", 1);
+        req.onupgradeneeded = () => {
+          if (!req.result.objectStoreNames.contains("pending")) req.result.createObjectStore("pending");
+        };
+        req.onsuccess = () => {
+          try { fn(req.result, resolve); } catch (e) { resolve(); }
+        };
+        req.onerror = () => resolve();
+      } catch (e) { resolve(); }
+    });
+  }
+  function pendingPut(key, dataUrl) {
+    if (key && dataUrl) pendingImgs.set(key, dataUrl);
+    return pendingDb((db, done) => {
+      const tx = db.transaction("pending", "readwrite");
+      tx.objectStore("pending").put(dataUrl, key);
+      tx.oncomplete = () => done();
+      tx.onerror = () => done();
+    });
+  }
+  function pendingDel(key) {
+    pendingImgs.delete(key);
+    return pendingDb((db, done) => {
+      const tx = db.transaction("pending", "readwrite");
+      tx.objectStore("pending").delete(key);
+      tx.oncomplete = () => done();
+      tx.onerror = () => done();
+    });
+  }
+  function pendingLoadAll() {
+    return pendingDb((db, done) => {
+      const tx = db.transaction("pending", "readonly");
+      const r = tx.objectStore("pending").openCursor();
+      r.onsuccess = (ev) => {
+        const c = ev.target.result;
+        if (!c) { done(); return; }
+        pendingImgs.set(c.key, c.value);
+        c.continue();
+      };
+      r.onerror = () => done();
+    });
+  }
+  function catalogImage(stop, teamId) {
+    const ev = currentEvent();
+    const race = ev && window.RACES && window.RACES[ev.id];
+    const gid = teamId || currentId || "";
+    const groups = (race && race.groups) || [];
+    const g = groups.find((x) => x.id === gid) ||
+      groups.find((x) => ((x.modes && x.modes.kortast && x.modes.kortast.stops) || []).some((s) => (s.label || "") === ((stop && stop.label) || "")));
+    const stops = (g && g.modes && g.modes.kortast && g.modes.kortast.stops) || [];
+    const hit = stops.find((s) => (s.label || "") === ((stop && stop.label) || ""));
+    return (hit && hit.image) || "";
+  }
+  function pendingFor(stop, teamId) {
+    const ev = currentEvent();
+    return pendingImgs.get(stopImgKey(ev && ev.id, teamId || currentId, stop && stop.label)) || "";
+  }
+  function bindStopImg(el, stop, teamId) {
+    if (!el || !stop) return;
+    el.style.display = "";
+    const urls = [];
+    const pending = pendingFor(stop, teamId);
+    if (pending) urls.push(pending);
+    if (stop.image && String(stop.image).indexOf("data:") === 0) {
+      if (urls.indexOf(stop.image) < 0) urls.push(stop.image);
+    } else if (stop.image) urls.push(imgSrc(stop.image));
+    const cat = catalogImage(stop, teamId);
+    if (cat && cat !== stop.image) urls.push(imgSrc(cat));
+    let i = 0;
+    let retried = false;
+    const go = () => {
+      if (i >= urls.length) {
+        el.style.display = "none";
+        return;
+      }
+      const u = urls[i];
+      el.onload = () => { el.style.display = ""; };
+      el.onerror = () => {
+        if (!retried && u.indexOf("data:") !== 0 && u.indexOf("blob:") !== 0) {
+          retried = true;
+          setTimeout(() => {
+            el.src = u + (u.indexOf("?") >= 0 ? "&" : "?") + "rtry=" + Date.now();
+          }, 700);
+          return;
+        }
+        retried = false;
+        i += 1;
+        go();
+      };
+      el.src = u;
+    };
+    go();
+    el.onclick = () => {
+      const ov = document.getElementById("imgOverlay");
+      document.getElementById("imgOverlayImg").src = el.currentSrc || el.src || imgSrc(stop.image || cat);
+      ov.classList.add("open");
+      ov.setAttribute("aria-hidden", "false");
+    };
+  }
   async function ghJson(method, url, body) {
     const token = localStorage.getItem(GH_TOKEN_KEY) || "";
     const headers = { Accept: "application/vnd.github+json", Authorization: "Bearer " + token };
@@ -1183,12 +1281,49 @@
     if (!res.ok) throw new Error((data && data.message) || ("HTTP " + res.status));
     return data;
   }
-  async function putRepoFile(rel, b64, message) {
-    let sha;
-    try { sha = (await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel)).sha; } catch (e) {}
-    const body = { message: message || ("Uppdatera " + rel), content: b64, branch: "main" };
-    if (sha) body.sha = sha;
-    await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel, body);
+  async function gitCommitFiles(entries, message) {
+    const api = "https://api.github.com/repos/" + GH_REPO;
+    let lastErr;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const ref = await ghJson("GET", api + "/git/ref/heads/main");
+        const commit = await ghJson("GET", api + "/git/commits/" + ref.object.sha);
+        const treeItems = [];
+        for (let i = 0; i < entries.length; i++) {
+          const ent = entries[i];
+          const blob = await ghJson("POST", api + "/git/blobs", { content: ent.b64, encoding: "base64" });
+          treeItems.push({ path: ent.path, mode: "100644", type: "blob", sha: blob.sha });
+        }
+        const tree = await ghJson("POST", api + "/git/trees", { base_tree: commit.tree.sha, tree: treeItems });
+        const created = await ghJson("POST", api + "/git/commits", {
+          message: message,
+          tree: tree.sha,
+          parents: [ref.object.sha]
+        });
+        await ghJson("PATCH", api + "/git/refs/heads/main", { sha: created.sha });
+        return created.sha;
+      } catch (e) {
+        lastErr = e;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+    throw lastErr || new Error("Git commit");
+  }
+  async function waitImagesLive(paths) {
+    const list = (paths || []).filter(Boolean);
+    if (!list.length) return;
+    for (let n = 0; n < 10; n++) {
+      let pending = 0;
+      for (let i = 0; i < list.length; i++) {
+        const url = imgSrc(list[i]).replace(/([?&])v=[^&]*/, "$1v=" + Date.now());
+        try {
+          const res = await fetch(url, { cache: "reload" });
+          if (!res.ok) pending += 1;
+        } catch (e) { pending += 1; }
+      }
+      if (!pending) return;
+      await new Promise((r) => setTimeout(r, 1200));
+    }
   }
   async function ensurePublishToken() {
     let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
@@ -1197,42 +1332,30 @@
     if (t) localStorage.setItem(GH_TOKEN_KEY, t);
     return t;
   }
-  async function publishStopImages() {
+  function collectDataUrlUploads() {
+    const uploads = [];
     const seen = new Map();
-    for (const ev of store.events || []) {
-      for (const t of ev.teams || []) {
-        for (const modeName of ["kortast", "iga"]) {
+    (store.events || []).forEach((ev) => {
+      (ev.teams || []).forEach((t) => {
+        ["kortast", "iga"].forEach((modeName) => {
           const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
-          if (!Array.isArray(stops)) continue;
-          for (const s of stops) {
-            if (!s || typeof s.image !== "string" || s.image.indexOf("data:image") !== 0) continue;
+          if (!Array.isArray(stops)) return;
+          stops.forEach((s) => {
+            if (!s || typeof s.image !== "string" || s.image.indexOf("data:image") !== 0) return;
             const raw = s.image;
-            if (seen.has(raw)) { s.image = seen.get(raw); continue; }
+            if (seen.has(raw)) { s.image = seen.get(raw); return; }
             const payload = dataImagePayload(raw);
-            if (!payload) continue;
-            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "-" + Date.now().toString(36) + "." + payload.ext;
+            if (!payload) return;
+            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
             const rel = "img/" + fname;
-            document.getElementById("busyText").textContent = "Laddar upp bild " + (s.label || fname) + "…";
-            await putRepoFile(rel, payload.b64, "Bild " + (s.label || fname));
             seen.set(raw, rel);
+            uploads.push({ path: rel, b64: payload.b64, evId: ev.id, teamId: t.id, label: s.label || "" });
             s.image = rel;
-          }
-        }
-      }
-    }
-  }
-  async function bustHtmlCache(path, stamp) {
-    const meta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path);
-    let html = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ""))));
-    html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
-    html = html.replace(/app\.js\?v=\d+/g, "app.js?v=" + stamp);
-    html = html.replace(/ui\.js\?v=\d+/g, "ui.js?v=" + stamp);
-    await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path, {
-      message: "Cache-bust efter publicering",
-      content: utf8ToB64(html),
-      branch: "main",
-      sha: meta.sha
+          });
+        });
+      });
     });
+    return uploads;
   }
   async function publishCatalog() {
     if (isViewOnly()) return false;
@@ -1249,26 +1372,35 @@
     setBusy(true, "Sparar för alla…");
     try {
       persist();
-      await publishStopImages();
+      const uploads = collectDataUrlUploads();
       persist();
       const races = M.buildRacesObject(store.events);
       const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
-      const racesMeta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js");
-      await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js", {
-        message: "Uppdatera lopp för alla",
-        content: utf8ToB64(racesBody),
-        branch: "main",
-        sha: racesMeta.sha
-      });
       const stamp = String(Date.now());
-      await bustHtmlCache("index.html", stamp);
-      await bustHtmlCache("v2/index.html", stamp);
-      await bustHtmlCache("v2/oversikt.html", stamp);
+      const files = [{ path: "races.js", b64: utf8ToB64(racesBody) }];
+      uploads.forEach((u) => files.push({ path: u.path, b64: u.b64 }));
+      const htmlPaths = ["index.html", "v2/index.html", "v2/oversikt.html"];
+      for (let i = 0; i < htmlPaths.length; i++) {
+        const path = htmlPaths[i];
+        try {
+          const meta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path);
+          let html = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ""))));
+          html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
+          files.push({ path: path, b64: utf8ToB64(html) });
+        } catch (e) {}
+      }
+      document.getElementById("busyText").textContent = uploads.length ? "Laddar upp bilder…" : "Sparar lopp…";
+      await gitCommitFiles(files, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
+      if (uploads.length) {
+        document.getElementById("busyText").textContent = "Väntar på bilderna…";
+        await waitImagesLive(uploads.map((u) => u.path));
+      }
       window.RACES = races;
       (store.events || []).forEach((ev) => {
         if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
       });
       persist();
+      uploads.forEach((u) => pendingDel(stopImgKey(u.evId, u.teamId, u.label)));
       showToast("Sparat för alla på utsattning-länken");
       return true;
     } catch (e) {
@@ -1459,7 +1591,7 @@
     if (!p) return;
     ptFormIndex = i;
     const box = editorBody.querySelector("#ptForm");
-    const preview = p.image ? `<img class="pt-img" alt="">` : "";
+    const preview = (p.image || pendingFor(p, editTeamId) || catalogImage(p, editTeamId)) ? `<img class="pt-img" alt="">` : "";
     box.innerHTML = `
       <label>Namn</label><input id="pLabel" value="${esc((p.label || "") === "Ny punkt" ? "" : (p.label || ""))}" placeholder="Ny punkt" />
       <label>Igång</label>${timeSelectHtml("pIga", p.iga)}
@@ -1484,10 +1616,7 @@
     `;
     editorBody.querySelectorAll(".pt-card").forEach((c, n) => c.classList.toggle("is-edit", n === i));
     const previewEl = box.querySelector(".pt-img");
-    if (previewEl) {
-      previewEl.addEventListener("error", () => { previewEl.style.display = "none"; });
-      previewEl.src = imgSrc(p.image);
-    }
+    if (previewEl) bindStopImg(previewEl, p, editTeamId);
     box.querySelectorAll("input, textarea, select").forEach((el) => {
       if (el.id === "pImgFile") return;
       el.addEventListener("change", () => readPointForm(i));
@@ -1516,6 +1645,8 @@
           const dataUrl = await M.compressImage(file, 1600, 0.82);
           const list = M.pointsOf(teamById(editTeamId));
           if (list[i]) list[i].image = dataUrl;
+          const ev = currentEvent();
+          await pendingPut(stopImgKey(ev && ev.id, editTeamId, list[i] && list[i].label), dataUrl);
           writePoints(teamById(editTeamId), list);
           renderEditor();
           renderPointForm(i);
@@ -1727,6 +1858,7 @@
       store = { currentEventId: M.defaultEventId(), events };
     }
     ensureSeed();
+    await pendingLoadAll();
     document.body.classList.toggle("view-only", isViewOnly());
     document.body.classList.toggle("overview-mode", isOverview());
     if (lopp && store.events.some((e) => e.id === lopp)) store.currentEventId = lopp;
