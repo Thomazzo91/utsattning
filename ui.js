@@ -748,9 +748,8 @@
     if (!src) return "";
     if (/^(data:|blob:|https?:|\/\/)/i.test(src)) return src;
     const path = String(src).replace(/^\.\//, "");
-    const v = imgCacheTag();
-    if (!v || path.indexOf("?") >= 0) return path;
-    return path + "?v=" + encodeURIComponent(v);
+    const v = imgCacheTag() || "1";
+    return path + "?v=" + encodeURIComponent(v) + "&t=" + Date.now();
   }
 
   function timeSelectHtml(id, value) {
