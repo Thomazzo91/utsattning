@@ -294,9 +294,14 @@
             c.height = nh;
             const ctx = c.getContext("2d");
             ctx.drawImage(img, 0, 0, nw, nh);
-            resolve(c.toDataURL("image/jpeg", q));
+            const out = c.toDataURL("image/jpeg", q);
+            if (!out || out.length < 40 || out.indexOf("data:image/jpeg") !== 0) {
+              reject(new Error("Image encode"));
+              return;
+            }
+            resolve(out);
           } catch (e) {
-            resolve(dataUrl);
+            reject(e);
           }
         };
         img.src = dataUrl;
@@ -850,7 +855,7 @@
     dest.placering = (user.placering || user.place || dest.placering || seedStop.placering || "");
     dest.place = dest.placering;
     dest.note = user.note || dest.note || seedStop.note || "";
-    if (typeof user.image === "string") dest.image = user.image;
+    if (typeof user.image === "string" && user.image.trim()) dest.image = user.image;
     else dest.image = seedStop.image || dest.image || "";
     dest.who = user.who != null ? user.who : (dest.who || "");
     return dest;
@@ -1007,7 +1012,12 @@
         ansvarig: t.ansvarig || "",
         color: t.color,
         orderLocked: !!t.orderLocked,
-        points: pointsOf(t)
+        points: pointsOf(t).map((p) => {
+          if (!p.image || String(p.image).indexOf("data:") !== 0) return p;
+          const q = Object.assign({}, p);
+          q.image = "";
+          return q;
+        })
       }))
     };
   }

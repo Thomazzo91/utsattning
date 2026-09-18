@@ -690,7 +690,7 @@
       return;
     }
     const done = isDone(g.id, s.label);
-    const img = s.image ? `<img class="thumb" src="${esc(imgSrc(s.image))}" alt="">` : "";
+    const img = s.image ? `<img class="thumb" alt="">` : "";
     const nextLeg = g.legs[selected];
     const heading = raceHeadingAt(s);
     const dirTxt = heading == null ? "" : " · Löper " + cardinalSv(heading);
@@ -725,6 +725,8 @@
     });
     const thumb = card.querySelector(".thumb");
     if (thumb) {
+      thumb.addEventListener("error", () => { thumb.style.display = "none"; });
+      thumb.src = imgSrc(s.image);
       thumb.addEventListener("click", () => {
         const ov = document.getElementById("imgOverlay");
         document.getElementById("imgOverlayImg").src = imgSrc(s.image);
@@ -1457,7 +1459,7 @@
     if (!p) return;
     ptFormIndex = i;
     const box = editorBody.querySelector("#ptForm");
-    const preview = p.image ? `<img class="pt-img" src="${esc(imgSrc(p.image))}" alt="">` : "";
+    const preview = p.image ? `<img class="pt-img" alt="">` : "";
     box.innerHTML = `
       <label>Namn</label><input id="pLabel" value="${esc((p.label || "") === "Ny punkt" ? "" : (p.label || ""))}" placeholder="Ny punkt" />
       <label>Igång</label>${timeSelectHtml("pIga", p.iga)}
@@ -1481,6 +1483,11 @@
       </div>
     `;
     editorBody.querySelectorAll(".pt-card").forEach((c, n) => c.classList.toggle("is-edit", n === i));
+    const previewEl = box.querySelector(".pt-img");
+    if (previewEl) {
+      previewEl.addEventListener("error", () => { previewEl.style.display = "none"; });
+      previewEl.src = imgSrc(p.image);
+    }
     box.querySelectorAll("input, textarea, select").forEach((el) => {
       if (el.id === "pImgFile") return;
       el.addEventListener("change", () => readPointForm(i));
@@ -1512,7 +1519,12 @@
           writePoints(teamById(editTeamId), list);
           renderEditor();
           renderPointForm(i);
-          showToast("Bild sparad. Tryck Klar så alla ser den");
+          if ((localStorage.getItem(GH_TOKEN_KEY) || "").trim()) {
+            showToast("Laddar upp bilden…");
+            await publishCatalog();
+            renderEditor();
+            renderPointForm(i);
+          } else showToast("Bild sparad. Tryck Klar så alla ser den");
         } catch (e) { showToast("Kunde inte läsa bilden"); }
         finally { setBusy(false); }
       });
@@ -1680,6 +1692,7 @@
     document.body.classList.remove("editing");
     persist();
     const ev = currentEvent();
+    await publishCatalog();
     if (ev) {
       document.body.classList.add("in-race");
       closeChooser();
@@ -1688,7 +1701,6 @@
       show(editTeamId || currentId, currentMode, 0, true, false);
       ensureEventRoutes(ev, editTeamId || currentId);
     }
-    publishCatalog();
   }
   function download(name, text, type) {
     const blob = new Blob([text], { type: type || "application/json" });
