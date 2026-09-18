@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 66,
+  "rev": 67,
   "groups": [
    {
     "id": "soder",
@@ -13489,7 +13489,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 71,
+  "rev": 72,
   "groups": [
    {
     "id": "startmal",
@@ -13683,9 +13683,9 @@ window.RACES = {
         "forsta": "11:03",
         "sista": "13:00",
         "maps": "",
-        "placering": "3M Cykelbana",
-        "note": "3M Cykelbana",
-        "place": "3M Cykelbana",
+        "placering": "Cykelbana. 3 meter.",
+        "note": "Cykelbana. 3 meter.",
+        "place": "Cykelbana. 3 meter.",
         "setup": "Tidtagningsmatta 21,1 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-21-1-km-mitt.jpg"
@@ -13707,9 +13707,9 @@ window.RACES = {
         "forsta": "11:00",
         "sista": "12:55",
         "maps": "",
-        "placering": "3M Cykelbana",
-        "note": "3M Cykelbana",
-        "place": "3M Cykelbana",
+        "placering": "Cykelbana. 3 meter.",
+        "note": "Cykelbana. 3 meter.",
+        "place": "Cykelbana. 3 meter.",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-20-km-hel.jpg"
@@ -13731,9 +13731,9 @@ window.RACES = {
         "forsta": "10:30",
         "sista": "11:30",
         "maps": "",
-        "placering": "2,5 M Cykelbana",
-        "note": "2,5 M Cykelbana",
-        "place": "2,5 M Cykelbana",
+        "placering": "Cykelbana. 2,5 meter.",
+        "note": "Cykelbana. 2,5 meter.",
+        "place": "Cykelbana. 2,5 meter.",
         "setup": "Tidtagningsmatta 10 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-10-km-hel.jpg"
@@ -13755,9 +13755,9 @@ window.RACES = {
         "forsta": "10:45",
         "sista": "12:10",
         "maps": "",
-        "placering": "4M Cykelbana",
-        "note": "4M Cykelbana",
-        "place": "4M Cykelbana",
+        "placering": "Cykelbana. 4 meter.",
+        "note": "Cykelbana. 4 meter.",
+        "place": "Cykelbana. 4 meter.",
         "setup": "Tidtagningsmatta 15 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-15-km-hel.jpg"
@@ -14782,9 +14782,9 @@ window.RACES = {
         "forsta": "11:03",
         "sista": "13:00",
         "maps": "",
-        "placering": "3M Cykelbana",
-        "note": "3M Cykelbana",
-        "place": "3M Cykelbana",
+        "placering": "Cykelbana. 3 meter.",
+        "note": "Cykelbana. 3 meter.",
+        "place": "Cykelbana. 3 meter.",
         "setup": "Tidtagningsmatta 21,1 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-21-1-km-mitt.jpg"
@@ -14806,9 +14806,9 @@ window.RACES = {
         "forsta": "11:00",
         "sista": "12:55",
         "maps": "",
-        "placering": "3M Cykelbana",
-        "note": "3M Cykelbana",
-        "place": "3M Cykelbana",
+        "placering": "Cykelbana. 3 meter.",
+        "note": "Cykelbana. 3 meter.",
+        "place": "Cykelbana. 3 meter.",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-20-km-hel.jpg"
@@ -14830,9 +14830,9 @@ window.RACES = {
         "forsta": "10:30",
         "sista": "11:30",
         "maps": "",
-        "placering": "2,5 M Cykelbana",
-        "note": "2,5 M Cykelbana",
-        "place": "2,5 M Cykelbana",
+        "placering": "Cykelbana. 2,5 meter.",
+        "note": "Cykelbana. 2,5 meter.",
+        "place": "Cykelbana. 2,5 meter.",
         "setup": "Tidtagningsmatta 10 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-10-km-hel.jpg"
@@ -14854,9 +14854,9 @@ window.RACES = {
         "forsta": "10:45",
         "sista": "12:10",
         "maps": "",
-        "placering": "4M Cykelbana",
-        "note": "4M Cykelbana",
-        "place": "4M Cykelbana",
+        "placering": "Cykelbana. 4 meter.",
+        "note": "Cykelbana. 4 meter.",
+        "place": "Cykelbana. 4 meter.",
         "setup": "Tidtagningsmatta 15 km marathon",
         "gpx": "",
         "image": "img/lopp2-sodra-15-km-hel.jpg"
