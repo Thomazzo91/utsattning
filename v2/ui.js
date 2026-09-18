@@ -1270,21 +1270,51 @@
       ov.setAttribute("aria-hidden", "false");
     };
   }
+  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+  function isNetworkErr(err) {
+    const msg = String((err && err.message) || err || "");
+    const name = String((err && err.name) || "");
+    return /failed to fetch|networkerror|load failed|abort|timeout|network request failed|internet|offline/i.test(msg + " " + name);
+  }
   async function ghJson(method, url, body) {
     const token = localStorage.getItem(GH_TOKEN_KEY) || "";
     const headers = { Accept: "application/vnd.github+json", Authorization: "Bearer " + token };
     if (method === "GET") headers["Cache-Control"] = "no-cache";
-    if (body) headers["Content-Type"] = "application/json";
-    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
-    const text = await res.text();
-    let data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch (e) {}
-    if (!res.ok) throw new Error((data && data.message) || ("HTTP " + res.status));
-    return data;
+    const payload = body ? JSON.stringify(body) : undefined;
+    if (payload) headers["Content-Type"] = "application/json";
+    const tries = method === "GET" ? 3 : 5;
+    const limitMs = method === "GET" ? 12000 : 45000;
+    let lastErr;
+    for (let i = 0; i < tries; i++) {
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), limitMs) : null;
+      try {
+        const res = await fetch(url, { method, headers, body: payload, signal: ctrl ? ctrl.signal : undefined });
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+        if (res.status === 502 || res.status === 503 || res.status === 504) throw new Error("HTTP " + res.status);
+        if (!res.ok) {
+          const err = new Error((data && data.message) || ("HTTP " + res.status));
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      } catch (e) {
+        lastErr = e;
+        const status = e && e.status;
+        const retry = isNetworkErr(e) || status === 502 || status === 503 || status === 504 || /HTTP 502|HTTP 503|HTTP 504/i.test(String(e && e.message || ""));
+        if (!retry || i === tries - 1) throw e;
+        await sleep(700 * (i + 1));
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+    throw lastErr || new Error("GitHub");
   }
   function isRetryableGitErr(err) {
     const msg = String((err && err.message) || err || "");
-    return /fast.?forward|conflict|422|409|temporarily|rate limit|502|503|504|reference does not exist/i.test(msg);
+    return isNetworkErr(err) || /fast.?forward|conflict|422|409|temporarily|rate limit|502|503|504|reference does not exist/i.test(msg);
   }
   async function gitCommitFiles(entries, message) {
     const api = "https://api.github.com/repos/" + GH_REPO;
@@ -1325,7 +1355,7 @@
       } catch (e) {
         lastErr = e;
         if (!isRetryableGitErr(e) && attempt >= 1) break;
-        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        await sleep(400 * (attempt + 1));
       }
     }
     throw lastErr || new Error("Git commit");
@@ -1333,18 +1363,86 @@
   async function waitImagesLive(paths) {
     const list = (paths || []).filter(Boolean);
     if (!list.length) return;
-    for (let n = 0; n < 10; n++) {
+    for (let n = 0; n < 6; n++) {
       let pending = 0;
       for (let i = 0; i < list.length; i++) {
         const url = imgSrc(list[i]).replace(/([?&])v=[^&]*/, "$1v=" + Date.now());
+        const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+        const timer = ctrl ? setTimeout(() => ctrl.abort(), 8000) : null;
         try {
-          const res = await fetch(url, { cache: "reload" });
+          const res = await fetch(url, { cache: "reload", signal: ctrl ? ctrl.signal : undefined });
           if (!res.ok) pending += 1;
         } catch (e) { pending += 1; }
+        finally { if (timer) clearTimeout(timer); }
       }
       if (!pending) return;
-      await new Promise((r) => setTimeout(r, 1200));
+      await sleep(800);
     }
+  }
+  function fitUploadImage(dataUrl) {
+    const src = String(dataUrl || "");
+    const maxChars = 220000;
+    if (!src || src.indexOf("data:image") !== 0 || src.length <= maxChars) return Promise.resolve(src);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let w = img.naturalWidth || 1600;
+          let h = img.naturalHeight || 1200;
+          let q = 0.72;
+          let out = src;
+          for (let n = 0; n < 7; n++) {
+            const long = Math.max(w, h);
+            if (long > 1400) {
+              const s = 1400 / long;
+              w = Math.max(1, Math.round(w * s));
+              h = Math.max(1, Math.round(h * s));
+            }
+            const c = document.createElement("canvas");
+            c.width = w;
+            c.height = h;
+            c.getContext("2d").drawImage(img, 0, 0, w, h);
+            out = c.toDataURL("image/jpeg", q);
+            if (out.length <= maxChars) break;
+            w = Math.max(640, Math.round(w * 0.84));
+            h = Math.max(480, Math.round(h * 0.84));
+            q = Math.max(0.5, q - 0.07);
+          }
+          resolve(out || src);
+        } catch (e) { resolve(src); }
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    });
+  }
+  function stripInlineImages(node) {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) { node.forEach(stripInlineImages); return; }
+    if (typeof node.image === "string" && node.image.indexOf("data:") === 0) node.image = "";
+    Object.keys(node).forEach((k) => { if (k !== "image") stripInlineImages(node[k]); });
+  }
+  async function prepareImagesForUpload() {
+    const jobs = [];
+    (store.events || []).forEach((ev) => {
+      (ev.teams || []).forEach((t) => {
+        ["kortast", "iga"].forEach((modeName) => {
+          const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
+          if (!Array.isArray(stops)) return;
+          stops.forEach((s) => {
+            if (!s) return;
+            const key = stopImgKey(ev.id, t.id, s.label || "");
+            const pending = pendingImgs.get(key);
+            const raw = (typeof s.image === "string" && s.image.indexOf("data:image") === 0) ? s.image : pending;
+            if (!raw || String(raw).indexOf("data:image") !== 0 || String(raw).length <= 220000) return;
+            jobs.push(fitUploadImage(raw).then((out) => {
+              if (typeof s.image === "string" && s.image.indexOf("data:") === 0) s.image = out;
+              return pendingPut(key, out);
+            }));
+          });
+        });
+      });
+    });
+    if (jobs.length) await Promise.all(jobs);
   }
   async function ensurePublishToken() {
     let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
@@ -1400,9 +1498,11 @@
     setBusy(true, "Sparar för alla…");
     try {
       persist();
+      await prepareImagesForUpload();
       const uploads = collectDataUrlUploads();
       persist();
       const races = M.buildRacesObject(store.events);
+      stripInlineImages(races);
       const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
       const files = [{ path: "races.js", b64: utf8ToB64(racesBody) }];
       uploads.forEach((u) => files.push({ path: u.path, b64: u.b64 }));
@@ -1425,6 +1525,8 @@
       if (/bad credentials|401|unauthorized/i.test(msg)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
         showToast("Token ogiltig. Försök Spara för alla igen.");
+      } else if (isNetworkErr(e) || /failed to fetch|load failed|abort/i.test(msg)) {
+        showToast("Nätverket bröts. Sparat här — tryck Klar igen.");
       } else if (/fast.?forward/i.test(msg)) {
         showToast("Kunde inte spara för alla just nu. Tryck Spara för alla igen.");
       } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
@@ -1660,7 +1762,7 @@
         if (!file) return;
         setBusy(true, "Komprimerar bild…");
         try {
-          const dataUrl = await M.compressImage(file, 1600, 0.82);
+          const dataUrl = await fitUploadImage(await M.compressImage(file, 1400, 0.75));
           const list = M.pointsOf(teamById(editTeamId));
           if (list[i]) list[i].image = dataUrl;
           const ev = currentEvent();
