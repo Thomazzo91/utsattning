@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 70,
+  "rev": 71,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 73,
+  "rev": 74,
   "groups": [
    {
     "id": "startmal",
@@ -16162,8 +16162,8 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "10:45",
         "maps": "",
-        "placering": "6 meter",
-        "note": "6 meter",
+        "placering": "Över både cykelbana och gångbana. 6 meter",
+        "note": "Över både cykelbana och gångbana. 6 meter",
         "place": "",
         "setup": "Tidtagningsmatta 5 km marathon",
         "gpx": "",
@@ -17361,8 +17361,8 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "10:45",
         "maps": "",
-        "placering": "6 meter",
-        "note": "6 meter",
+        "placering": "Över både cykelbana och gångbana. 6 meter",
+        "note": "Över både cykelbana och gångbana. 6 meter",
         "place": "",
         "setup": "Tidtagningsmatta 5 km marathon",
         "gpx": "",
