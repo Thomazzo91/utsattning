@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 61,
+  "rev": 62,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 64,
+  "rev": 65,
   "groups": [
    {
     "id": "startmal",
@@ -16239,7 +16239,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-ostra-30-km-hel.jpg"
        }
       ],
       "legs": [],
@@ -17438,7 +17438,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-ostra-30-km-hel.jpg"
        }
       ],
       "legs": [],
