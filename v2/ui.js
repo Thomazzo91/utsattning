@@ -1152,7 +1152,15 @@
       showToast("Kunde inte spara lokalt");
     }
   }
-  function utf8ToB64(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function utf8ToB64(str) {
+    const bytes = new TextEncoder().encode(str);
+    const chunk = 8192;
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+    }
+    return btoa(binary);
+  }
   function fileSlug(s) {
     return String(s || "").toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
   }
@@ -1276,14 +1284,14 @@
     const name = String((err && err.name) || "");
     return /failed to fetch|networkerror|load failed|abort|timeout|network request failed|internet|offline/i.test(msg + " " + name);
   }
-  async function ghJson(method, url, body) {
+  async function ghJson(method, url, body, opts) {
     const token = localStorage.getItem(GH_TOKEN_KEY) || "";
     const headers = { Accept: "application/vnd.github+json", Authorization: "Bearer " + token };
     if (method === "GET") headers["Cache-Control"] = "no-cache";
     const payload = body ? JSON.stringify(body) : undefined;
     if (payload) headers["Content-Type"] = "application/json";
-    const tries = method === "GET" ? 3 : 5;
-    const limitMs = method === "GET" ? 12000 : 45000;
+    const tries = (opts && opts.tries) || (method === "GET" ? 2 : 3);
+    const limitMs = (opts && opts.timeout) || (method === "GET" ? 8000 : 15000);
     let lastErr;
     for (let i = 0; i < tries; i++) {
       const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -1303,80 +1311,103 @@
       } catch (e) {
         lastErr = e;
         const status = e && e.status;
-        const retry = isNetworkErr(e) || status === 502 || status === 503 || status === 504 || /HTTP 502|HTTP 503|HTTP 504/i.test(String(e && e.message || ""));
+        const retry = isNetworkErr(e) || status === 502 || status === 503 || status === 504 || /HTTP 502|HTTP 503|HTTP 504/i.test(String((e && e.message) || ""));
         if (!retry || i === tries - 1) throw e;
-        await sleep(700 * (i + 1));
+        await sleep(400 * (i + 1));
       } finally {
         if (timer) clearTimeout(timer);
       }
     }
     throw lastErr || new Error("GitHub");
   }
-  function isRetryableGitErr(err) {
-    const msg = String((err && err.message) || err || "");
-    return isNetworkErr(err) || /fast.?forward|conflict|422|409|temporarily|rate limit|502|503|504|reference does not exist/i.test(msg);
+  function parseRacesFile(text) {
+    const a = String(text || "").indexOf("{");
+    const b = String(text || "").lastIndexOf("}");
+    if (a < 0 || b <= a) return {};
+    return JSON.parse(text.slice(a, b + 1));
   }
-  async function gitCommitFiles(entries, message) {
-    const api = "https://api.github.com/repos/" + GH_REPO;
-    const treeItems = [];
-    for (let i = 0; i < entries.length; i++) {
-      const ent = entries[i];
-      const blob = await ghJson("POST", api + "/git/blobs", { content: ent.b64, encoding: "base64" });
-      treeItems.push({ path: ent.path, mode: "100644", type: "blob", sha: blob.sha });
-    }
-    const stamp = String(Date.now());
-    const htmlPaths = ["index.html", "v2/index.html", "v2/oversikt.html"];
+  async function putRepoFile(path, b64, message) {
+    const url = "https://api.github.com/repos/" + GH_REPO + "/contents/" + path;
     let lastErr;
-    for (let attempt = 0; attempt < 8; attempt++) {
+    for (let i = 0; i < 4; i++) {
+      let sha;
       try {
-        const ref = await ghJson("GET", api + "/git/ref/heads/main");
-        const headSha = ref && ref.object && ref.object.sha;
-        if (!headSha) throw new Error("Ingen main-branch");
-        const commit = await ghJson("GET", api + "/git/commits/" + headSha);
-        const items = treeItems.slice();
-        for (let h = 0; h < htmlPaths.length; h++) {
-          const path = htmlPaths[h];
-          try {
-            const meta = await ghJson("GET", api + "/contents/" + path);
-            let html = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
-            html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
-            const blob = await ghJson("POST", api + "/git/blobs", { content: utf8ToB64(html), encoding: "base64" });
-            items.push({ path: path, mode: "100644", type: "blob", sha: blob.sha });
-          } catch (e) {}
+        const meta = await ghJson("GET", url, null, { tries: 2, timeout: 8000 });
+        sha = meta && meta.sha;
+      } catch (e) {
+        if (!/404|not found/i.test(String((e && e.message) || ""))) {
+          if (!isNetworkErr(e) && e.status !== 502 && e.status !== 503) throw e;
+          lastErr = e;
         }
-        const tree = await ghJson("POST", api + "/git/trees", { base_tree: commit.tree.sha, tree: items });
-        const created = await ghJson("POST", api + "/git/commits", {
-          message: message,
-          tree: tree.sha,
-          parents: [headSha]
-        });
-        await ghJson("PATCH", api + "/git/refs/heads/main", { sha: created.sha, force: false });
-        return created.sha;
+      }
+      try {
+        const body = { message: message, content: b64, branch: "main" };
+        if (sha) body.sha = sha;
+        return await ghJson("PUT", url, body, { tries: 2, timeout: 20000 });
       } catch (e) {
         lastErr = e;
-        if (!isRetryableGitErr(e) && attempt >= 1) break;
-        await sleep(400 * (attempt + 1));
+        const msg = String((e && e.message) || "");
+        if (e.status === 409 || /sha|conflict|fast.?forward/i.test(msg)) {
+          await sleep(250);
+          continue;
+        }
+        throw e;
       }
     }
-    throw lastErr || new Error("Git commit");
+    throw lastErr || new Error("GitHub PUT");
   }
-  async function waitImagesLive(paths) {
-    const list = (paths || []).filter(Boolean);
-    if (!list.length) return;
-    for (let n = 0; n < 6; n++) {
-      let pending = 0;
-      for (let i = 0; i < list.length; i++) {
-        const url = imgSrc(list[i]).replace(/([?&])v=[^&]*/, "$1v=" + Date.now());
-        const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-        const timer = ctrl ? setTimeout(() => ctrl.abort(), 8000) : null;
-        try {
-          const res = await fetch(url, { cache: "reload", signal: ctrl ? ctrl.signal : undefined });
-          if (!res.ok) pending += 1;
-        } catch (e) { pending += 1; }
-        finally { if (timer) clearTimeout(timer); }
+  async function putRacesJs(localRaces, message) {
+    const url = "https://api.github.com/repos/" + GH_REPO + "/contents/races.js";
+    let lastErr;
+    for (let i = 0; i < 4; i++) {
+      let remote = {};
+      let sha;
+      try {
+        const meta = await ghJson("GET", url, null, { tries: 2, timeout: 10000 });
+        sha = meta && meta.sha;
+        const text = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
+        remote = parseRacesFile(text);
+      } catch (e) {
+        if (!/404|not found/i.test(String((e && e.message) || ""))) throw e;
       }
-      if (!pending) return;
-      await sleep(800);
+      const races = Object.assign({}, remote, localRaces);
+      Object.keys(races).forEach((id) => {
+        if (M.isRemoved(id)) delete races[id];
+      });
+      stripInlineImages(races);
+      try {
+        const body = { message: message, content: utf8ToB64("window.RACES = " + JSON.stringify(races, null, 1) + ";\n"), branch: "main" };
+        if (sha) body.sha = sha;
+        await ghJson("PUT", url, body, { tries: 2, timeout: 20000 });
+        return races;
+      } catch (e) {
+        lastErr = e;
+        const msg = String((e && e.message) || "");
+        if (e.status === 409 || /sha|conflict|fast.?forward/i.test(msg)) {
+          await sleep(250);
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw lastErr || new Error("races.js");
+  }
+  async function stampHtmlCache(stamp) {
+    const paths = ["v2/index.html", "v2/oversikt.html", "index.html"];
+    for (let i = 0; i < paths.length; i++) {
+      try {
+        const url = "https://api.github.com/repos/" + GH_REPO + "/contents/" + paths[i];
+        const meta = await ghJson("GET", url, null, { tries: 1, timeout: 8000 });
+        let html = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
+        const next = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
+        if (next === html) continue;
+        await ghJson("PUT", url, {
+          message: "Cache-bust efter publicering",
+          content: utf8ToB64(next),
+          branch: "main",
+          sha: meta.sha
+        }, { tries: 1, timeout: 12000 });
+      } catch (e) {}
     }
   }
   function fitUploadImage(dataUrl) {
@@ -1501,17 +1532,15 @@
       await prepareImagesForUpload();
       const uploads = collectDataUrlUploads();
       persist();
-      const races = M.buildRacesObject(store.events);
-      stripInlineImages(races);
-      const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
-      const files = [{ path: "races.js", b64: utf8ToB64(racesBody) }];
-      uploads.forEach((u) => files.push({ path: u.path, b64: u.b64 }));
-      document.getElementById("busyText").textContent = uploads.length ? "Laddar upp bilder…" : "Sparar lopp…";
-      await gitCommitFiles(files, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
-      if (uploads.length) {
-        document.getElementById("busyText").textContent = "Väntar på bilderna…";
-        await waitImagesLive(uploads.map((u) => u.path));
+      for (let i = 0; i < uploads.length; i++) {
+        document.getElementById("busyText").textContent = "Laddar upp bild " + (i + 1) + "/" + uploads.length + "…";
+        await putRepoFile(uploads[i].path, uploads[i].b64, "Bild " + (uploads[i].label || "punkt"));
       }
+      document.getElementById("busyText").textContent = "Sparar lopp…";
+      const localRaces = M.buildRacesObject(store.events);
+      stripInlineImages(localRaces);
+      const races = await putRacesJs(localRaces, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
+      try { await stampHtmlCache(String(Date.now())); } catch (e) {}
       window.RACES = races;
       (store.events || []).forEach((ev) => {
         if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
@@ -1522,13 +1551,16 @@
       return true;
     } catch (e) {
       const msg = (e && e.message) || "";
+      const name = (e && e.name) || "";
       if (/bad credentials|401|unauthorized/i.test(msg)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
         showToast("Token ogiltig. Försök Spara för alla igen.");
-      } else if (isNetworkErr(e) || /failed to fetch|load failed|abort/i.test(msg)) {
-        showToast("Nätverket bröts. Sparat här — tryck Klar igen.");
-      } else if (/fast.?forward/i.test(msg)) {
-        showToast("Kunde inte spara för alla just nu. Tryck Spara för alla igen.");
+      } else if (/sha|conflict|fast.?forward/i.test(msg)) {
+        showToast("Någon annan sparade samtidigt. Tryck Klar igen.");
+      } else if (/abort/i.test(msg + " " + name)) {
+        showToast("GitHub svarade inte. Sparat här — tryck Klar igen.");
+      } else if (isNetworkErr(e) || /failed to fetch|load failed/i.test(msg)) {
+        showToast("Kunde inte nå GitHub. Sparat här — tryck Klar igen.");
       } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
       return false;
     } finally {
