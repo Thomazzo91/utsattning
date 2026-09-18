@@ -1235,17 +1235,18 @@
     const ev = currentEvent();
     return pendingImgs.get(stopImgKey(ev && ev.id, teamId || currentId, stop && stop.label)) || "";
   }
-  function bindStopImg(el, stop, teamId) {
+  function bindStopImg(el, stop, teamId, preferPending) {
     if (!el || !stop) return;
     el.style.display = "";
     const urls = [];
     const pending = pendingFor(stop, teamId);
-    if (pending) urls.push(pending);
-    if (stop.image && String(stop.image).indexOf("data:") === 0) {
-      if (urls.indexOf(stop.image) < 0) urls.push(stop.image);
-    } else if (stop.image) urls.push(imgSrc(stop.image));
     const cat = catalogImage(stop, teamId);
-    if (cat && cat !== stop.image) urls.push(imgSrc(cat));
+    if (preferPending && pending) urls.push(pending);
+    if (cat && String(cat).indexOf("data:") !== 0) urls.push(imgSrc(cat));
+    if (stop.image && String(stop.image).indexOf("data:") === 0) {
+      if (preferPending && urls.indexOf(stop.image) < 0) urls.push(stop.image);
+    } else if (stop.image && stop.image !== cat) urls.push(imgSrc(stop.image));
+    if (!preferPending && pending) urls.push(pending);
     let i = 0;
     let retried = false;
     const go = () => {
@@ -1788,7 +1789,7 @@
     `;
     editorBody.querySelectorAll(".pt-card").forEach((c, n) => c.classList.toggle("is-edit", n === i));
     const previewEl = box.querySelector(".pt-img");
-    if (previewEl) bindStopImg(previewEl, p, editTeamId);
+    if (previewEl) bindStopImg(previewEl, p, editTeamId, true);
     box.querySelectorAll("input, textarea, select").forEach((el) => {
       if (el.id === "pImgFile") return;
       el.addEventListener("change", () => readPointForm(i));

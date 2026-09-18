@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Utsättning</title>
+  <script>
+    (function () {
+      var u = new URL("index.html", location.href);
+      new URLSearchParams(location.search).forEach(function (v, k) { u.searchParams.set(k, v); });
+      u.searchParams.set("r", "33");
+      location.replace(u.pathname + u.search + location.hash);
+    })();
+  </script>
+</head>
+<body style="background:#0b1220;color:#e8eef4;font-family:system-ui;padding:24px">Öppnar Utsättning…</body>
+</html>
