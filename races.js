@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 65,
+  "rev": 66,
   "groups": [
    {
     "id": "soder",
@@ -13489,7 +13489,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 70,
+  "rev": 71,
   "groups": [
    {
     "id": "startmal",
@@ -13543,9 +13543,9 @@ window.RACES = {
         "forsta": "10:18",
         "sista": "16:00",
         "maps": "",
-        "placering": "Ribersborg – målgång",
-        "note": "Ribersborg – målgång",
-        "place": "Ribersborg – målgång",
+        "placering": "Ribersborg – målgång\nCykel & gångbana. 6 meter.",
+        "note": "Ribersborg – målgång\nCykel & gångbana. 6 meter.",
+        "place": "Ribersborg – målgång\nCykel & gångbana. 6 meter.",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
         "image": "img/lopp2-startmal-malgang-ribersborg-mu6ohltm.jpg"
@@ -13621,9 +13621,9 @@ window.RACES = {
         "forsta": "10:18",
         "sista": "16:00",
         "maps": "",
-        "placering": "Ribersborg – målgång",
-        "note": "Ribersborg – målgång",
-        "place": "Ribersborg – målgång",
+        "placering": "Ribersborg – målgång\nCykel & gångbana. 6 meter.",
+        "note": "Ribersborg – målgång\nCykel & gångbana. 6 meter.",
+        "place": "Ribersborg – målgång\nCykel & gångbana. 6 meter.",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
         "image": "img/lopp2-startmal-malgang-ribersborg-mu6ohltm.jpg"
