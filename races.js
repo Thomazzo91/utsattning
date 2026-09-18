@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 69,
+  "rev": 70,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 72,
+  "rev": 73,
   "groups": [
    {
     "id": "startmal",
@@ -13517,8 +13517,8 @@ window.RACES = {
         "forsta": "11:00",
         "sista": "12:55",
         "maps": "",
-        "placering": "3 meter Cykelbana",
-        "note": "3 meter Cykelbana",
+        "placering": "3 meter. Cykelbana",
+        "note": "3 meter. Cykelbana",
         "place": "3 m",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
@@ -13565,8 +13565,8 @@ window.RACES = {
         "forsta": "10:45",
         "sista": "12:10",
         "maps": "",
-        "placering": "4M Cykelbana",
-        "note": "4M Cykelbana",
+        "placering": "4 meter. Cykelbana",
+        "note": "4 meter. Cykelbana",
         "place": "4M Cykelbana",
         "setup": "Tidtagningsmatta 15 km marathon",
         "gpx": "",
@@ -14616,8 +14616,8 @@ window.RACES = {
         "forsta": "11:00",
         "sista": "12:55",
         "maps": "",
-        "placering": "3 meter Cykelbana",
-        "note": "3 meter Cykelbana",
+        "placering": "3 meter. Cykelbana",
+        "note": "3 meter. Cykelbana",
         "place": "3 m",
         "setup": "Tidtagningsmatta 20 km marathon",
         "gpx": "",
@@ -14664,8 +14664,8 @@ window.RACES = {
         "forsta": "10:45",
         "sista": "12:10",
         "maps": "",
-        "placering": "4M Cykelbana",
-        "note": "4M Cykelbana",
+        "placering": "4 meter. Cykelbana",
+        "note": "4 meter. Cykelbana",
         "place": "4M Cykelbana",
         "setup": "Tidtagningsmatta 15 km marathon",
         "gpx": "",
