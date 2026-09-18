@@ -16191,7 +16191,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 25 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-ostra-25-km-hel.jpg"
        },
        {
         "idx": 3,
@@ -17390,7 +17390,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 25 km marathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-ostra-25-km-hel.jpg"
        },
        {
         "idx": 3,
