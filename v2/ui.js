@@ -212,7 +212,16 @@
   function raceHeadingAt(stop) {
     const ev = currentEvent();
     if (!ev || !stop || !Number.isFinite(Number(stop.lat)) || !Number.isFinite(Number(stop.lon))) return null;
-    const pts = liveStops(ev);
+    const meta = liveRaceMeta(stop);
+    const all = liveStops(ev);
+    if (all.length < 2) return null;
+    const same = all.filter((p) => !!p.half === !!meta.half);
+    const raw = same.length >= 2 ? same : all;
+    const pts = [];
+    raw.forEach((p) => {
+      if (pts.some((q) => q.sort === p.sort && stopDistM(q.stop, p.stop) < 40)) return;
+      pts.push(p);
+    });
     if (pts.length < 2) return null;
     const hereKey = ev.id + "|" + currentId + "|" + stop.label;
     let i = pts.findIndex((p) => p.key === hereKey);
@@ -226,45 +235,14 @@
       }, -1);
     }
     if (i < 0) return null;
-    const later = pts.filter((p, idx) => idx !== i && p.sort > pts[i].sort && stopDistM(p.stop, stop) >= 35);
-    if (later.length) {
-      later.sort((a, b) => stopDistM(a.stop, stop) - stopDistM(b.stop, stop));
-      return bearingTo(stop, later[0].stop);
-    }
-    const earlier = pts.filter((p, idx) => idx !== i && p.sort < pts[i].sort && stopDistM(p.stop, stop) >= 35);
-    if (earlier.length) {
-      earlier.sort((a, b) => stopDistM(a.stop, stop) - stopDistM(b.stop, stop));
-      return bearingTo(earlier[0].stop, stop);
+    const later = pts.slice(i + 1);
+    const nextFar = later.find((p) => stopDistM(p.stop, stop) >= 600) ||
+      later.find((p) => stopDistM(p.stop, stop) >= 80);
+    if (nextFar) return bearingTo(stop, nextFar.stop);
+    for (let k = i - 1; k >= 0; k--) {
+      if (stopDistM(pts[k].stop, stop) >= 80) return bearingTo(pts[k].stop, stop);
     }
     return null;
-  }
-  let deviceHeading = null;
-  let compassWatching = false;
-  function onDeviceOrient(e) {
-    let h = null;
-    if (typeof e.webkitCompassHeading === "number" && !isNaN(e.webkitCompassHeading)) h = e.webkitCompassHeading;
-    else if (typeof e.alpha === "number") h = (360 - e.alpha) % 360;
-    if (h == null || !isFinite(h)) return;
-    deviceHeading = h;
-    paintCompass();
-  }
-  async function enableDeviceCompass() {
-    try {
-      if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") {
-        const p = await DeviceOrientationEvent.requestPermission();
-        if (p !== "granted") {
-          showToast("Ingen kompasstyrning på den här enheten");
-          return;
-        }
-      }
-      if (compassWatching) return;
-      compassWatching = true;
-      window.addEventListener("deviceorientationabsolute", onDeviceOrient, true);
-      window.addEventListener("deviceorientation", onDeviceOrient, true);
-      showToast("Kompassen följer telefonen");
-    } catch (e) {
-      showToast("Kunde inte starta kompassen");
-    }
   }
   function paintCompass() {
     const el = document.getElementById("raceCompass");
@@ -273,6 +251,7 @@
       document.body.classList.contains("choosing") || document.body.classList.contains("editing");
     if (hide) {
       el.classList.remove("is-on");
+      el.setAttribute("aria-hidden", "true");
       return;
     }
     const g = viewOf(currentId, currentMode);
@@ -280,18 +259,17 @@
     const heading = s ? raceHeadingAt(s) : null;
     if (heading == null) {
       el.classList.remove("is-on");
+      el.setAttribute("aria-hidden", "true");
       return;
     }
     el.classList.add("is-on");
+    el.setAttribute("aria-hidden", "false");
     const needle = document.getElementById("raceNeedle");
-    if (needle) needle.style.transform = "rotate(" + heading + "deg)";
-    const dial = document.getElementById("raceDial");
-    if (dial) dial.style.transform = (compassWatching && deviceHeading != null) ? ("rotate(" + (-deviceHeading) + "deg)") : "";
-    const label = document.getElementById("raceCompassLabel");
+    if (needle) needle.style.transform = "rotate(" + heading.toFixed(1) + "deg)";
     const card = cardinalSv(heading);
-    if (label) label.textContent = "Lopp " + card;
-    const btn = document.getElementById("raceCompassBtn");
-    if (btn) btn.setAttribute("aria-label", "Löparriktning " + card + (compassWatching ? ", följer telefonen" : ". Tryck för att rikta mot verkligheten"));
+    const label = document.getElementById("raceCompassLabel");
+    if (label) label.textContent = card;
+    el.setAttribute("aria-label", "Löpriktning " + card);
   }
   function liveStops(ev) {
     const out = [];
@@ -304,7 +282,8 @@
           stop: s,
           mark: meta.mark,
           key: ev.id + "|" + t.id + "|" + s.label,
-          sort: meta.sort
+          sort: meta.sort,
+          half: meta.half
         });
       });
     });
@@ -648,12 +627,14 @@
     const done = isDone(g.id, s.label);
     const img = s.image ? `<img class="thumb" src="${esc(imgSrc(s.image))}" alt="">` : "";
     const nextLeg = g.legs[selected];
+    const heading = raceHeadingAt(s);
+    const dirTxt = heading == null ? "" : " · Löper " + cardinalSv(heading);
     card.innerHTML = `
       <div class="card-head">
         <span class="num" style="background:${g.color}">${selected + 1}</span>
         <div style="flex:1;min-width:0">
           <h2>${esc(s.label || s.name || "Punkt")}</h2>
-          <p class="setup">${esc(s.setup || "")}${nextLeg ? " · " + nextLeg.km + " km till nästa" : ""}</p>
+          <p class="setup">${esc(s.setup || "")}${nextLeg ? " · " + nextLeg.km + " km till nästa" : ""}${dirTxt}</p>
         </div>
         <div class="card-actions">
           <button type="button" class="been" id="doneBtn" aria-pressed="${done}" aria-label="Bocka av">${CHECK_SVG}</button>
@@ -991,13 +972,6 @@
     showToast("Avbockning rensad");
   });
   document.getElementById("editBtn").addEventListener("click", openEditor);
-  const compassBtn = document.getElementById("raceCompassBtn");
-  if (compassBtn) {
-    compassBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      enableDeviceCompass();
-    });
-  }
   document.getElementById("newEventBtn").addEventListener("click", () => {
     document.getElementById("more").style.display = "none";
     newEvent();
