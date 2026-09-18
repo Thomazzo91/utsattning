@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 57,
+  "rev": 58,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 60,
+  "rev": 61,
   "groups": [
    {
     "id": "startmal",
@@ -18636,7 +18636,7 @@ window.RACES = {
         "name": "20 km halv",
         "label": "20 km halv",
         "who": "",
-        "lat": 55.6099651,
+        "lat": 55.609965,
         "lon": 12.974621,
         "starth": 0,
         "startm": 0,
@@ -18648,12 +18648,12 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "12:45",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "Förvaring",
+        "note": "Förvaring",
         "place": "",
         "setup": "Tidtagningsmatta 20 km halvmarathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-norra-20-km-halv.jpg"
        },
        {
         "idx": 3,
@@ -19414,7 +19414,7 @@ window.RACES = {
         "name": "20 km halv",
         "label": "20 km halv",
         "who": "",
-        "lat": 55.6099651,
+        "lat": 55.609965,
         "lon": 12.974621,
         "starth": 0,
         "startm": 0,
@@ -19426,12 +19426,12 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "12:45",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "Förvaring",
+        "note": "Förvaring",
         "place": "",
         "setup": "Tidtagningsmatta 20 km halvmarathon",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-norra-20-km-halv.jpg"
        },
        {
         "idx": 3,
