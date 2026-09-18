@@ -255,13 +255,45 @@
   let compassListening = false;
   let compassLive = false;
   let compassRaf = 0;
+  let compassSource = 0;
+  let compassSpike = null;
+  let compassSpikeN = 0;
   function circLerp(a, b, t) {
     const d = ((b - a + 540) % 360) - 180;
     return (a + d * t + 360) % 360;
   }
+  function circDelta(a, b) {
+    return Math.abs(((b - a + 540) % 360) - 180);
+  }
   function compassNeedsPermission() {
     return typeof DeviceOrientationEvent !== "undefined" &&
       typeof DeviceOrientationEvent.requestPermission === "function";
+  }
+  function screenAngle() {
+    try {
+      if (screen.orientation && Number.isFinite(Number(screen.orientation.angle))) {
+        return Number(screen.orientation.angle);
+      }
+    } catch (e) {}
+    if (typeof window.orientation === "number") return window.orientation;
+    return 0;
+  }
+  function tiltHeading(alpha, beta, gamma) {
+    const a = Number(alpha);
+    if (!Number.isFinite(a)) return null;
+    const bb = Number.isFinite(Number(beta)) ? Number(beta) : 0;
+    const gg = Number.isFinite(Number(gamma)) ? Number(gamma) : 0;
+    if (Math.abs(bb) < 12 && Math.abs(gg) < 12) return (360 - a + 360) % 360;
+    const toRad = Math.PI / 180;
+    const x = bb * toRad, y = gg * toRad, z = a * toRad;
+    const cX = Math.cos(x), cY = Math.cos(y), cZ = Math.cos(z);
+    const sX = Math.sin(x), sY = Math.sin(y), sZ = Math.sin(z);
+    const vx = -cZ * sY - sZ * sX * cY;
+    const vy = -sZ * sY + cZ * sX * cY;
+    if (Math.abs(vx) < 1e-6 && Math.abs(vy) < 1e-6) return (360 - a + 360) % 360;
+    let heading = Math.atan2(vx, vy) * 180 / Math.PI;
+    if (heading < 0) heading += 360;
+    return heading;
   }
   function headingFromOrient(e) {
     if (!e) return null;
@@ -270,24 +302,55 @@
       return (Number(e.webkitCompassHeading) + 360) % 360;
     }
     const abs = e.absolute === true || e.type === "deviceorientationabsolute";
-    if (!abs || typeof e.alpha !== "number" || !isFinite(e.alpha)) return null;
-    return (360 - e.alpha + 360) % 360;
+    if (!abs) return null;
+    const h = tiltHeading(e.alpha, e.beta, e.gamma);
+    if (h == null) return null;
+    return (h - screenAngle() + 360) % 360;
+  }
+  function orientRank(e) {
+    if (!e) return 0;
+    if (e.type === "deviceorientationabsolute") return 3;
+    if (typeof e.webkitCompassHeading === "number" && isFinite(e.webkitCompassHeading)) return 2;
+    if (e.absolute === true) return 1;
+    return 0;
+  }
+  function flushCompass() {
+    compassRaf = 0;
+    const h = deviceHeading;
+    if (h == null) return;
+    if (deviceHeadingSmooth == null) {
+      deviceHeadingSmooth = h;
+      paintCompass();
+      return;
+    }
+    const delta = circDelta(deviceHeadingSmooth, h);
+    if (delta > 18) {
+      const sameSpike = compassSpike != null && circDelta(compassSpike, h) < 15;
+      compassSpike = h;
+      compassSpikeN = sameSpike ? compassSpikeN + 1 : 1;
+      if (compassSpikeN < 10) {
+        deviceHeadingSmooth = circLerp(deviceHeadingSmooth, h, 0.03);
+        paintCompass();
+        return;
+      }
+    } else {
+      compassSpike = null;
+      compassSpikeN = 0;
+    }
+    deviceHeadingSmooth = circLerp(deviceHeadingSmooth, h, delta < 3 ? 0.05 : 0.1);
+    paintCompass();
   }
   function onDeviceOrient(e) {
+    const rank = orientRank(e);
+    if (!rank) return;
+    if (compassSource && rank < compassSource) return;
     const h = headingFromOrient(e);
     if (h == null) return;
+    compassSource = Math.max(compassSource, rank);
     deviceHeading = h;
     compassLive = true;
     if (compassRaf) return;
-    compassRaf = requestAnimationFrame(() => {
-      compassRaf = 0;
-      if (deviceHeadingSmooth == null) deviceHeadingSmooth = deviceHeading;
-      else {
-        const delta = Math.abs(((deviceHeading - deviceHeadingSmooth + 540) % 360) - 180);
-        deviceHeadingSmooth = circLerp(deviceHeadingSmooth, deviceHeading, delta > 35 ? 0.5 : 0.22);
-      }
-      paintCompass();
-    });
+    compassRaf = requestAnimationFrame(flushCompass);
   }
   function startCompassListen() {
     if (compassListening) return;
