@@ -859,12 +859,6 @@
       const seedImg = (seedStop && seedStop.image) || "";
       const userImg = user.image.trim();
       if (userImg.indexOf("data:") === 0 && seedImg && seedImg.indexOf("data:") !== 0) dest.image = seedImg;
-      else if (
-        userImg.indexOf("img/") === 0 &&
-        seedImg.indexOf("img/") === 0 &&
-        seedImg.indexOf("data:") !== 0 &&
-        userImg !== seedImg
-      ) dest.image = seedImg;
       else dest.image = userImg;
     } else dest.image = (seedStop && seedStop.image) || dest.image || "";
     dest.who = user.who != null ? user.who : (dest.who || "");

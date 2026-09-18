@@ -8,7 +8,7 @@
     (function () {
       var u = new URL("index.html", location.href);
       new URLSearchParams(location.search).forEach(function (v, k) { u.searchParams.set(k, v); });
-      u.searchParams.set("r", "33");
+      u.searchParams.set("r", "34");
       location.replace(u.pathname + u.search + location.hash);
     })();
   </script>

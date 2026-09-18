@@ -1235,18 +1235,17 @@
     const ev = currentEvent();
     return pendingImgs.get(stopImgKey(ev && ev.id, teamId || currentId, stop && stop.label)) || "";
   }
-  function bindStopImg(el, stop, teamId, preferPending) {
+  function bindStopImg(el, stop, teamId) {
     if (!el || !stop) return;
     el.style.display = "";
     const urls = [];
     const pending = pendingFor(stop, teamId);
     const cat = catalogImage(stop, teamId);
-    if (preferPending && pending) urls.push(pending);
+    if (pending) urls.push(pending);
     if (cat && String(cat).indexOf("data:") !== 0) urls.push(imgSrc(cat));
     if (stop.image && String(stop.image).indexOf("data:") === 0) {
-      if (preferPending && urls.indexOf(stop.image) < 0) urls.push(stop.image);
+      if (urls.indexOf(stop.image) < 0) urls.push(stop.image);
     } else if (stop.image && stop.image !== cat) urls.push(imgSrc(stop.image));
-    if (!preferPending && pending) urls.push(pending);
     let i = 0;
     let retried = false;
     const go = () => {
@@ -1324,11 +1323,12 @@
         return data;
       } catch (e) {
         lastErr = e;
-        if (skipBody && isNetworkErr(e) && !(opts && opts.noVerify)) {
+        if (skipBody && isNetworkErr(e) && !(opts && opts.noVerify) && opts && opts.beforeSha !== undefined) {
           try {
             await sleep(500);
-            const check = await ghJson("GET", url.split("?")[0], null, { tries: 1, timeout: 8000, noVerify: true });
-            if (check && (check.sha || check.content || check.ok)) return { ok: true, recovered: true };
+            const checkUrl = url.split("?")[0];
+            const check = await ghJson("GET", checkUrl, null, { tries: 1, timeout: 8000, noVerify: true });
+            if (check && check.sha && String(check.sha) !== String(opts.beforeSha || "")) return { ok: true, recovered: true };
           } catch (e2) {}
         }
         const status = e && e.status;
@@ -1347,29 +1347,42 @@
     if (a < 0 || b <= a) return {};
     return JSON.parse(text.slice(a, b + 1));
   }
+  function isShaConflict(err) {
+    const msg = String((err && err.message) || "");
+    const status = err && err.status;
+    return status === 409 || status === 422 || /sha|conflict|fast.?forward|already exists/i.test(msg);
+  }
+  async function mainHeadSha() {
+    const ref = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/git/ref/heads/main");
+    return ref && ref.object && ref.object.sha;
+  }
+  async function contentsAtHead(path) {
+    const head = await mainHeadSha();
+    if (!head) throw new Error("Ingen main-branch");
+    return ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path + "?ref=" + encodeURIComponent(head));
+  }
   async function putRepoFile(path, b64, message) {
     const url = "https://api.github.com/repos/" + GH_REPO + "/contents/" + path;
     let lastErr;
-    for (let i = 0; i < 4; i++) {
-      let sha;
+    for (let i = 0; i < 8; i++) {
+      let sha = "";
       try {
-        const meta = await ghJson("GET", url, null, { tries: 2, timeout: 8000 });
-        sha = meta && meta.sha;
+        const meta = await contentsAtHead(path);
+        sha = (meta && meta.sha) || "";
       } catch (e) {
         if (!/404|not found/i.test(String((e && e.message) || ""))) {
-          if (!isNetworkErr(e) && e.status !== 502 && e.status !== 503) throw e;
           lastErr = e;
+          if (!isNetworkErr(e) && !isShaConflict(e) && e.status !== 502 && e.status !== 503) throw e;
         }
       }
       try {
         const body = { message: message, content: b64, branch: "main" };
         if (sha) body.sha = sha;
-        return await ghJson("PUT", url, body, { tries: 2, timeout: 20000 });
+        return await ghJson("PUT", url, body, { tries: 2, timeout: 20000, beforeSha: sha });
       } catch (e) {
         lastErr = e;
-        const msg = String((e && e.message) || "");
-        if (e.status === 409 || /sha|conflict|fast.?forward/i.test(msg)) {
-          await sleep(250);
+        if (isShaConflict(e) || isNetworkErr(e)) {
+          await sleep(300 * (i + 1));
           continue;
         }
         throw e;
@@ -1380,12 +1393,12 @@
   async function putRacesJs(localRaces, message) {
     const url = "https://api.github.com/repos/" + GH_REPO + "/contents/races.js";
     let lastErr;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 8; i++) {
       let remote = {};
-      let sha;
+      let sha = "";
       try {
-        const meta = await ghJson("GET", url, null, { tries: 2, timeout: 10000 });
-        sha = meta && meta.sha;
+        const meta = await contentsAtHead("races.js");
+        sha = (meta && meta.sha) || "";
         const text = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
         remote = parseRacesFile(text);
       } catch (e) {
@@ -1399,13 +1412,12 @@
       try {
         const body = { message: message, content: utf8ToB64("window.RACES = " + JSON.stringify(races, null, 1) + ";\n"), branch: "main" };
         if (sha) body.sha = sha;
-        await ghJson("PUT", url, body, { tries: 2, timeout: 20000 });
+        await ghJson("PUT", url, body, { tries: 2, timeout: 20000, beforeSha: sha });
         return races;
       } catch (e) {
         lastErr = e;
-        const msg = String((e && e.message) || "");
-        if (e.status === 409 || /sha|conflict|fast.?forward/i.test(msg)) {
-          await sleep(250);
+        if (isShaConflict(e) || isNetworkErr(e)) {
+          await sleep(300 * (i + 1));
           continue;
         }
         throw e;
@@ -1561,7 +1573,6 @@
       const localRaces = M.buildRacesObject(store.events);
       stripInlineImages(localRaces);
       const races = await putRacesJs(localRaces, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
-      try { await stampHtmlCache(String(Date.now())); } catch (e) {}
       window.RACES = races;
       (store.events || []).forEach((ev) => {
         if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
@@ -1576,8 +1587,8 @@
       if (/bad credentials|401|unauthorized/i.test(msg)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
         showToast("Token ogiltig. Försök Spara för alla igen.");
-      } else if (/sha|conflict|fast.?forward/i.test(msg)) {
-        showToast("Någon annan sparade samtidigt. Tryck Klar igen.");
+      } else if (isShaConflict(e) || /sha|conflict|fast.?forward/i.test(msg)) {
+        showToast("Kunde inte spara just nu. Tryck Klar igen.");
       } else if (/abort/i.test(msg + " " + name)) {
         showToast("GitHub svarade inte. Sparat här — tryck Klar igen.");
       } else if (isNetworkErr(e) || /failed to fetch|load failed/i.test(msg)) {
@@ -1789,7 +1800,7 @@
     `;
     editorBody.querySelectorAll(".pt-card").forEach((c, n) => c.classList.toggle("is-edit", n === i));
     const previewEl = box.querySelector(".pt-img");
-    if (previewEl) bindStopImg(previewEl, p, editTeamId, true);
+    if (previewEl) bindStopImg(previewEl, p, editTeamId);
     box.querySelectorAll("input, textarea, select").forEach((el) => {
       if (el.id === "pImgFile") return;
       el.addEventListener("change", () => readPointForm(i));
