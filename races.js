@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 65,
+  "rev": 66,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 68,
+  "rev": 69,
   "groups": [
    {
     "id": "startmal",
@@ -16186,8 +16186,8 @@ window.RACES = {
         "forsta": "11:15",
         "sista": "13:35",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "3 meter",
+        "note": "3 meter",
         "place": "",
         "setup": "Tidtagningsmatta 25 km marathon",
         "gpx": "",
@@ -16210,8 +16210,8 @@ window.RACES = {
         "forsta": "09:45",
         "sista": "11:20",
         "maps": "",
-        "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
-        "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
+        "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)\n\n6 meter",
+        "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)\n\n6 meter",
         "place": "",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
@@ -17385,8 +17385,8 @@ window.RACES = {
         "forsta": "11:15",
         "sista": "13:35",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "3 meter",
+        "note": "3 meter",
         "place": "",
         "setup": "Tidtagningsmatta 25 km marathon",
         "gpx": "",
@@ -17409,8 +17409,8 @@ window.RACES = {
         "forsta": "09:45",
         "sista": "11:20",
         "maps": "",
-        "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
-        "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
+        "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)\n\n6 meter",
+        "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)\n\n6 meter",
         "place": "",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
