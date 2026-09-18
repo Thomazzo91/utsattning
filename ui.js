@@ -76,13 +76,8 @@
     document.title = t || "Välj lopp";
   }
 
-  const GH_REPO = "Thomazzo91/utsattning";
   const GH_TOKEN_KEY = "utsattning-publish-token";
   let publishing = false;
-
-  function utf8ToB64(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
 
   function fileSlug(s) {
     return String(s || "")
@@ -104,67 +99,6 @@
     return { b64, ext };
   }
 
-  async function putRepoFile(rel, b64, message) {
-    let sha;
-    try {
-      const meta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel);
-      sha = meta.sha;
-    } catch (e) {}
-    const body = { message: message || ("Uppdatera " + rel), content: b64, branch: "main" };
-    if (sha) body.sha = sha;
-    await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/" + rel, body);
-  }
-
-  async function publishStopImages() {
-    const seen = new Map();
-    for (const ev of store.events || []) {
-      for (const t of ev.teams || []) {
-        for (const modeName of ["kortast", "iga"]) {
-          const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
-          if (!Array.isArray(stops)) continue;
-          for (const s of stops) {
-            if (!s || typeof s.image !== "string" || s.image.indexOf("data:image") !== 0) continue;
-            const raw = s.image;
-            if (seen.has(raw)) {
-              s.image = seen.get(raw);
-              continue;
-            }
-            const payload = dataImagePayload(raw);
-            if (!payload) continue;
-            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "-" + Date.now().toString(36) + "." + payload.ext;
-            const rel = "img/" + fname;
-            busyText.textContent = "Laddar upp bild " + (s.label || fname) + "…";
-            await putRepoFile(rel, payload.b64, "Bild " + (s.label || fname));
-            seen.set(raw, rel);
-            s.image = rel;
-          }
-        }
-      }
-    }
-  }
-
-  async function ghJson(method, url, body) {
-    const token = localStorage.getItem(GH_TOKEN_KEY) || "";
-    const headers = {
-      Accept: "application/vnd.github+json",
-      Authorization: "Bearer " + token
-    };
-    if (body) headers["Content-Type"] = "application/json";
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined
-    });
-    const text = await res.text();
-    let data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch (e) {}
-    if (!res.ok) {
-      const msg = (data && data.message) || ("HTTP " + res.status);
-      throw new Error(msg);
-    }
-    return data;
-  }
-
   async function ensurePublishToken() {
     let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
     if (t) return t;
@@ -174,10 +108,35 @@
     return t;
   }
 
+  function collectUploads() {
+    const uploads = [];
+    const seen = {};
+    (store.events || []).forEach((ev) => {
+      (ev.teams || []).forEach((t) => {
+        M.pointsOf(t).forEach((s) => {
+          if (!s || typeof s.image !== "string" || s.image.indexOf("data:image") !== 0) return;
+          const payload = dataImagePayload(s.image);
+          if (!payload) return;
+          const path = "img/" + fileSlug(ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + ".jpg";
+          s.image = path;
+          if (seen[path]) return;
+          seen[path] = true;
+          uploads.push({ path, b64: payload.b64, evId: ev.id, teamId: t.id, label: s.label || "" });
+        });
+      });
+    });
+    return uploads;
+  }
+
   async function publishCatalog() {
     if (isViewOnly()) return false;
     if (publishing) {
       showToast("Publicerar redan…");
+      return false;
+    }
+    const P = window.MattorPublish;
+    if (!P) {
+      showToast("Kunde inte publicera: publiceringskoden saknas");
       return false;
     }
     const token = await ensurePublishToken();
@@ -189,32 +148,26 @@
     setBusy(true, "Sparar för alla…");
     try {
       persist();
-      await publishStopImages();
+      const uploads = collectUploads();
       persist();
-      const races = M.buildRacesObject(store.events);
-      const racesBody = "window.RACES = " + JSON.stringify(races, null, 1) + ";\n";
-      const racesMeta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js");
-      await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/races.js", {
-        message: "Uppdatera lopp för alla",
-        content: utf8ToB64(racesBody),
-        branch: "main",
-        sha: racesMeta.sha
+      busyText.textContent = uploads.length ? "Publicerar bilder och lopp…" : "Sparar lopp…";
+      const localRaces = M.buildRacesObject(store.events);
+      const remote = await P.readRaces(token);
+      const removedIds = [];
+      Object.keys(remote).concat(Object.keys(localRaces)).forEach((id) => {
+        if (M.isRemoved(id) && removedIds.indexOf(id) < 0) removedIds.push(id);
       });
-      const htmlMeta = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/index.html");
-      let html = decodeURIComponent(escape(atob(htmlMeta.content.replace(/\s/g, ""))));
-      const stamp = String(Date.now());
-      html = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
-      html = html.replace(/app\.js\?v=\d+/g, "app.js?v=" + stamp);
-      html = html.replace(/ui\.js\?v=\d+/g, "ui.js?v=" + stamp);
-      await ghJson("PUT", "https://api.github.com/repos/" + GH_REPO + "/contents/index.html", {
-        message: "Cache-bust efter publicering",
-        content: utf8ToB64(html),
-        branch: "main",
-        sha: htmlMeta.sha
-      });
-      window.RACES = races;
+      const races = P.mergeRaces(remote, localRaces, { removed: removedIds, uploads });
+      const files = uploads.map((u) => ({ path: u.path, b64: u.b64 }));
+      files.push({ path: "races.js", b64: P.utf8ToB64(P.racesFile(races)) });
+      await P.commitFiles(token, files, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
+      const live = await P.readRaces(token);
+      if (uploads.length && !P.uploadsInCatalog(live, uploads)) {
+        throw new Error("Bilden nådde inte katalogen");
+      }
+      window.RACES = live;
       (store.events || []).forEach((ev) => {
-        if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
+        if (live[ev.id] && live[ev.id].rev) ev.rev = live[ev.id].rev;
       });
       persist();
       showToast("Sparat för alla på utsattning-länken");
@@ -224,6 +177,10 @@
       if (/bad credentials|401|unauthorized/i.test(msg)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
         showToast("Token ogiltig. Försök Spara för alla igen.");
+      } else if (P.isConflict && P.isConflict(e)) {
+        showToast("GitHub var upptaget. Tryck Klar igen.");
+      } else if (P.isNet && P.isNet(e)) {
+        showToast("Nådde inte GitHub. Sparat här — tryck Klar igen.");
       } else {
         showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
       }
@@ -1042,9 +999,7 @@
           writePoints(t, list);
           renderEditor();
           renderPointForm(i);
-          showToast((localStorage.getItem(GH_TOKEN_KEY) || "").trim()
-            ? "Bild sparad"
-            : "Bild sparad här. Tryck Klar · spara för alla");
+          showToast("Bild vald. Tryck Klar så alla enheter ser den");
         } catch (e) {
           showToast("Kunde inte läsa bilden");
         } finally {
@@ -1131,12 +1086,7 @@
     readPointForm(i);
     renderEditor();
     renderPointForm(i);
-    if ((localStorage.getItem(GH_TOKEN_KEY) || "").trim()) {
-      showToast("Punkt sparad, publicerar för alla…");
-      await publishCatalog();
-    } else {
-      showToast("Sparat på den här enheten. Tryck Klar så alla ser det");
-    }
+    showToast("Punkten är sparad här. Tryck Klar så alla ser den");
   }
 
   function addPoint() {

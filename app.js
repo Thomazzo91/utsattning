@@ -855,12 +855,12 @@
     dest.placering = (user.placering || user.place || dest.placering || seedStop.placering || "");
     dest.place = dest.placering;
     dest.note = user.note || dest.note || seedStop.note || "";
-    if (typeof user.image === "string" && user.image.trim()) {
-      const seedImg = (seedStop && seedStop.image) || "";
-      const userImg = user.image.trim();
-      if (userImg.indexOf("data:") === 0 && seedImg && seedImg.indexOf("data:") !== 0) dest.image = seedImg;
-      else dest.image = userImg;
-    } else dest.image = (seedStop && seedStop.image) || dest.image || "";
+    const seedImg = (seedStop && seedStop.image) || "";
+    const userImg = (typeof user.image === "string") ? user.image.trim() : "";
+    if (userImg.indexOf("data:") === 0) dest.image = seedImg || "";
+    else if (userImg.indexOf("img/") === 0 && seedImg.indexOf("img/") === 0 && userImg !== seedImg) dest.image = seedImg;
+    else if (userImg) dest.image = userImg;
+    else dest.image = seedImg || dest.image || "";
     dest.who = user.who != null ? user.who : (dest.who || "");
     return dest;
   }

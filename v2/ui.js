@@ -29,7 +29,6 @@
   let pickingIndex = -1;
   let ptFormIndex = -1;
   let publishGate = Promise.resolve();
-  const GH_REPO = "Thomazzo91/utsattning";
   const GH_TOKEN_KEY = "utsattning-publish-token";
   const editorEl = document.getElementById("editor");
   const editorBody = document.getElementById("editorBody");
@@ -1151,15 +1150,6 @@
       showToast("Kunde inte spara lokalt");
     }
   }
-  function utf8ToB64(str) {
-    const bytes = new TextEncoder().encode(str);
-    const chunk = 8192;
-    let binary = "";
-    for (let i = 0; i < bytes.length; i += chunk) {
-      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
-    }
-    return btoa(binary);
-  }
   function fileSlug(s) {
     return String(s || "").toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
   }
@@ -1220,9 +1210,9 @@
       r.onerror = () => done();
     });
   }
-  function catalogImage(stop, teamId) {
-    const ev = currentEvent();
-    const race = ev && window.RACES && window.RACES[ev.id];
+  function catalogImage(stop, teamId, evId) {
+    const id = evId || (currentEvent() && currentEvent().id);
+    const race = id && window.RACES && window.RACES[id];
     const gid = teamId || currentId || "";
     const groups = (race && race.groups) || [];
     const g = groups.find((x) => x.id === gid) ||
@@ -1241,11 +1231,9 @@
     const urls = [];
     const pending = pendingFor(stop, teamId);
     const cat = catalogImage(stop, teamId);
-    if (pending) urls.push(pending);
-    if (cat && String(cat).indexOf("data:") !== 0) urls.push(imgSrc(cat));
-    if (stop.image && String(stop.image).indexOf("data:") === 0) {
-      if (urls.indexOf(stop.image) < 0) urls.push(stop.image);
-    } else if (stop.image && stop.image !== cat) urls.push(imgSrc(stop.image));
+    if (pending && String(pending).indexOf("data:") === 0) urls.push(pending);
+    const file = (stop.image && String(stop.image).indexOf("img/") === 0) ? stop.image : (cat && String(cat).indexOf("img/") === 0 ? cat : "");
+    if (file) urls.push(imgSrc(file));
     let i = 0;
     let retried = false;
     const go = () => {
@@ -1277,199 +1265,8 @@
       ov.setAttribute("aria-hidden", "false");
     };
   }
-  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
-  function isNetworkErr(err) {
-    const msg = String((err && err.message) || err || "");
-    const name = String((err && err.name) || "");
-    return /failed to fetch|networkerror|load failed|abort|timeout|network request failed|internet|offline/i.test(msg + " " + name);
-  }
-  async function ghJson(method, url, body, opts) {
-    const token = localStorage.getItem(GH_TOKEN_KEY) || "";
-    const headers = { Accept: "application/vnd.github+json", Authorization: "Bearer " + token };
-    if (method === "GET") {
-      headers["Cache-Control"] = "no-cache";
-      url += (url.indexOf("?") >= 0 ? "&" : "?") + "ts=" + Date.now();
-    }
-    const payload = body ? JSON.stringify(body) : undefined;
-    if (payload) headers["Content-Type"] = "application/json";
-    const tries = (opts && opts.tries) || (method === "GET" ? 2 : 3);
-    const limitMs = (opts && opts.timeout) || (method === "GET" ? 8000 : 15000);
-    const skipBody = method === "PUT" || method === "PATCH";
-    let lastErr;
-    for (let i = 0; i < tries; i++) {
-      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const timer = ctrl ? setTimeout(() => ctrl.abort(), limitMs) : null;
-      try {
-        const res = await fetch(url, { method, headers, body: payload, signal: ctrl ? ctrl.signal : undefined });
-        if (res.status === 502 || res.status === 503 || res.status === 504) {
-          try { if (res.body && res.body.cancel) res.body.cancel(); } catch (e) {}
-          throw new Error("HTTP " + res.status);
-        }
-        if (!res.ok) {
-          const text = await res.text();
-          let data = {};
-          try { data = text ? JSON.parse(text) : {}; } catch (e) {}
-          const err = new Error((data && data.message) || ("HTTP " + res.status));
-          err.status = res.status;
-          throw err;
-        }
-        if (skipBody) {
-          try { if (res.body && res.body.cancel) res.body.cancel(); } catch (e) {}
-          return { ok: true, status: res.status };
-        }
-        const text = await res.text();
-        let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch (e) {}
-        return data;
-      } catch (e) {
-        lastErr = e;
-        if (skipBody && isNetworkErr(e) && !(opts && opts.noVerify) && opts && opts.beforeSha !== undefined) {
-          try {
-            await sleep(500);
-            const checkUrl = url.split("?")[0];
-            const check = await ghJson("GET", checkUrl, null, { tries: 1, timeout: 8000, noVerify: true });
-            if (check && check.sha && String(check.sha) !== String(opts.beforeSha || "")) return { ok: true, recovered: true };
-          } catch (e2) {}
-        }
-        const status = e && e.status;
-        const retry = isNetworkErr(e) || status === 502 || status === 503 || status === 504 || /HTTP 502|HTTP 503|HTTP 504/i.test(String((e && e.message) || ""));
-        if (!retry || i === tries - 1) throw e;
-        await sleep(400 * (i + 1));
-      } finally {
-        if (timer) clearTimeout(timer);
-      }
-    }
-    throw lastErr || new Error("GitHub");
-  }
-  function parseRacesFile(text) {
-    const a = String(text || "").indexOf("{");
-    const b = String(text || "").lastIndexOf("}");
-    if (a < 0 || b <= a) return {};
-    return JSON.parse(text.slice(a, b + 1));
-  }
-  function isShaConflict(err) {
-    const msg = String((err && err.message) || "");
-    const status = err && err.status;
-    return status === 409 || status === 422 || /sha|conflict|fast.?forward|already exists/i.test(msg);
-  }
-  async function mainHeadSha() {
-    const ref = await ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/git/ref/heads/main");
-    return ref && ref.object && ref.object.sha;
-  }
-  async function contentsAtHead(path) {
-    const head = await mainHeadSha();
-    if (!head) throw new Error("Ingen main-branch");
-    return ghJson("GET", "https://api.github.com/repos/" + GH_REPO + "/contents/" + path + "?ref=" + encodeURIComponent(head));
-  }
-  async function putRepoFile(path, b64, message) {
-    const url = "https://api.github.com/repos/" + GH_REPO + "/contents/" + path;
-    let lastErr;
-    for (let i = 0; i < 8; i++) {
-      let sha = "";
-      try {
-        const meta = await contentsAtHead(path);
-        sha = (meta && meta.sha) || "";
-      } catch (e) {
-        if (!/404|not found/i.test(String((e && e.message) || ""))) {
-          lastErr = e;
-          if (!isNetworkErr(e) && !isShaConflict(e) && e.status !== 502 && e.status !== 503) throw e;
-        }
-      }
-      try {
-        const body = { message: message, content: b64, branch: "main" };
-        if (sha) body.sha = sha;
-        return await ghJson("PUT", url, body, { tries: 2, timeout: 20000, beforeSha: sha });
-      } catch (e) {
-        lastErr = e;
-        if (isShaConflict(e) || isNetworkErr(e)) {
-          await sleep(300 * (i + 1));
-          continue;
-        }
-        throw e;
-      }
-    }
-    throw lastErr || new Error("GitHub PUT");
-  }
-  async function gitCommitFiles(entries, message) {
-    const api = "https://api.github.com/repos/" + GH_REPO;
-    const treeItems = [];
-    for (let i = 0; i < entries.length; i++) {
-      const ent = entries[i];
-      const blob = await ghJson("POST", api + "/git/blobs", { content: ent.b64, encoding: "base64" }, { timeout: 20000 });
-      if (!blob || !blob.sha) throw new Error("Kunde inte skapa fil");
-      treeItems.push({ path: ent.path, mode: "100644", type: "blob", sha: blob.sha });
-    }
-    let lastErr;
-    for (let attempt = 0; attempt < 8; attempt++) {
-      let createdSha = "";
-      try {
-        const ref = await ghJson("GET", api + "/git/ref/heads/main");
-        const headSha = ref && ref.object && ref.object.sha;
-        if (!headSha) throw new Error("Ingen main-branch");
-        const commit = await ghJson("GET", api + "/git/commits/" + headSha);
-        const baseTree = commit && commit.tree && commit.tree.sha;
-        if (!baseTree) throw new Error("Kunde inte läsa trädet");
-        const tree = await ghJson("POST", api + "/git/trees", { base_tree: baseTree, tree: treeItems });
-        if (!tree || !tree.sha) throw new Error("Kunde inte bygga commit");
-        const created = await ghJson("POST", api + "/git/commits", {
-          message: message,
-          tree: tree.sha,
-          parents: [headSha]
-        });
-        createdSha = created && created.sha;
-        if (!createdSha) throw new Error("Kunde inte skapa commit");
-        await ghJson("PATCH", api + "/git/refs/heads/main", { sha: createdSha, force: false }, { tries: 2, timeout: 12000 });
-        return createdSha;
-      } catch (e) {
-        lastErr = e;
-        if (createdSha) {
-          try {
-            const ref2 = await ghJson("GET", api + "/git/ref/heads/main");
-            if (ref2 && ref2.object && ref2.object.sha === createdSha) return createdSha;
-          } catch (e2) {}
-        }
-        if (isShaConflict(e) || isNetworkErr(e)) {
-          await sleep(250 * (attempt + 1));
-          continue;
-        }
-        throw e;
-      }
-    }
-    throw lastErr || new Error("GitHub");
-  }
-  async function mergeRemoteRaces(localRaces) {
-    let remote = {};
-    try {
-      const meta = await contentsAtHead("races.js");
-      const text = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
-      remote = parseRacesFile(text);
-    } catch (e) {
-      if (!/404|not found/i.test(String((e && e.message) || ""))) throw e;
-    }
-    const races = Object.assign({}, remote, localRaces);
-    Object.keys(races).forEach((id) => {
-      if (M.isRemoved(id)) delete races[id];
-    });
-    stripInlineImages(races);
-    return races;
-  }
-  async function stampHtmlCache(stamp) {
-    const paths = ["v2/index.html", "v2/oversikt.html", "index.html"];
-    for (let i = 0; i < paths.length; i++) {
-      try {
-        const url = "https://api.github.com/repos/" + GH_REPO + "/contents/" + paths[i];
-        const meta = await ghJson("GET", url, null, { tries: 1, timeout: 8000 });
-        let html = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
-        const next = html.replace(/races\.js\?v=\d+/g, "races.js?v=" + stamp);
-        if (next === html) continue;
-        await ghJson("PUT", url, {
-          message: "Cache-bust efter publicering",
-          content: utf8ToB64(next),
-          branch: "main",
-          sha: meta.sha
-        }, { tries: 1, timeout: 12000 });
-      } catch (e) {}
-    }
+  function stableImgPath(evId, teamId, label) {
+    return "img/" + fileSlug(evId || "lopp") + "-" + fileSlug(teamId) + "-" + fileSlug(label || "punkt") + ".jpg";
   }
   function fitUploadImage(dataUrl) {
     const src = String(dataUrl || "");
@@ -1513,28 +1310,11 @@
     if (typeof node.image === "string" && node.image.indexOf("data:") === 0) node.image = "";
     Object.keys(node).forEach((k) => { if (k !== "image") stripInlineImages(node[k]); });
   }
-  async function prepareImagesForUpload() {
-    const jobs = [];
-    (store.events || []).forEach((ev) => {
-      (ev.teams || []).forEach((t) => {
-        ["kortast", "iga"].forEach((modeName) => {
-          const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
-          if (!Array.isArray(stops)) return;
-          stops.forEach((s) => {
-            if (!s) return;
-            const key = stopImgKey(ev.id, t.id, s.label || "");
-            const pending = pendingImgs.get(key);
-            const raw = (typeof s.image === "string" && s.image.indexOf("data:image") === 0) ? s.image : pending;
-            if (!raw || String(raw).indexOf("data:image") !== 0 || String(raw).length <= 220000) return;
-            jobs.push(fitUploadImage(raw).then((out) => {
-              if (typeof s.image === "string" && s.image.indexOf("data:") === 0) s.image = out;
-              return pendingPut(key, out);
-            }));
-          });
-        });
-      });
-    });
-    if (jobs.length) await Promise.all(jobs);
+  function stopImgPath(ev, team, stop) {
+    if (stop && stop.image && String(stop.image).indexOf("img/") === 0) return String(stop.image).replace(/\.[a-z0-9]+$/i, ".jpg");
+    const cat = catalogImage(stop, team && team.id, ev && ev.id);
+    if (cat && String(cat).indexOf("img/") === 0) return String(cat).replace(/\.[a-z0-9]+$/i, ".jpg");
+    return stableImgPath(ev && ev.id, team && team.id, stop && (stop.label || stop.name));
   }
   async function ensurePublishToken() {
     let t = (localStorage.getItem(GH_TOKEN_KEY) || "").trim();
@@ -1543,35 +1323,38 @@
     if (t) localStorage.setItem(GH_TOKEN_KEY, t);
     return t;
   }
-  function collectDataUrlUploads() {
+  function collectUploads() {
     const uploads = [];
     const seen = new Map();
+    function add(ev, t, s, raw) {
+      if (!ev || !t || !s || !raw || String(raw).indexOf("data:image") !== 0) return;
+      const payload = dataImagePayload(raw);
+      if (!payload) return;
+      const path = stopImgPath(ev, t, s);
+      s.image = path;
+      if (seen.has(path)) return;
+      seen.set(path, true);
+      uploads.push({ path, b64: payload.b64, evId: ev.id, teamId: t.id, label: s.label || "" });
+    }
     (store.events || []).forEach((ev) => {
       (ev.teams || []).forEach((t) => {
-        ["kortast", "iga"].forEach((modeName) => {
-          const stops = t.modes && t.modes[modeName] && t.modes[modeName].stops;
-          if (!Array.isArray(stops)) return;
-          stops.forEach((s) => {
-            if (!s) return;
-            const pending = pendingImgs.get(stopImgKey(ev.id, t.id, s.label || ""));
-            let raw = "";
-            if (typeof s.image === "string" && s.image.indexOf("data:image") === 0) raw = s.image;
-            else if (pending && String(pending).indexOf("data:image") === 0) raw = pending;
-            if (!raw) return;
-            const payload = dataImagePayload(raw);
-            if (!payload) return;
-            const fname = (ev.id || "lopp") + "-" + fileSlug(t.id) + "-" + fileSlug(s.label || s.name || "punkt") + "." + payload.ext;
-            const rel = (typeof s.image === "string" && s.image.indexOf("img/") === 0) ? s.image : ("img/" + fname);
-            if (seen.has(rel)) {
-              s.image = rel;
-              return;
-            }
-            seen.set(rel, rel);
-            uploads.push({ path: rel, b64: payload.b64, evId: ev.id, teamId: t.id, label: s.label || "" });
-            s.image = rel;
-          });
+        M.pointsOf(t).forEach((s) => {
+          if (!s) return;
+          let raw = "";
+          if (typeof s.image === "string" && s.image.indexOf("data:image") === 0) raw = s.image;
+          else raw = pendingImgs.get(stopImgKey(ev.id, t.id, s.label || "")) || "";
+          add(ev, t, s, raw);
         });
       });
+    });
+    pendingImgs.forEach((raw, key) => {
+      const parts = String(key).split("|");
+      if (parts.length < 3) return;
+      const ev = (store.events || []).find((e) => e.id === parts[0]);
+      const t = ev && (ev.teams || []).find((x) => x.id === parts[1]);
+      if (!ev || !t) return;
+      const s = M.pointsOf(t).find((p) => (p.label || "") === parts.slice(2).join("|"));
+      if (s) add(ev, t, s, raw);
     });
     return uploads;
   }
@@ -1582,6 +1365,11 @@
     return job;
   }
   async function publishCatalogNow() {
+    const P = window.MattorPublish;
+    if (!P) {
+      showToast("Kunde inte publicera: publiceringskoden saknas");
+      return false;
+    }
     const token = await ensurePublishToken();
     if (!token) {
       showToast("Sparat på den här enheten. Publicera via Meny → Spara för alla");
@@ -1590,19 +1378,27 @@
     setBusy(true, "Sparar för alla…");
     try {
       persist();
-      await prepareImagesForUpload();
-      const uploads = collectDataUrlUploads();
+      const uploads = collectUploads();
       persist();
-      document.getElementById("busyText").textContent = uploads.length ? ("Laddar upp " + uploads.length + " bild" + (uploads.length > 1 ? "er" : "") + "…") : "Sparar lopp…";
+      document.getElementById("busyText").textContent = uploads.length ? "Publicerar bilder och lopp…" : "Sparar lopp…";
       const localRaces = M.buildRacesObject(store.events);
       stripInlineImages(localRaces);
-      const races = await mergeRemoteRaces(localRaces);
+      const remote = await P.readRaces(token);
+      const removedIds = [];
+      Object.keys(remote).concat(Object.keys(localRaces)).forEach((id) => {
+        if (M.isRemoved(id) && removedIds.indexOf(id) < 0) removedIds.push(id);
+      });
+      const races = P.mergeRaces(remote, localRaces, { removed: removedIds, uploads });
       const files = uploads.map((u) => ({ path: u.path, b64: u.b64 }));
-      files.push({ path: "races.js", b64: utf8ToB64("window.RACES = " + JSON.stringify(races, null, 1) + ";\n") });
-      await gitCommitFiles(files, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
-      window.RACES = races;
+      files.push({ path: "races.js", b64: P.utf8ToB64(P.racesFile(races)) });
+      await P.commitFiles(token, files, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
+      const live = await P.readRaces(token);
+      if (uploads.length && !P.uploadsInCatalog(live, uploads)) {
+        throw new Error("Bilden nådde inte katalogen");
+      }
+      window.RACES = live;
       (store.events || []).forEach((ev) => {
-        if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;
+        if (live[ev.id] && live[ev.id].rev) ev.rev = live[ev.id].rev;
       });
       persist();
       await Promise.all(uploads.map((u) => pendingDel(stopImgKey(u.evId, u.teamId, u.label))));
@@ -1611,15 +1407,14 @@
     } catch (e) {
       const msg = (e && e.message) || "";
       const name = (e && e.name) || "";
+      const P2 = window.MattorPublish || {};
       if (/bad credentials|401|unauthorized/i.test(msg)) {
         try { localStorage.removeItem(GH_TOKEN_KEY); } catch (err) {}
         showToast("Token ogiltig. Försök Spara för alla igen.");
-      } else if (isShaConflict(e) || /sha|conflict|fast.?forward/i.test(msg)) {
-        showToast("Kunde inte spara just nu. Tryck Klar igen.");
-      } else if (/abort/i.test(msg + " " + name)) {
-        showToast("GitHub svarade inte. Sparat här — tryck Klar igen.");
-      } else if (isNetworkErr(e) || /failed to fetch|load failed/i.test(msg)) {
-        showToast("Kunde inte nå GitHub. Sparat här — tryck Klar igen.");
+      } else if (P2.isConflict && P2.isConflict(e)) {
+        showToast("GitHub var upptaget. Tryck Klar igen.");
+      } else if (/abort/i.test(msg + " " + name) || (P2.isNet && P2.isNet(e))) {
+        showToast("Nådde inte GitHub. Sparat här — tryck Klar igen.");
       } else showToast("Kunde inte publicera: " + String(msg).slice(0, 120));
       return false;
     } finally {
@@ -1685,7 +1480,18 @@
     const pts = M.pointsOf(team);
     const box = editorBody.querySelector("#ptForm");
     if (!box || !pts[i]) return;
+    const ev = currentEvent();
+    const oldLabel = pts[i].label || "";
     pts[i].label = box.querySelector("#pLabel").value.trim();
+    if (ev && oldLabel !== (pts[i].label || "")) {
+      const oldKey = stopImgKey(ev.id, editTeamId, oldLabel);
+      const newKey = stopImgKey(ev.id, editTeamId, pts[i].label || "");
+      const data = pendingImgs.get(oldKey);
+      if (data) {
+        pendingDel(oldKey);
+        pendingPut(newKey, data);
+      }
+    }
     pts[i].iga = readTime(box, "pIga");
     pts[i].forsta = readTime(box, "pForsta");
     pts[i].sista = readTime(box, "pSista");
@@ -1855,18 +1661,17 @@
         try {
           const dataUrl = await fitUploadImage(await M.compressImage(file, 1400, 0.75));
           const list = M.pointsOf(teamById(editTeamId));
-          if (list[i]) list[i].image = dataUrl;
           const ev = currentEvent();
-          await pendingPut(stopImgKey(ev && ev.id, editTeamId, list[i] && list[i].label), dataUrl);
+          const stop = list[i];
+          if (!stop) return;
+          const path = stopImgPath(ev, teamById(editTeamId), stop);
+          stop.image = path;
+          await pendingPut(stopImgKey(ev && ev.id, editTeamId, stop.label || ""), dataUrl);
           writePoints(teamById(editTeamId), list);
+          persist();
           renderEditor();
           renderPointForm(i);
-          if ((localStorage.getItem(GH_TOKEN_KEY) || "").trim()) {
-            showToast("Laddar upp bilden…");
-            await publishCatalog();
-            renderEditor();
-            renderPointForm(i);
-          } else showToast("Bild sparad. Tryck Klar så alla ser den");
+          showToast("Bild vald. Tryck Klar så alla enheter ser den");
         } catch (e) { showToast("Kunde inte läsa bilden"); }
         finally { setBusy(false); }
       });
@@ -1874,8 +1679,11 @@
     const delImg = box.querySelector("#pImgDel");
     if (delImg) delImg.addEventListener("click", () => {
       const list = M.pointsOf(teamById(editTeamId));
+      const ev = currentEvent();
       if (list[i]) list[i].image = "";
+      pendingDel(stopImgKey(ev && ev.id, editTeamId, list[i] && list[i].label));
       writePoints(teamById(editTeamId), list);
+      persist();
       renderEditor();
       renderPointForm(i);
     });
@@ -1884,10 +1692,7 @@
     readPointForm(i);
     renderEditor();
     renderPointForm(i);
-    if ((localStorage.getItem(GH_TOKEN_KEY) || "").trim()) {
-      showToast("Punkt sparad, publicerar…");
-      await publishCatalog();
-    } else showToast("Sparat här. Tryck Klar · spara för alla");
+    showToast("Punkten är sparad här. Tryck Klar så alla ser den");
   }
   function addPoint() {
     saveEditorFields();
