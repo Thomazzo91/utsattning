@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 60,
+  "rev": 61,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 63,
+  "rev": 64,
   "groups": [
    {
     "id": "startmal",
@@ -16198,8 +16198,8 @@ window.RACES = {
         "name": "10 km halv",
         "label": "10 km halv",
         "who": "",
-        "lat": 55.5981952,
-        "lon": 13.0064847,
+        "lat": 55.598195,
+        "lon": 13.006485,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -16210,8 +16210,8 @@ window.RACES = {
         "forsta": "09:45",
         "sista": "11:20",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
+        "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
         "place": "",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
@@ -17397,8 +17397,8 @@ window.RACES = {
         "name": "10 km halv",
         "label": "10 km halv",
         "who": "",
-        "lat": 55.5981952,
-        "lon": 13.0064847,
+        "lat": 55.598195,
+        "lon": 13.006485,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -17409,8 +17409,8 @@ window.RACES = {
         "forsta": "09:45",
         "sista": "11:20",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
+        "note": "OBS! Bilden är inte i löpriktning. Primär uppsättning över cykelbana, sekundärt till vänster (i löpriktning)",
         "place": "",
         "setup": "Tidtagningsmatta 10 km halvmarathon",
         "gpx": "",
