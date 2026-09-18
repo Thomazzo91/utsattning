@@ -145,22 +145,23 @@
     }
     .rc-stage {
       position: relative;
-      width: 50px;
-      height: 56px;
+      width: 52px;
+      height: 62px;
     }
     .rc-runner {
       position: absolute;
       left: 50%;
       bottom: 1px;
-      width: 26px;
-      height: 34px;
+      width: 30px;
+      height: 44px;
       transform: translateX(-50%);
-      color: #eef3f8;
     }
-    .rc-runner svg {
-      width: 26px;
-      height: 34px;
+    .rc-runner img {
+      width: 30px;
+      height: 44px;
       display: block;
+      object-fit: contain;
+      filter: invert(1);
     }
     .rc-arrow {
       position: absolute;
@@ -679,14 +680,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.2l7.2 9.2h-4.4v6.2H9.2V10.4H4.8z"/></svg>
           </span>
           <span class="rc-runner" aria-hidden="true">
-            <svg viewBox="0 0 32 42">
-              <circle cx="16" cy="7.2" r="5.4" fill="currentColor"/>
-              <path fill="currentColor" d="M8.2 14.2c0-1.6 3.4-2.8 7.8-2.8s7.8 1.2 7.8 2.8l1.1 10.2c.2 1.3-2.8 2.3-8.9 2.3s-9.1-1-8.9-2.3z"/>
-              <path d="M9 16.2c-3.6 2.4-5.2 6.4-4.2 9.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-              <path d="M23 16.2c3.4 1.6 5 5.6 3.6 8.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-              <path d="M12.2 27.2c-1.2 4.6-.8 8.2-.2 11.2" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-              <path d="M19.6 27.2c1.8 4 2.8 8 2.4 11.2" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-            </svg>
+            <img src="../img/loper-bak.png?v=1" alt="">
           </span>
         </span>
         <span class="rc-dir" id="raceCompassLabel"></span>
@@ -747,6 +741,6 @@
   <script src="../app.js?v=45"></script>
   <script src="../races.js?v=31"></script>
   <script src="../live.js?v=3"></script>
-  <script src="ui.js?v=24"></script>
+  <script src="ui.js?v=25"></script>
 </body>
 </html>
