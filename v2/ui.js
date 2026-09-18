@@ -1390,40 +1390,68 @@
     }
     throw lastErr || new Error("GitHub PUT");
   }
-  async function putRacesJs(localRaces, message) {
-    const url = "https://api.github.com/repos/" + GH_REPO + "/contents/races.js";
+  async function gitCommitFiles(entries, message) {
+    const api = "https://api.github.com/repos/" + GH_REPO;
+    const treeItems = [];
+    for (let i = 0; i < entries.length; i++) {
+      const ent = entries[i];
+      const blob = await ghJson("POST", api + "/git/blobs", { content: ent.b64, encoding: "base64" }, { timeout: 20000 });
+      if (!blob || !blob.sha) throw new Error("Kunde inte skapa fil");
+      treeItems.push({ path: ent.path, mode: "100644", type: "blob", sha: blob.sha });
+    }
     let lastErr;
-    for (let i = 0; i < 8; i++) {
-      let remote = {};
-      let sha = "";
+    for (let attempt = 0; attempt < 8; attempt++) {
+      let createdSha = "";
       try {
-        const meta = await contentsAtHead("races.js");
-        sha = (meta && meta.sha) || "";
-        const text = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
-        remote = parseRacesFile(text);
-      } catch (e) {
-        if (!/404|not found/i.test(String((e && e.message) || ""))) throw e;
-      }
-      const races = Object.assign({}, remote, localRaces);
-      Object.keys(races).forEach((id) => {
-        if (M.isRemoved(id)) delete races[id];
-      });
-      stripInlineImages(races);
-      try {
-        const body = { message: message, content: utf8ToB64("window.RACES = " + JSON.stringify(races, null, 1) + ";\n"), branch: "main" };
-        if (sha) body.sha = sha;
-        await ghJson("PUT", url, body, { tries: 2, timeout: 20000, beforeSha: sha });
-        return races;
+        const ref = await ghJson("GET", api + "/git/ref/heads/main");
+        const headSha = ref && ref.object && ref.object.sha;
+        if (!headSha) throw new Error("Ingen main-branch");
+        const commit = await ghJson("GET", api + "/git/commits/" + headSha);
+        const baseTree = commit && commit.tree && commit.tree.sha;
+        if (!baseTree) throw new Error("Kunde inte läsa trädet");
+        const tree = await ghJson("POST", api + "/git/trees", { base_tree: baseTree, tree: treeItems });
+        if (!tree || !tree.sha) throw new Error("Kunde inte bygga commit");
+        const created = await ghJson("POST", api + "/git/commits", {
+          message: message,
+          tree: tree.sha,
+          parents: [headSha]
+        });
+        createdSha = created && created.sha;
+        if (!createdSha) throw new Error("Kunde inte skapa commit");
+        await ghJson("PATCH", api + "/git/refs/heads/main", { sha: createdSha, force: false }, { tries: 2, timeout: 12000 });
+        return createdSha;
       } catch (e) {
         lastErr = e;
+        if (createdSha) {
+          try {
+            const ref2 = await ghJson("GET", api + "/git/ref/heads/main");
+            if (ref2 && ref2.object && ref2.object.sha === createdSha) return createdSha;
+          } catch (e2) {}
+        }
         if (isShaConflict(e) || isNetworkErr(e)) {
-          await sleep(300 * (i + 1));
+          await sleep(250 * (attempt + 1));
           continue;
         }
         throw e;
       }
     }
-    throw lastErr || new Error("races.js");
+    throw lastErr || new Error("GitHub");
+  }
+  async function mergeRemoteRaces(localRaces) {
+    let remote = {};
+    try {
+      const meta = await contentsAtHead("races.js");
+      const text = decodeURIComponent(escape(atob((meta.content || "").replace(/\s/g, ""))));
+      remote = parseRacesFile(text);
+    } catch (e) {
+      if (!/404|not found/i.test(String((e && e.message) || ""))) throw e;
+    }
+    const races = Object.assign({}, remote, localRaces);
+    Object.keys(races).forEach((id) => {
+      if (M.isRemoved(id)) delete races[id];
+    });
+    stripInlineImages(races);
+    return races;
   }
   async function stampHtmlCache(stamp) {
     const paths = ["v2/index.html", "v2/oversikt.html", "index.html"];
@@ -1565,14 +1593,13 @@
       await prepareImagesForUpload();
       const uploads = collectDataUrlUploads();
       persist();
-      for (let i = 0; i < uploads.length; i++) {
-        document.getElementById("busyText").textContent = "Laddar upp bild " + (i + 1) + "/" + uploads.length + "…";
-        await putRepoFile(uploads[i].path, uploads[i].b64, "Bild " + (uploads[i].label || "punkt"));
-      }
-      document.getElementById("busyText").textContent = "Sparar lopp…";
+      document.getElementById("busyText").textContent = uploads.length ? ("Laddar upp " + uploads.length + " bild" + (uploads.length > 1 ? "er" : "") + "…") : "Sparar lopp…";
       const localRaces = M.buildRacesObject(store.events);
       stripInlineImages(localRaces);
-      const races = await putRacesJs(localRaces, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
+      const races = await mergeRemoteRaces(localRaces);
+      const files = uploads.map((u) => ({ path: u.path, b64: u.b64 }));
+      files.push({ path: "races.js", b64: utf8ToB64("window.RACES = " + JSON.stringify(races, null, 1) + ";\n") });
+      await gitCommitFiles(files, uploads.length ? "Bilder och lopp" : "Uppdatera lopp för alla");
       window.RACES = races;
       (store.events || []).forEach((ev) => {
         if (races[ev.id] && races[ev.id].rev) ev.rev = races[ev.id].rev;

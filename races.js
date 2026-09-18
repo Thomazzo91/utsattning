@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 68,
+  "rev": 69,
   "groups": [
    {
     "id": "startmal",
