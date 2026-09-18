@@ -13358,7 +13358,7 @@ window.RACES = {
         "place": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
-        "image": "img/lopp2-startmal-malgang-ribersborg-mu6ogs6e.jpg"
+        "image": "img/lopp2-startmal-malgang-ribersborg-mu6ohltm.jpg"
        }
       ],
       "legs": [],
@@ -13436,7 +13436,7 @@ window.RACES = {
         "place": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
-        "image": "img/lopp2-startmal-malgang-ribersborg-mu6ogs6e.jpg"
+        "image": "img/lopp2-startmal-malgang-ribersborg-mu6ohltm.jpg"
        }
       ],
       "legs": [],
