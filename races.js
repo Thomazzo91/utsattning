@@ -13334,15 +13334,15 @@ window.RACES = {
         "place": "Ribersborg – start- och målgång",
         "setup": "Start- och målgång, biblancering",
         "gpx": "",
-        "image": "img/lopp2-startmal-start-mal-ribersborg-mu6ofefs.jpg"
+        "image": "img/lopp2-startmal-start-mal-ribersborg-mu6oe79b.jpg"
        },
        {
         "idx": 2,
         "name": "Målgång Ribersborg",
         "label": "Målgång Ribersborg",
         "who": "",
-        "lat": 55.6033681,
-        "lon": 12.9711865,
+        "lat": 55.603368,
+        "lon": 12.971186,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -13354,11 +13354,11 @@ window.RACES = {
         "sista": "16:00",
         "maps": "",
         "placering": "Ribersborg – målgång",
-        "note": "",
+        "note": "Ribersborg – målgång",
         "place": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-startmal-malgang-ribersborg-mu6ogs6e.jpg"
        }
       ],
       "legs": [],
@@ -13412,15 +13412,15 @@ window.RACES = {
         "place": "Ribersborg – start- och målgång",
         "setup": "Start- och målgång, biblancering",
         "gpx": "",
-        "image": "img/lopp2-startmal-start-mal-ribersborg-mu6ofefs.jpg"
+        "image": "img/lopp2-startmal-start-mal-ribersborg-mu6oe79b.jpg"
        },
        {
         "idx": 2,
         "name": "Målgång Ribersborg",
         "label": "Målgång Ribersborg",
         "who": "",
-        "lat": 55.6033681,
-        "lon": 12.9711865,
+        "lat": 55.603368,
+        "lon": 12.971186,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -13432,11 +13432,11 @@ window.RACES = {
         "sista": "16:00",
         "maps": "",
         "placering": "Ribersborg – målgång",
-        "note": "",
+        "note": "Ribersborg – målgång",
         "place": "Ribersborg – målgång",
         "setup": "Målgång, tidsavläsning",
         "gpx": "",
-        "image": ""
+        "image": "img/lopp2-startmal-malgang-ribersborg-mu6ogs6e.jpg"
        }
       ],
       "legs": [],
