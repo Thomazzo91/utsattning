@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 68,
+  "rev": 69,
   "groups": [
    {
     "id": "soder",
@@ -13489,7 +13489,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 73,
+  "rev": 74,
   "groups": [
    {
     "id": "startmal",
@@ -18802,8 +18802,8 @@ window.RACES = {
         "name": "35 km hel",
         "label": "35 km hel",
         "who": "",
-        "lat": 55.6057527,
-        "lon": 12.9969298,
+        "lat": 55.605753,
+        "lon": 12.99693,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -18814,9 +18814,9 @@ window.RACES = {
         "forsta": "11:45",
         "sista": "15:00",
         "maps": "",
-        "placering": "",
-        "note": "",
-        "place": "",
+        "placering": "Körbana. 4 meter.",
+        "note": "Körbana. 4 meter.",
+        "place": "Körbana. 4 meter.",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
         "image": "img/lopp2-norra-35-km-hel.jpg"
@@ -18838,9 +18838,9 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "12:45",
         "maps": "",
-        "placering": "Förvaring",
-        "note": "Förvaring",
-        "place": "Förvaring",
+        "placering": "Förvaring. \nCykelbanan 4,5 meter.",
+        "note": "Förvaring. \nCykelbanan 4,5 meter.",
+        "place": "Förvaring. \nCykelbanan 4,5 meter.",
         "setup": "Tidtagningsmatta 20 km halvmarathon",
         "gpx": "",
         "image": "img/lopp2-norra-20-km-halv.jpg"
@@ -18862,9 +18862,9 @@ window.RACES = {
         "forsta": "12:00",
         "sista": "15:45",
         "maps": "",
-        "placering": "",
-        "note": "",
-        "place": "",
+        "placering": "Cykelbanan. 4,5 meter.",
+        "note": "Cykelbanan. 4,5 meter.",
+        "place": "Cykelbanan. 4,5 meter.",
         "setup": "Tidtagningsmatta 40 km marathon",
         "gpx": "",
         "image": "img/lopp2-norra-40-km-hel.jpg"
@@ -19580,8 +19580,8 @@ window.RACES = {
         "name": "35 km hel",
         "label": "35 km hel",
         "who": "",
-        "lat": 55.6057527,
-        "lon": 12.9969298,
+        "lat": 55.605753,
+        "lon": 12.99693,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -19592,9 +19592,9 @@ window.RACES = {
         "forsta": "11:45",
         "sista": "15:00",
         "maps": "",
-        "placering": "",
-        "note": "",
-        "place": "",
+        "placering": "Körbana. 4 meter.",
+        "note": "Körbana. 4 meter.",
+        "place": "Körbana. 4 meter.",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
         "image": "img/lopp2-norra-35-km-hel.jpg"
@@ -19616,9 +19616,9 @@ window.RACES = {
         "forsta": "10:15",
         "sista": "12:45",
         "maps": "",
-        "placering": "Förvaring",
-        "note": "Förvaring",
-        "place": "Förvaring",
+        "placering": "Förvaring. \nCykelbanan 4,5 meter.",
+        "note": "Förvaring. \nCykelbanan 4,5 meter.",
+        "place": "Förvaring. \nCykelbanan 4,5 meter.",
         "setup": "Tidtagningsmatta 20 km halvmarathon",
         "gpx": "",
         "image": "img/lopp2-norra-20-km-halv.jpg"
@@ -19640,9 +19640,9 @@ window.RACES = {
         "forsta": "12:00",
         "sista": "15:45",
         "maps": "",
-        "placering": "",
-        "note": "",
-        "place": "",
+        "placering": "Cykelbanan. 4,5 meter.",
+        "note": "Cykelbanan. 4,5 meter.",
+        "place": "Cykelbanan. 4,5 meter.",
         "setup": "Tidtagningsmatta 40 km marathon",
         "gpx": "",
         "image": "img/lopp2-norra-40-km-hel.jpg"
