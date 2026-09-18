@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 57,
+  "rev": 55,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 60,
+  "rev": 58,
   "groups": [
    {
     "id": "startmal",
@@ -18660,8 +18660,8 @@ window.RACES = {
         "name": "40 km hel",
         "label": "40 km hel",
         "who": "",
-        "lat": 55.617712,
-        "lon": 12.975221,
+        "lat": 55.6177116,
+        "lon": 12.9752209,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -18677,7 +18677,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 40 km marathon",
         "gpx": "",
-        "image": "img/lopp2-norra-40-km-hel-mu6pb2o3.jpg"
+        "image": "img/lopp2-norra-40-km-hel-mu6pc7au.jpg"
        }
       ],
       "legs": [],
@@ -19438,8 +19438,8 @@ window.RACES = {
         "name": "40 km hel",
         "label": "40 km hel",
         "who": "",
-        "lat": 55.617712,
-        "lon": 12.975221,
+        "lat": 55.6177116,
+        "lon": 12.9752209,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -19455,7 +19455,7 @@ window.RACES = {
         "place": "",
         "setup": "Tidtagningsmatta 40 km marathon",
         "gpx": "",
-        "image": "img/lopp2-norra-40-km-hel-mu6pb2o3.jpg"
+        "image": "img/lopp2-norra-40-km-hel-mu6pc7au.jpg"
        }
       ],
       "legs": [],
