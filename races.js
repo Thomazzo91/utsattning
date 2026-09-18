@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 67,
+  "rev": 68,
   "groups": [
    {
     "id": "soder",
@@ -13299,7 +13299,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 70,
+  "rev": 71,
   "groups": [
    {
     "id": "startmal",
@@ -16222,8 +16222,8 @@ window.RACES = {
         "name": "30 km hel",
         "label": "30 km hel",
         "who": "",
-        "lat": 55.5947703,
-        "lon": 12.9973813,
+        "lat": 55.59477,
+        "lon": 12.997381,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -16234,8 +16234,8 @@ window.RACES = {
         "forsta": "11:30",
         "sista": "14:15",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "3 meter",
+        "note": "3 meter",
         "place": "",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
@@ -17421,8 +17421,8 @@ window.RACES = {
         "name": "30 km hel",
         "label": "30 km hel",
         "who": "",
-        "lat": 55.5947703,
-        "lon": 12.9973813,
+        "lat": 55.59477,
+        "lon": 12.997381,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -17433,8 +17433,8 @@ window.RACES = {
         "forsta": "11:30",
         "sista": "14:15",
         "maps": "",
-        "placering": "",
-        "note": "",
+        "placering": "3 meter",
+        "note": "3 meter",
         "place": "",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
