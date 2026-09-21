@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 71,
+  "rev": 72,
   "groups": [
    {
     "id": "soder",
@@ -13489,7 +13489,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 76,
+  "rev": 77,
   "groups": [
    {
     "id": "startmal",
@@ -16412,8 +16412,8 @@ window.RACES = {
         "name": "30 km hel",
         "label": "30 km hel",
         "who": "",
-        "lat": 55.59477,
-        "lon": 12.997381,
+        "lat": 55.593815,
+        "lon": 12.99744,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -16424,9 +16424,9 @@ window.RACES = {
         "forsta": "11:30",
         "sista": "14:15",
         "maps": "",
-        "placering": "Cykelbanan. 3 meter.",
-        "note": "Cykelbanan. 3 meter.",
-        "place": "Cykelbanan. 3 meter.",
+        "placering": "Cykelbanan. 3 meter. (precis innan cykelbanan från vänster)",
+        "note": "Cykelbanan. 3 meter. (precis innan cykelbanan från vänster)",
+        "place": "Cykelbanan. 3 meter. (precis innan cykelbanan från vänster)",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
         "image": "img/lopp2-ostra-30-km-hel.jpg"
@@ -17611,8 +17611,8 @@ window.RACES = {
         "name": "30 km hel",
         "label": "30 km hel",
         "who": "",
-        "lat": 55.59477,
-        "lon": 12.997381,
+        "lat": 55.593815,
+        "lon": 12.99744,
         "starth": 0,
         "startm": 0,
         "firsth": 0,
@@ -17623,9 +17623,9 @@ window.RACES = {
         "forsta": "11:30",
         "sista": "14:15",
         "maps": "",
-        "placering": "Cykelbanan. 3 meter.",
-        "note": "Cykelbanan. 3 meter.",
-        "place": "Cykelbanan. 3 meter.",
+        "placering": "Cykelbanan. 3 meter. (precis innan cykelbanan från vänster)",
+        "note": "Cykelbanan. 3 meter. (precis innan cykelbanan från vänster)",
+        "place": "Cykelbanan. 3 meter. (precis innan cykelbanan från vänster)",
         "setup": "Tidtagningsmatta 30 km marathon",
         "gpx": "",
         "image": "img/lopp2-ostra-30-km-hel.jpg"
