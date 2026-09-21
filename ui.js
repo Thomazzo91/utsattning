@@ -1085,12 +1085,14 @@
     team.modes.kortast.stops = pts;
     team.modes.kortast.track = [];
     team.modes.kortast.legs = [];
+    team.modes.kortast.segs = [];
     team.modes.kortast.km = 0;
     team.modes.kortast.min = 0;
     if (!team.modes.iga) team.modes.iga = M.emptyModes().iga;
     team.modes.iga.stops = pts.slice();
     team.modes.iga.track = [];
     team.modes.iga.legs = [];
+    team.modes.iga.segs = [];
     team.modes.iga.km = 0;
     team.modes.iga.min = 0;
     if (store) store.customized = true;
@@ -1332,15 +1334,12 @@
     editorEl.classList.remove("open");
     document.body.classList.remove("editing");
     for (const t of teams()) {
-      const pts = M.pointsOf(t).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
-      const routed = t.modes && t.modes.kortast && t.modes.kortast.track && t.modes.kortast.track.length;
-      if (pts.length && !routed) {
-        setBusy(true, "Beräknar körväg för " + t.name + "…");
-        try {
-          await M.recalcTeam(t, (msg) => { busyText.textContent = msg; });
-        } catch (err) {
-          showToast("Kunde inte räkna körväg för " + t.name);
-        }
+      if (!M.needsRouteRebuild(t)) continue;
+      setBusy(true, "Beräknar körväg för " + t.name + "…");
+      try {
+        await M.recalcTeam(t, (msg) => { busyText.textContent = msg; });
+      } catch (err) {
+        showToast("Kunde inte räkna körväg för " + t.name);
       }
     }
     persist();

@@ -940,6 +940,7 @@
     if (orderChanged) {
       team.modes.iga.track = [];
       team.modes.iga.legs = [];
+      team.modes.iga.segs = [];
       team.modes.iga.km = 0;
       team.modes.iga.min = 0;
     }
@@ -974,6 +975,7 @@
       if (coordsChanged || t.orderLocked) {
         t.modes.kortast.track = [];
         t.modes.kortast.legs = [];
+        t.modes.kortast.segs = [];
         t.modes.kortast.km = 0;
         t.modes.kortast.min = 0;
       }
@@ -998,12 +1000,41 @@
     return tr.length >= Math.max(n + 4, 8);
   }
 
+  function routeCoords(mode) {
+    const out = [];
+    ((mode && mode.segs) || []).forEach((s) => {
+      ((s && s.geom) || []).forEach((p) => out.push(p));
+    });
+    if (out.length >= 2) return out;
+    return (mode && Array.isArray(mode.track)) ? mode.track : [];
+  }
+
+  function routeFollowsStops(mode, pts) {
+    if (!pts || pts.length < 2) return true;
+    const coords = routeCoords(mode);
+    if (coords.length < 2) return false;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      let best = 1e15;
+      for (let j = 0; j < coords.length; j++) {
+        const c = coords[j];
+        if (!c || c.length < 2) continue;
+        const d = haversine(p.lat, p.lon, c[1], c[0]);
+        if (d < best) best = d;
+      }
+      if (best > 50) return false;
+    }
+    return true;
+  }
+
   function needsRouteRebuild(team) {
     const pts = pointsOf(team).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
     if (pts.length < 2) return false;
     const k = team.modes && team.modes.kortast;
     const g = team.modes && team.modes.iga;
-    return !modeHasShapedRoute(k, pts) || !modeHasShapedRoute(g, pts);
+    const igaPts = igaSort(pts);
+    return !modeHasShapedRoute(k, pts) || !routeFollowsStops(k, pts) ||
+      !modeHasShapedRoute(g, igaPts) || !routeFollowsStops(g, igaPts);
   }
 
   function compactEvent(ev) {

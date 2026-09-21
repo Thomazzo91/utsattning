@@ -1592,12 +1592,14 @@
     team.modes.kortast.stops = pts;
     team.modes.kortast.track = [];
     team.modes.kortast.legs = [];
+    team.modes.kortast.segs = [];
     team.modes.kortast.km = 0;
     team.modes.kortast.min = 0;
     if (!team.modes.iga) team.modes.iga = M.emptyModes().iga;
     team.modes.iga.stops = pts.slice();
     team.modes.iga.track = [];
     team.modes.iga.legs = [];
+    team.modes.iga.segs = [];
     team.modes.iga.km = 0;
     team.modes.iga.min = 0;
     if (store) store.customized = true;
@@ -1967,6 +1969,11 @@
     document.body.classList.remove("editing");
     persist();
     const ev = currentEvent();
+    if (ev) {
+      setBusy(true, "Uppdaterar körvägar…");
+      try { await ensureEventRoutes(ev, editTeamId || currentId); } catch (e) {}
+      setBusy(false);
+    }
     await publishCatalog();
     if (ev) {
       document.body.classList.add("in-race");
@@ -1974,7 +1981,6 @@
       mapViewKey = "";
       lastMapSizeKey = "";
       show(editTeamId || currentId, currentMode, 0, true, false);
-      ensureEventRoutes(ev, editTeamId || currentId);
     }
   }
   function download(name, text, type) {
