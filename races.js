@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 76,
+  "rev": 77,
   "groups": [
    {
     "id": "soder",
@@ -13489,7 +13489,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 82,
+  "rev": 83,
   "groups": [
    {
     "id": "startmal",
@@ -21138,9 +21138,9 @@ window.RACES = {
         "forsta": "11:45",
         "sista": "15:00",
         "maps": "",
-        "placering": "Körbana. 4 meter.\nOBS! Halv mara löpare kommer passera här ca 09:45",
-        "note": "Körbana. 4 meter.\nOBS! Halv mara löpare kommer passera här ca 09:45",
-        "place": "Körbana. 4 meter.\nOBS! Halv mara löpare kommer passera här ca 09:45",
+        "placering": "Körbana. 4 meter.\n\nOBS! Halv mara löpare kommer passera här ca 09:45",
+        "note": "Körbana. 4 meter.\n\nOBS! Halv mara löpare kommer passera här ca 09:45",
+        "place": "Körbana. 4 meter.\n\nOBS! Halv mara löpare kommer passera här ca 09:45",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
         "image": "img/lopp2-norra-35-km-hel.jpg"
@@ -22567,9 +22567,9 @@ window.RACES = {
         "forsta": "11:45",
         "sista": "15:00",
         "maps": "",
-        "placering": "Körbana. 4 meter.\nOBS! Halv mara löpare kommer passera här ca 09:45",
-        "note": "Körbana. 4 meter.\nOBS! Halv mara löpare kommer passera här ca 09:45",
-        "place": "Körbana. 4 meter.\nOBS! Halv mara löpare kommer passera här ca 09:45",
+        "placering": "Körbana. 4 meter.\n\nOBS! Halv mara löpare kommer passera här ca 09:45",
+        "note": "Körbana. 4 meter.\n\nOBS! Halv mara löpare kommer passera här ca 09:45",
+        "place": "Körbana. 4 meter.\n\nOBS! Halv mara löpare kommer passera här ca 09:45",
         "setup": "Tidtagningsmatta 35 km marathon",
         "gpx": "",
         "image": "img/lopp2-norra-35-km-hel.jpg"
