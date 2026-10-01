@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 79,
+  "rev": 80,
   "groups": [
    {
     "id": "soder",
@@ -13489,7 +13489,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 87,
+  "rev": 88,
   "groups": [
    {
     "id": "startmal",
@@ -16376,9 +16376,9 @@ window.RACES = {
         "forsta": "09:05",
         "sista": "13:35",
         "maps": "",
-        "placering": "Cykelbana. 3 meter.",
-        "note": "Cykelbana. 3 meter.",
-        "place": "Cykelbana. 3 meter.",
+        "placering": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
+        "note": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
+        "place": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
         "setup": "Tidtagningsmatta 25 km marathon",
         "gpx": "",
         "image": "img/lopp2-ostra-25-km-hel.jpg"
@@ -18757,9 +18757,9 @@ window.RACES = {
         "forsta": "09:05",
         "sista": "13:35",
         "maps": "",
-        "placering": "Cykelbana. 3 meter.",
-        "note": "Cykelbana. 3 meter.",
-        "place": "Cykelbana. 3 meter.",
+        "placering": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
+        "note": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
+        "place": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
         "setup": "Tidtagningsmatta 25 km marathon",
         "gpx": "",
         "image": "img/lopp2-ostra-25-km-hel.jpg"
