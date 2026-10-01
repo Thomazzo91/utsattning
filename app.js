@@ -56,7 +56,7 @@
         name: g.name,
         ansvarig: g.ansvarig || "",
         color: g.color,
-        orderLocked: false,
+        orderLocked: !!g.orderLocked,
         modes: g.modes
       }))
     });
@@ -1279,6 +1279,7 @@
         name: t.name,
         ansvarig: t.ansvarig || "",
         color: t.color,
+        orderLocked: !!t.orderLocked,
         modes: clone(t.modes || emptyModes())
       }))
     };
