@@ -1,13 +1,14 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 85,
+  "rev": 86,
   "groups": [
    {
     "id": "soder",
     "name": "Söder",
     "ansvarig": "Hans & Erik",
     "color": "#d97706",
+    "orderLocked": false,
     "modes": {
      "kortast": {
       "km": 13.31,
@@ -5182,6 +5183,7 @@ window.RACES = {
     "name": "Mitten",
     "ansvarig": "Ellinor & Linn",
     "color": "#2563eb",
+    "orderLocked": false,
     "modes": {
      "kortast": {
       "km": 5.92,
@@ -8016,6 +8018,7 @@ window.RACES = {
     "name": "Norr",
     "ansvarig": "Susanne & Liam",
     "color": "#059669",
+    "orderLocked": false,
     "modes": {
      "kortast": {
       "km": 9.3,
@@ -13489,13 +13492,14 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 94,
+  "rev": 95,
   "groups": [
    {
     "id": "startmal",
     "name": "Start/Mål",
     "ansvarig": "",
     "color": "#ef4444",
+    "orderLocked": false,
     "modes": {
      "kortast": {
       "km": 0,
@@ -13660,6 +13664,7 @@ window.RACES = {
     "name": "Södra",
     "ansvarig": "",
     "color": "#d97706",
+    "orderLocked": false,
     "modes": {
      "kortast": {
       "km": 5.27,
@@ -18782,6 +18787,7 @@ window.RACES = {
     "name": "Östra",
     "ansvarig": "",
     "color": "#7c3aed",
+    "orderLocked": false,
     "modes": {
      "kortast": {
       "km": 4.95,
@@ -18802,7 +18808,7 @@ window.RACES = {
         "lasth": 0,
         "lastm": 0,
         "iga": "06:15",
-        "forsta": "09:15",
+        "forsta": "09:05",
         "sista": "10:45",
         "maps": "",
         "placering": "Cykel & gångbana. 6 meter",
@@ -18826,7 +18832,7 @@ window.RACES = {
         "lasth": 0,
         "lastm": 0,
         "iga": "06:50",
-        "forsta": "09:05",
+        "forsta": "09:15",
         "sista": "13:35",
         "maps": "",
         "placering": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
@@ -21135,7 +21141,7 @@ window.RACES = {
         "lasth": 0,
         "lastm": 0,
         "iga": "06:15",
-        "forsta": "09:15",
+        "forsta": "09:05",
         "sista": "10:45",
         "maps": "",
         "placering": "Cykel & gångbana. 6 meter",
@@ -21159,7 +21165,7 @@ window.RACES = {
         "lasth": 0,
         "lastm": 0,
         "iga": "06:50",
-        "forsta": "09:05",
+        "forsta": "09:15",
         "sista": "13:35",
         "maps": "",
         "placering": "Cykelbana. 3 meter. Halv mara passerar här ca 09: 15",
@@ -23456,6 +23462,7 @@ window.RACES = {
     "name": "Norra",
     "ansvarig": "",
     "color": "#059669",
+    "orderLocked": true,
     "modes": {
      "kortast": {
       "km": 3.84,
@@ -26587,8 +26594,7 @@ window.RACES = {
        }
       ]
      }
-    },
-    "orderLocked": true
+    }
    }
   ]
  }
