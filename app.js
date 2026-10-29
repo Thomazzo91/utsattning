@@ -57,6 +57,7 @@
         ansvarig: g.ansvarig || "",
         color: g.color,
         orderLocked: !!g.orderLocked,
+        pack: Array.isArray(g.pack) ? g.pack : undefined,
         modes: g.modes
       }))
     });
@@ -924,7 +925,22 @@
       if ((p.sista || "") !== (s.sista || "")) return true;
       if ((p.setup || "") !== (s.setup || "")) return true;
     }
+    if (packKey(team) !== packKey(seedTeam)) return true;
     return false;
+  }
+
+  function packKey(team) {
+    return (Array.isArray(team && team.pack) ? team.pack : []).map((row) => {
+      return String((row && row.item) || "").trim() + "\t" + String((row && row.qty) || "").trim();
+    }).join("\n");
+  }
+
+  function copyPack(src) {
+    if (!Array.isArray(src)) return null;
+    return src.map((row) => ({
+      item: String((row && row.item) || "").trim(),
+      qty: String((row && row.qty) || "").trim()
+    })).filter((row) => row.item || row.qty);
   }
 
   function syncIgaFromKortast(team) {
@@ -955,7 +971,7 @@
       const pts = Array.isArray(st.points) ? st.points : pointsOf(st);
       if (!t) {
         seed.teams.push(inflateEvent({
-          teams: [{ id: st.id, name: st.name, ansvarig: st.ansvarig, color: st.color, orderLocked: !!st.orderLocked, points: pts }]
+          teams: [{ id: st.id, name: st.name, ansvarig: st.ansvarig, color: st.color, orderLocked: !!st.orderLocked, pack: st.pack, points: pts }]
         }).teams[0]);
         return;
       }
@@ -963,6 +979,7 @@
       if (st.ansvarig) t.ansvarig = st.ansvarig;
       if (st.color) t.color = st.color;
       t.orderLocked = !!(st.orderLocked || t.orderLocked);
+      if (Array.isArray(st.pack)) t.pack = copyPack(st.pack);
       if (!pts.length) return;
       const before = (t.modes.kortast.stops || []).map(stopKey).join("\n");
       const merged = mergeTeamStops(t.modes.kortast.stops, pts, t.orderLocked);
@@ -1041,19 +1058,23 @@
     return {
       id: ev.id,
       name: ev.name,
-      teams: ev.teams.map((t) => ({
-        id: t.id,
-        name: t.name,
-        ansvarig: t.ansvarig || "",
-        color: t.color,
-        orderLocked: !!t.orderLocked,
-        points: pointsOf(t).map((p) => {
-          if (!p.image || String(p.image).indexOf("data:") !== 0) return p;
-          const q = Object.assign({}, p);
-          q.image = "";
-          return q;
-        })
-      }))
+      teams: ev.teams.map((t) => {
+        const row = {
+          id: t.id,
+          name: t.name,
+          ansvarig: t.ansvarig || "",
+          color: t.color,
+          orderLocked: !!t.orderLocked,
+          points: pointsOf(t).map((p) => {
+            if (!p.image || String(p.image).indexOf("data:") !== 0) return p;
+            const q = Object.assign({}, p);
+            q.image = "";
+            return q;
+          })
+        };
+        if (Array.isArray(t.pack)) row.pack = copyPack(t.pack);
+        return row;
+      })
     };
   }
 
@@ -1063,7 +1084,7 @@
       name: compact.name || "Nytt lopp",
       teams: (compact.teams || []).map((t) => {
         const pts = (t.points || (t.modes && t.modes.kortast && t.modes.kortast.stops) || []).map((p) => Object.assign({}, p));
-        return {
+        const team = {
           id: t.id || uid("grupp"),
           name: t.name || "Grupp",
           ansvarig: t.ansvarig || "",
@@ -1082,6 +1103,8 @@
             }
           }
         };
+        if (Array.isArray(t.pack)) team.pack = copyPack(t.pack);
+        return team;
       })
     };
   }
@@ -1274,14 +1297,18 @@
     return {
       name: ev.name || "Nytt lopp",
       rev: Math.max(prev, Number(ev.rev) || 0) + 1,
-      groups: (ev.teams || []).map((t) => ({
-        id: t.id,
-        name: t.name,
-        ansvarig: t.ansvarig || "",
-        color: t.color,
-        orderLocked: !!t.orderLocked,
-        modes: clone(t.modes || emptyModes())
-      }))
+      groups: (ev.teams || []).map((t) => {
+        const g = {
+          id: t.id,
+          name: t.name,
+          ansvarig: t.ansvarig || "",
+          color: t.color,
+          orderLocked: !!t.orderLocked,
+          modes: clone(t.modes || emptyModes())
+        };
+        if (Array.isArray(t.pack)) g.pack = copyPack(t.pack);
+        return g;
+      })
     };
   }
 

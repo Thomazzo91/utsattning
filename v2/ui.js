@@ -167,8 +167,13 @@
     return currentEvent();
   }
   function liveMinutes(v) {
-    const m = String(v || "").trim().match(/^(\d{1,2}):(\d{2})/);
-    return m ? Number(m[1]) * 60 + Number(m[2]) : 99999;
+    const raw = String(v || "").trim().toLowerCase();
+    const m = raw.match(/(\d{1,2}):(\d{2})/);
+    if (!m) return 99999;
+    let day = 0;
+    if (raw.indexOf("lör") >= 0 || raw.indexOf("lor") >= 0) day = 1;
+    else if (raw.indexOf("sön") >= 0 || raw.indexOf("son") >= 0) day = 2;
+    return day * 1440 + Number(m[1]) * 60 + Number(m[2]);
   }
   function liveRaceMeta(stop) {
     const raw = String((stop && (stop.label || stop.name)) || "").trim();
@@ -781,6 +786,7 @@
         <div class="is-first"><span>Första</span><strong>${esc(s.forsta || "—")}</strong></div>
         <div><span>Sista</span><strong>${esc(s.sista || "—")}</strong></div>
       </div>
+      ${packButtonHtml(g.id)}
       <div class="meta">
         <div class="note">${esc(s.placering || s.note || "")}</div>
         ${img}
@@ -795,6 +801,113 @@
     });
     const thumb = card.querySelector(".thumb");
     if (thumb) bindStopImg(thumb, s);
+    const packBtn = card.querySelector("#packBtn");
+    if (packBtn) packBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      openPack();
+    });
+  }
+
+  function packOf(teamId) {
+    const team = teamById(teamId);
+    if (!team || !Array.isArray(team.pack)) return null;
+    return team.pack;
+  }
+  function packButtonHtml(teamId) {
+    const pack = packOf(teamId);
+    if (!pack) return "";
+    const n = pack.filter((row) => String((row && (row.item || row.qty)) || "").trim()).length;
+    return `<button type="button" class="pack-open" id="packBtn">Packlista${n ? " · " + n + (n === 1 ? " sak" : " saker") : ""}</button>`;
+  }
+  let packGroup = "";
+  function readPackEditor() {
+    if (isViewOnly()) return;
+    const box = document.getElementById("packEdit");
+    const team = teamById(currentId);
+    if (!box || !team || !Array.isArray(team.pack)) return;
+    const rows = [];
+    box.querySelectorAll(".pack-row").forEach((row) => {
+      const item = (row.querySelector(".pack-item-in") || {}).value || "";
+      const qty = (row.querySelector(".pack-qty-in") || {}).value || "";
+      if (!String(item).trim() && !String(qty).trim()) return;
+      rows.push({ item: String(item).trim(), qty: String(qty).trim() });
+    });
+    team.pack = rows;
+    if (store) store.customized = true;
+    persist();
+  }
+  function renderPack() {
+    const sheet = document.getElementById("packSheet");
+    const body = document.getElementById("packBody");
+    const title = document.getElementById("packTitle");
+    if (!sheet || !body || !title) return;
+    const team = teamById(currentId);
+    const pack = team && Array.isArray(team.pack) ? team.pack : [];
+    packGroup = currentId;
+    title.textContent = "Packlista · " + ((team && team.name) || "");
+    const lead = document.getElementById("packLead");
+    if (lead) {
+      lead.textContent = isViewOnly()
+        ? "Ta med det här till platsen."
+        : "Ta med det här till platsen. Ändringarna syns i delade länkar först när du sparar för alla.";
+    }
+    const readRows = pack.filter((row) => String((row && (row.item || row.qty)) || "").trim());
+    const readHtml = readRows.length
+      ? `<ul class="pack-list pack-read">${readRows.map((row) => `<li><span class="pack-qty">${esc(row.qty || "–")}</span><span class="pack-name">${esc(row.item || "")}</span></li>`).join("")}</ul>`
+      : `<p class="pack-lead pack-read">Ingen packlista ännu.</p>`;
+    const editHtml = `<div class="pack-edit admin-only" id="packEdit">${pack.map((row) => packRowHtml(row)).join("")}</div>
+      <div class="pack-edit admin-only"><button type="button" class="pack-add" id="packAdd">+ Lägg till</button></div>`;
+    body.innerHTML = readHtml + editHtml;
+    body.querySelectorAll(".pack-row input").forEach((el) => {
+      el.addEventListener("change", () => { readPackEditor(); renderCard(viewOf(currentId, currentMode)); });
+    });
+    body.querySelectorAll(".pack-del").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const row = btn.closest(".pack-row");
+        if (row) row.remove();
+        readPackEditor();
+        renderPack();
+        renderCard(viewOf(currentId, currentMode));
+      });
+    });
+    const add = document.getElementById("packAdd");
+    if (add) add.addEventListener("click", () => {
+      readPackEditor();
+      const teamNow = teamById(currentId);
+      if (!teamNow) return;
+      if (!Array.isArray(teamNow.pack)) teamNow.pack = [];
+      teamNow.pack.push({ item: "", qty: "" });
+      renderPack();
+      const inputs = body.querySelectorAll(".pack-item-in");
+      const last = inputs[inputs.length - 1];
+      if (last) last.focus();
+    });
+  }
+  function packRowHtml(row) {
+    return `<div class="pack-row"><input class="pack-qty-in" inputmode="numeric" value="${esc(row && row.qty || "")}" aria-label="Antal" /><input class="pack-item-in" value="${esc(row && row.item || "")}" aria-label="Utrustning" placeholder="Utrustning" /><button type="button" class="pack-del" aria-label="Ta bort">×</button></div>`;
+  }
+  function openPack() {
+    const sheet = document.getElementById("packSheet");
+    const listSheet = document.getElementById("listSheet");
+    if (!sheet) return;
+    if (listSheet) listSheet.classList.remove("open");
+    packGroup = "";
+    renderPack();
+    sheet.classList.add("open");
+  }
+  function closePack() {
+    readPackEditor();
+    const sheet = document.getElementById("packSheet");
+    if (sheet) sheet.classList.remove("open");
+    const g = viewOf(currentId, currentMode);
+    if (g && g.id) renderCard(g);
+  }
+  function refreshPackIfOpen() {
+    const sheet = document.getElementById("packSheet");
+    if (!sheet || !sheet.classList.contains("open")) return;
+    if (packGroup === currentId) return;
+    readPackEditor();
+    renderPack();
   }
 
   function renderChips(g) {
@@ -932,6 +1045,7 @@
     document.getElementById("gmaps").href = googleDir(g);
     renderChips(g);
     renderCard(g);
+    refreshPackIfOpen();
     const listSheet = document.getElementById("listSheet");
     if (listSheet && listSheet.classList.contains("open")) {
       document.getElementById("list").querySelectorAll(".stop").forEach((el) => {
@@ -970,6 +1084,7 @@
     renderChips(g);
     renderCard(g);
     if (document.getElementById("listSheet").classList.contains("open")) renderList(g);
+    refreshPackIfOpen();
     drawMap(g, !!pan);
     mapViewKey = key;
     paintCompass();
@@ -1001,6 +1116,8 @@
     });
   }
   function openChooser() {
+    const packSheet = document.getElementById("packSheet");
+    if (packSheet) packSheet.classList.remove("open");
     document.getElementById("chooser").classList.add("open");
     document.body.classList.add("choosing");
     renderChooser();
@@ -1175,11 +1292,21 @@
     if (selected < g.stops.length - 1) show(currentId, currentMode, selected + 1, false, true);
   });
   document.getElementById("listBtn").addEventListener("click", () => {
+    const packSheet = document.getElementById("packSheet");
+    if (packSheet) packSheet.classList.remove("open");
     renderList(viewOf(currentId, currentMode));
     document.getElementById("listSheet").classList.add("open");
   });
   document.getElementById("listClose").addEventListener("click", () => {
     document.getElementById("listSheet").classList.remove("open");
+  });
+  const packClose = document.getElementById("packClose");
+  if (packClose) packClose.addEventListener("click", closePack);
+  const packPublish = document.getElementById("packPublish");
+  if (packPublish) packPublish.addEventListener("click", async () => {
+    readPackEditor();
+    const ok = await publishCatalog();
+    if (ok) closePack();
   });
   document.getElementById("modes").querySelectorAll("button").forEach((b) => {
     b.addEventListener("click", () => show(currentId, b.dataset.mode, selected, false, false));
@@ -1549,8 +1676,17 @@
       if (!keepBusy) setBusy(false);
     }
   }
+  function splitClock(value) {
+    const raw = String(value || "").trim();
+    const m = raw.match(/^(.*?)(\d{1,2}):(\d{2})$/);
+    if (!m) return { prefix: "", h: "", min: "" };
+    let prefix = m[1];
+    if (prefix && !/\s$/.test(prefix)) prefix += " ";
+    return { prefix: prefix, h: String(m[2]).padStart(2, "0"), min: m[3] };
+  }
   function timeSelectHtml(id, value) {
-    const m = String(value || "").trim().match(/^(\d{1,2}):(\d{2})/);
+    const clock = splitClock(value);
+    const m = clock.h ? [null, clock.h, clock.min] : null;
     const curH = m ? String(m[1]).padStart(2, "0") : "";
     const curM = m ? m[2] : "";
     const hours = ["<option value=\"\">—</option>"];
@@ -1566,14 +1702,16 @@
       mins.push(`<option value="${v}"${curM === v ? " selected" : ""}>${v}</option>`);
     }
     if (curM && !seen.has(curM)) mins.push(`<option value="${curM}" selected>${curM}</option>`);
-    return `<div class="time-pick"><select id="${id}H">${hours.join("")}</select><span>:</span><select id="${id}M">${mins.join("")}</select></div>`;
+    const prefix = splitClock(value).prefix;
+    return `<div class="time-pick"><input type="hidden" id="${id}P" value="${esc(prefix)}" /><select id="${id}H">${hours.join("")}</select><span>:</span><select id="${id}M">${mins.join("")}</select></div>`;
   }
   function readTime(box, id) {
     const hEl = box.querySelector("#" + id + "H");
     if (!hEl) return "";
     const h = hEl.value;
     const min = (box.querySelector("#" + id + "M") || {}).value || "00";
-    return h ? (h + ":" + min) : "";
+    const prefix = (box.querySelector("#" + id + "P") || {}).value || "";
+    return h ? (prefix + h + ":" + min) : "";
   }
   function flushPointForm() {
     if (ptFormIndex < 0) return;
