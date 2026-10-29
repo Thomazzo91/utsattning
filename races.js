@@ -54715,7 +54715,7 @@ window.RACES = {
 },
  "vattern": {
  "name": "Vätternrundan",
- "rev": 1,
+ "rev": 2,
  "groups": [
   {
    "id": "start",
@@ -54784,9 +54784,9 @@ window.RACES = {
        "forsta": "fre 19:30",
        "sista": "lör 12:30",
        "maps": "",
-       "placering": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G.",
+       "note": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G.",
+       "place": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G.",
        "setup": "Startmatta",
        "image": "",
        "idx": 1
@@ -54816,9 +54816,9 @@ window.RACES = {
        "forsta": "fre 19:30",
        "sista": "lör 12:30",
        "maps": "",
-       "placering": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G.",
+       "note": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G.",
+       "place": "Motala, backen efter Stora torget. Första start fredag 19:30, sista startgrupper omkring lördag 12:30. Box 121 och 124. El via laddare. Internet 4G.",
        "setup": "Startmatta",
        "image": "",
        "idx": 1
@@ -54894,9 +54894,9 @@ window.RACES = {
        "forsta": "fre 19:35",
        "sista": "lör 13:00",
        "maps": "",
-       "placering": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142.",
+       "note": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142.",
+       "place": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142.",
        "setup": "Tidtagningsmatta 5 km",
        "image": "",
        "idx": 1
@@ -54926,9 +54926,9 @@ window.RACES = {
        "forsta": "fre 19:35",
        "sista": "lör 13:00",
        "maps": "",
-       "placering": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142.",
+       "note": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142.",
+       "place": "Motala Golfklubb, 5 km från start. Ska vara klar fre 17:15. El: två batterier 72 Ah. Internet 4G. Box 154 och 142.",
        "setup": "Tidtagningsmatta 5 km",
        "image": "",
        "idx": 1
@@ -55024,9 +55024,9 @@ window.RACES = {
        "forsta": "fre 20:50",
        "sista": "lör 14:00",
        "maps": "",
-       "placering": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129.",
+       "note": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129.",
+       "place": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129.",
        "setup": "Tidtagningsmatta 47 km",
        "image": "img/vattern-odeshog.jpg",
        "idx": 1
@@ -55056,9 +55056,9 @@ window.RACES = {
        "forsta": "fre 20:50",
        "sista": "lör 14:00",
        "maps": "",
-       "placering": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129.",
+       "note": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129.",
+       "place": "Industriigatan vid Hästholmen, 47 km. Klar fre 18:00. El från batteri. Internet 4G. Box 128 och 129.",
        "setup": "Tidtagningsmatta 47 km",
        "image": "img/vattern-odeshog.jpg",
        "idx": 1
@@ -55152,8 +55152,8 @@ window.RACES = {
    ],
    "modes": {
     "kortast": {
-     "km": 0.13,
-     "min": 1,
+     "km": 0.18,
+     "min": 0.6,
      "gpx": "",
      "stops": [
       {
@@ -55166,9 +55166,9 @@ window.RACES = {
        "forsta": "lör 00:30",
        "sista": "lör 16:30",
        "maps": "",
-       "placering": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147.",
+       "note": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147.",
+       "place": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147.",
        "setup": "Tidtagningsmatta 104 km, ankomst",
        "image": "img/vattern-jonkoping.jpg",
        "idx": 1
@@ -55195,14 +55195,30 @@ window.RACES = {
       {
        "from": 0,
        "to": 1,
-       "km": 0.13,
-       "min": 1
+       "km": 0.18,
+       "min": 0.6
       }
      ],
      "track": [
       [
        14.233185,
        57.787232
+      ],
+      [
+       14.23386,
+       57.78705
+      ],
+      [
+       14.233312,
+       57.786471
+      ],
+      [
+       14.233006,
+       57.786236
+      ],
+      [
+       14.232888,
+       57.786159
       ],
       [
        14.232583,
@@ -55218,18 +55234,34 @@ window.RACES = {
          57.787232
         ],
         [
+         14.23386,
+         57.78705
+        ],
+        [
+         14.233312,
+         57.786471
+        ],
+        [
+         14.233006,
+         57.786236
+        ],
+        [
+         14.232888,
+         57.786159
+        ],
+        [
          14.232583,
          57.78613
         ]
        ],
-       "dist": 128,
-       "dur": 60
+       "dist": 178,
+       "dur": 36
       }
      ]
     },
     "iga": {
-     "km": 0.13,
-     "min": 1,
+     "km": 0.18,
+     "min": 0.6,
      "gpx": "",
      "stops": [
       {
@@ -55242,9 +55274,9 @@ window.RACES = {
        "forsta": "lör 00:30",
        "sista": "lör 16:30",
        "maps": "",
-       "placering": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147.",
+       "note": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147.",
+       "place": "Elmia, ankomst. Ny plats vid depån, 104 km. Klar fre 19:30. Ström är inte bekräftad. Internet 4G. Box 125 och 147.",
        "setup": "Tidtagningsmatta 104 km, ankomst",
        "image": "img/vattern-jonkoping.jpg",
        "idx": 1
@@ -55271,14 +55303,30 @@ window.RACES = {
       {
        "from": 0,
        "to": 1,
-       "km": 0.13,
-       "min": 1
+       "km": 0.18,
+       "min": 0.6
       }
      ],
      "track": [
       [
        14.233185,
        57.787232
+      ],
+      [
+       14.23386,
+       57.78705
+      ],
+      [
+       14.233312,
+       57.786471
+      ],
+      [
+       14.233006,
+       57.786236
+      ],
+      [
+       14.232888,
+       57.786159
       ],
       [
        14.232583,
@@ -55294,12 +55342,28 @@ window.RACES = {
          57.787232
         ],
         [
+         14.23386,
+         57.78705
+        ],
+        [
+         14.233312,
+         57.786471
+        ],
+        [
+         14.233006,
+         57.786236
+        ],
+        [
+         14.232888,
+         57.786159
+        ],
+        [
          14.232583,
          57.78613
         ]
        ],
-       "dist": 128,
-       "dur": 60
+       "dist": 178,
+       "dur": 36
       }
      ]
     }
@@ -55378,8 +55442,8 @@ window.RACES = {
    ],
    "modes": {
     "kortast": {
-     "km": 0.08,
-     "min": 1,
+     "km": 0.09,
+     "min": 0.5,
      "gpx": "",
      "stops": [
       {
@@ -55392,9 +55456,9 @@ window.RACES = {
        "forsta": "lör 01:10",
        "sista": "lör 19:00",
        "maps": "",
-       "placering": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135.",
+       "note": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135.",
+       "place": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135.",
        "setup": "Tidtagningsmatta 171 km, ankomst",
        "image": "img/vattern-hjo-in.jpg",
        "idx": 1
@@ -55421,14 +55485,42 @@ window.RACES = {
       {
        "from": 0,
        "to": 1,
-       "km": 0.08,
-       "min": 1
+       "km": 0.09,
+       "min": 0.5
       }
      ],
      "track": [
       [
        14.291133,
        58.303106
+      ],
+      [
+       14.291368,
+       58.303296
+      ],
+      [
+       14.291444,
+       58.303368
+      ],
+      [
+       14.291495,
+       58.303452
+      ],
+      [
+       14.291509,
+       58.303533
+      ],
+      [
+       14.291474,
+       58.303607
+      ],
+      [
+       14.291364,
+       58.30376
+      ],
+      [
+       14.291346,
+       58.303835
       ],
       [
        14.291356,
@@ -55444,18 +55536,46 @@ window.RACES = {
          58.303106
         ],
         [
+         14.291368,
+         58.303296
+        ],
+        [
+         14.291444,
+         58.303368
+        ],
+        [
+         14.291495,
+         58.303452
+        ],
+        [
+         14.291509,
+         58.303533
+        ],
+        [
+         14.291474,
+         58.303607
+        ],
+        [
+         14.291364,
+         58.30376
+        ],
+        [
+         14.291346,
+         58.303835
+        ],
+        [
          14.291356,
          58.303805
         ]
        ],
-       "dist": 79,
-       "dur": 60
+       "dist": 92,
+       "dur": 30
       }
      ]
     },
     "iga": {
-     "km": 0.08,
-     "min": 1,
+     "km": 0.09,
+     "min": 0.5,
      "gpx": "",
      "stops": [
       {
@@ -55468,9 +55588,9 @@ window.RACES = {
        "forsta": "lör 01:10",
        "sista": "lör 19:00",
        "maps": "",
-       "placering": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135.",
+       "note": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135.",
+       "place": "Hamngatan, ankomst. 171 km. Klar fre 21:30. Fast el: 16A dras från hotellet ut på gräsmattan. Box 134 och 135.",
        "setup": "Tidtagningsmatta 171 km, ankomst",
        "image": "img/vattern-hjo-in.jpg",
        "idx": 1
@@ -55497,14 +55617,42 @@ window.RACES = {
       {
        "from": 0,
        "to": 1,
-       "km": 0.08,
-       "min": 1
+       "km": 0.09,
+       "min": 0.5
       }
      ],
      "track": [
       [
        14.291133,
        58.303106
+      ],
+      [
+       14.291368,
+       58.303296
+      ],
+      [
+       14.291444,
+       58.303368
+      ],
+      [
+       14.291495,
+       58.303452
+      ],
+      [
+       14.291509,
+       58.303533
+      ],
+      [
+       14.291474,
+       58.303607
+      ],
+      [
+       14.291364,
+       58.30376
+      ],
+      [
+       14.291346,
+       58.303835
       ],
       [
        14.291356,
@@ -55520,12 +55668,40 @@ window.RACES = {
          58.303106
         ],
         [
+         14.291368,
+         58.303296
+        ],
+        [
+         14.291444,
+         58.303368
+        ],
+        [
+         14.291495,
+         58.303452
+        ],
+        [
+         14.291509,
+         58.303533
+        ],
+        [
+         14.291474,
+         58.303607
+        ],
+        [
+         14.291364,
+         58.30376
+        ],
+        [
+         14.291346,
+         58.303835
+        ],
+        [
          14.291356,
          58.303805
         ]
        ],
-       "dist": 79,
-       "dur": 60
+       "dist": 92,
+       "dur": 30
       }
      ]
     }
@@ -55618,9 +55794,9 @@ window.RACES = {
        "forsta": "lör 02:50",
        "sista": "lör 20:00",
        "maps": "",
-       "placering": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122.",
+       "note": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122.",
+       "place": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122.",
        "setup": "Tidtagningsmatta 204 km",
        "image": "img/vattern-karlsborg.jpg",
        "idx": 1
@@ -55650,9 +55826,9 @@ window.RACES = {
        "forsta": "lör 02:50",
        "sista": "lör 20:00",
        "maps": "",
-       "placering": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122.",
+       "note": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122.",
+       "place": "204 km. Klar fre 22:30. El dras genom ett fönster i frikyrkan och över gräsmattan. Sitt i expeditionen och lämna den städad. Box 120 och 122.",
        "setup": "Tidtagningsmatta 204 km",
        "image": "img/vattern-karlsborg.jpg",
        "idx": 1
@@ -55748,9 +55924,9 @@ window.RACES = {
        "forsta": "lör 03:30",
        "sista": "lör 23:00",
        "maps": "",
-       "placering": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131.",
+       "note": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131.",
+       "place": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131.",
        "setup": "Tidtagningsmatta 256 km",
        "image": "img/vattern-askersund.jpg",
        "idx": 1
@@ -55780,9 +55956,9 @@ window.RACES = {
        "forsta": "lör 03:30",
        "sista": "lör 23:00",
        "maps": "",
-       "placering": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131.",
+       "note": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131.",
+       "place": "256 km. Klar fre 23:30. El från batterier. Internet 4G. Box 130 och 131.",
        "setup": "Tidtagningsmatta 256 km",
        "image": "img/vattern-askersund.jpg",
        "idx": 1
@@ -55878,9 +56054,9 @@ window.RACES = {
        "forsta": "lör 03:30",
        "sista": "lör 23:30",
        "maps": "",
-       "placering": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136.",
+       "note": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136.",
+       "place": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136.",
        "setup": "Tidtagningsmatta 298 km",
        "image": "img/vattern-bona.jpg",
        "idx": 1
@@ -55910,9 +56086,9 @@ window.RACES = {
        "forsta": "lör 03:30",
        "sista": "lör 23:30",
        "maps": "",
-       "placering": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136.",
+       "note": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136.",
+       "place": "298 km. Klar lör 00:30. El dras från huset vid platsen. Micro och toalett finns. Box 133 och 136.",
        "setup": "Tidtagningsmatta 298 km",
        "image": "img/vattern-bona.jpg",
        "idx": 1
@@ -56004,9 +56180,9 @@ window.RACES = {
        "forsta": "lör 04:00",
        "sista": "sön 00:00",
        "maps": "",
-       "placering": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144.",
+       "note": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144.",
+       "place": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144.",
        "setup": "Förvarning 312 km",
        "image": "",
        "idx": 1
@@ -56036,9 +56212,9 @@ window.RACES = {
        "forsta": "lör 04:00",
        "sista": "sön 00:00",
        "maps": "",
-       "placering": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "note": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
-       "place": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144. En i taget vaktar mellantiden. Gör upp schemat och meddela målet.",
+       "placering": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144.",
+       "note": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144.",
+       "place": "Vintergatan, 312 km. Klar lör 01:00. El från batteri. Målet håller koll på den här punkten. Box 143 och 144.",
        "setup": "Förvarning 312 km",
        "image": "",
        "idx": 1
