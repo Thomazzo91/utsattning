@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 88,
+  "rev": 89,
   "groups": [
    {
     "id": "soder",
@@ -13492,7 +13492,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 97,
+  "rev": 98,
   "groups": [
    {
     "id": "startmal",
@@ -25117,7 +25117,7 @@ window.RACES = {
  },
  "ahus26": {
   "name": "Åhus TrailRun 2026",
-  "rev": 3,
+  "rev": 4,
   "groups": [
    {
     "id": "km17",
@@ -54719,7 +54719,7 @@ window.RACES = {
  },
  "vattern": {
   "name": "Vätternrundan",
-  "rev": 3,
+  "rev": 4,
   "groups": [
    {
     "id": "start",
@@ -54866,7 +54866,7 @@ window.RACES = {
         "note": "5 km från start. El: två batterier 72 Ah",
         "place": "5 km från start. El: två batterier 72 Ah",
         "setup": "Tidtagningsmatta 5 km",
-        "image": "",
+        "image": "img/vattern-golf-5-km-golfbanan.jpg",
         "idx": 1,
         "starth": 0,
         "startm": 0,
@@ -54900,7 +54900,7 @@ window.RACES = {
         "note": "5 km från start. El: två batterier 72 Ah",
         "place": "5 km från start. El: två batterier 72 Ah",
         "setup": "Tidtagningsmatta 5 km",
-        "image": "",
+        "image": "img/vattern-golf-5-km-golfbanan.jpg",
         "idx": 1,
         "starth": 0,
         "startm": 0,
