@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 92,
+  "rev": 93,
   "groups": [
    {
     "id": "soder",
@@ -13492,7 +13492,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 101,
+  "rev": 102,
   "groups": [
    {
     "id": "startmal",
@@ -25117,7 +25117,7 @@ window.RACES = {
  },
  "ahus26": {
   "name": "Åhus TrailRun 2026",
-  "rev": 7,
+  "rev": 8,
   "groups": [
    {
     "id": "km17",
@@ -25188,12 +25188,12 @@ window.RACES = {
         "forsta": "13:25",
         "sista": "14:30",
         "maps": "",
-        "placering": "Mellantid 11 km. Banan är tillbaka vid målet här, 10.90 km från start. I 2025-databasen är det samma matta som målet.",
-        "place": "Mellantid 11 km. Banan är tillbaka vid målet här, 10.90 km från start. I 2025-databasen är det samma matta som målet.",
-        "note": "Mellantid 11 km. Banan är tillbaka vid målet här, 10.90 km från start. I 2025-databasen är det samma matta som målet.",
+        "placering": "Mellantid 11 km. Vid målet",
+        "place": "Mellantid 11 km. Vid målet",
+        "note": "Mellantid 11 km. Vid målet",
         "setup": "Tidtagningsmatta 11 km",
         "who": "",
-        "image": "",
+        "image": "img/ahus26-km17-11-km.jpg",
         "idx": 3,
         "starth": 0,
         "startm": 0,
@@ -26388,12 +26388,12 @@ window.RACES = {
         "forsta": "13:25",
         "sista": "14:30",
         "maps": "",
-        "placering": "Mellantid 11 km. Banan är tillbaka vid målet här, 10.90 km från start. I 2025-databasen är det samma matta som målet.",
-        "place": "Mellantid 11 km. Banan är tillbaka vid målet här, 10.90 km från start. I 2025-databasen är det samma matta som målet.",
-        "note": "Mellantid 11 km. Banan är tillbaka vid målet här, 10.90 km från start. I 2025-databasen är det samma matta som målet.",
+        "placering": "Mellantid 11 km. Vid målet",
+        "place": "Mellantid 11 km. Vid målet",
+        "note": "Mellantid 11 km. Vid målet",
         "setup": "Tidtagningsmatta 11 km",
         "who": "",
-        "image": "",
+        "image": "img/ahus26-km17-11-km.jpg",
         "idx": 3,
         "starth": 0,
         "startm": 0,
@@ -43262,7 +43262,7 @@ window.RACES = {
  },
  "vattern": {
   "name": "Vätternrundan",
-  "rev": 7,
+  "rev": 8,
   "groups": [
    {
     "id": "start",
