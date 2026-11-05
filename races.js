@@ -1,7 +1,7 @@
 window.RACES = {
  "lopp1": {
   "name": "Helsingborg Marathon",
-  "rev": 91,
+  "rev": 92,
   "groups": [
    {
     "id": "soder",
@@ -13492,7 +13492,7 @@ window.RACES = {
  },
  "lopp2": {
   "name": "Malmö Marathon",
-  "rev": 100,
+  "rev": 101,
   "groups": [
    {
     "id": "startmal",
@@ -25117,7 +25117,7 @@ window.RACES = {
  },
  "ahus26": {
   "name": "Åhus TrailRun 2026",
-  "rev": 6,
+  "rev": 7,
   "groups": [
    {
     "id": "km17",
@@ -43262,7 +43262,7 @@ window.RACES = {
  },
  "vattern": {
   "name": "Vätternrundan",
-  "rev": 6,
+  "rev": 7,
   "groups": [
    {
     "id": "start",
